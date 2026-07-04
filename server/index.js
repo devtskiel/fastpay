@@ -90,6 +90,15 @@ const requireAuth = (req, res, next) => {
 // --- Routes ---
 
 app.use(express.static(path.join(__dirname, 'public')))
+
+app.get('/', (req, res) => {
+    res.redirect('/dashboard')
+})
+
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', environment: process.env.NODE_ENV || 'development' })
+})
+
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')))
 
 app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
