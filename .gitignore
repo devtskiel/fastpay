@@ -1,0 +1,26 @@
+*.iml
+.gradle
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Server sensitive files
+server/.env
+server/node_modules/
+server/members.json
+server/approvals.json
+server/out.log
+server/err.log
+
+# Keystore
+*.jks
+*.p12
+
+# Android specific
+/app/build/
+.idea/workspace.xml

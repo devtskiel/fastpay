@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SwiftPay 极速商户后台</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 70px;
+            --primary: #0052CC;
+            --secondary: #002B5B;
+            --success: #22C55E;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --background: #F4F7FE;
+            --surface: #FFFFFF;
+            --text-main: #2B3674;
+            --text-muted: #A3AED0;
+            --border: #E0E5F2;
+            --radius: 20px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--background); color: var(--text-main); overflow: hidden; }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            position: fixed;
+            left: 0; top: 0; bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--surface);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 0;
+            border-right: 1px solid var(--border);
+            z-index: 100;
+        }
+
+        .nav-item {
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .nav-item.active { background: var(--primary); color: white; box-shadow: 0 10px 20px rgba(0, 82, 204, 0.2); }
+
+        /* --- Main Content --- */
+        .main {
+            margin-left: var(--sidebar-width);
+            height: 100vh;
+            overflow-y: auto;
+            padding: 30px;
+            padding-bottom: 100px;
+        }
+
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.4s ease-out; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .header h1 { font-size: 24px; font-weight: 800; }
+
+        /* --- Dashboard Cards --- */
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--surface); padding: 24px; border-radius: var(--radius); display: flex; align-items: center; gap: 16px; }
+        .stat-icon { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .stat-info span { font-size: 14px; color: var(--text-muted); font-weight: 600; }
+        .stat-info h2 { font-size: 22px; font-weight: 800; }
+
+        /* --- Table --- */
+        .card { background: var(--surface); border-radius: var(--radius); padding: 24px; margin-bottom: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card-header h3 { font-size: 18px; font-weight: 700; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; color: var(--text-muted); font-size: 12px; text-transform: uppercase; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        td { padding: 16px 0; border-bottom: 1px solid var(--border); font-size: 14px; font-weight: 600; }
+        .status { padding: 4px 10px; border-radius: 8px; font-size: 11px; }
+        .status-active { background: #E6F7EF; color: #166534; }
+        .status-pending { background: #FFF8E1; color: #92400E; }
+
+        /* --- Forms & Buttons --- */
+        .btn { padding: 10px 20px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-danger { color: var(--danger); background: #FEE2E2; }
+
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--surface); border-radius: var(--radius); padding: 30px; width: 100%; max-width: 450px; }
+
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+        .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 12px; font-size: 14px; }
+
+        /* --- Modules --- */
+        .key-box { font-family: monospace; background: var(--background); padding: 10px; border-radius: 8px; word-break: break-all; margin-top: 4px; border: 1px dashed var(--border); font-size: 12px; }
+
+        .badge-count { background: var(--primary); color: white; padding: 2px 6px; border-radius: 6px; font-size: 10px; margin-left: 4px; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="nav-item active" onclick="showPage('page-home')" title="仪表盘"><i class="fas fa-grid-2"></i><i class="fas fa-home"></i></div>
+        <div class="nav-item" onclick="showPage('page-payments')" title="收单工具"><i class="fas fa-credit-card"></i></div>
+        <div class="nav-item" onclick="showPage('page-members')" title="团队管理"><i class="fas fa-users"></i></div>
+        <div class="nav-item" onclick="showPage('page-developer')" title="开发配置"><i class="fas fa-code"></i></div>
+        <div class="nav-item" style="margin-top: auto;" onclick="refreshAll()"><i class="fas fa-sync-alt"></i></div>
+    </div>
+
+    <div class="main">
+        <!-- Page: Home -->
+        <div id="page-home" class="page active">
+            <div class="header"><h1>极速业务看板</h1><div class="btn btn-outline" id="date-display">Today</div></div>
+            <div class="grid-3">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #E9EDF7; color: var(--primary);"><i class="fas fa-wallet"></i></div>
+                    <div class="stat-info"><span>账户余额</span><h2 id="balance-val">₱ --.--</h2></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #E2F5E9; color: var(--success);"><i class="fas fa-chart-line"></i></div>
+                    <div class="stat-info"><span>今日交易额</span><h2 id="stat-vol">₱ 0.00</h2></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #FFF5E6; color: var(--warning);"><i class="fas fa-shopping-cart"></i></div>
+                    <div class="stat-info"><span>订单总数</span><h2 id="stat-count">0</h2></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3>最近交易流水</h3><button class="btn btn-outline" onclick="showPage('page-history')">查看全部</button></div>
+                <table id="home-tx-table">
+                    <thead><tr><th>交易 ID</th><th>金额</th><th>状态</th><th>日期</th></tr></thead>
+                    <tbody id="home-tx-body"><tr><td colspan="4" style="text-align:center">加载中...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Page: Payments (Links, Invoices, QR) -->
+        <div id="page-payments" class="page">
+            <div class="header"><h1>收单管理</h1></div>
+            <div class="grid-3">
+                <div class="stat-card" style="cursor: pointer" onclick="openModal('modal-link')">
+                    <div class="stat-icon" style="background: #F4F7FE; color: var(--primary);"><i class="fas fa-link"></i></div>
+                    <div class="stat-info"><span>支付链接</span><h3>创建分享链接</h3></div>
+                </div>
+                <div class="stat-card" style="cursor: pointer" onclick="openModal('modal-invoice')">
+                    <div class="stat-icon" style="background: #F4F7FE; color: var(--primary);"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <div class="stat-info"><span>正式发票</span><h3>发送专业账单</h3></div>
+                </div>
+                <div class="stat-card" style="cursor: pointer" onclick="openModal('modal-qr')">
+                    <div class="stat-icon" style="background: #F4F7FE; color: var(--primary);"><i class="fas fa-qrcode"></i></div>
+                    <div class="stat-info"><span>QR Ph</span><h3>动态二维码</h3></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3>已生成的发票 / 链接</h3></div>
+                <table>
+                    <thead><tr><th>编号</th><th>描述</th><th>金额</th><th>操作</th></tr></thead>
+                    <tbody id="invoice-list-body"><tr><td colspan="4" style="text-align:center; color:var(--text-muted)">暂无记录</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Page: Members -->
+        <div id="page-members" class="page">
+            <div class="header"><h1>团队成员</h1><button class="btn btn-primary" onclick="openModal('modal-member')"><i class="fas fa-plus"></i> 添加成员</button></div>
+            <div class="card">
+                <table>
+                    <thead><tr><th>姓名</th><th>邮箱</th><th>角色</th><th>状态</th><th>操作</th></tr></thead>
+                    <tbody id="member-list-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Page: Developer -->
+        <div id="page-developer" class="page">
+            <div class="header"><h1>开发者设置</h1></div>
+            <div class="grid-3" style="grid-template-columns: 1fr 1fr;">
+                <div class="card">
+                    <h3>API 凭据</h3>
+                    <div class="input-group"><label>公钥 (Public Access Key)</label><div class="key-box" id="dev-pub">加载中...</div></div>
+                    <div class="input-group"><label>商户 ID (MID)</label><div class="key-box" id="dev-mid">加载中...</div></div>
+                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 10px;">用于客户端集成。请保持密钥安全。</p>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>网络钩子 (Webhooks)</h3><button class="btn btn-outline" onclick="openModal('modal-webhook')">添加</button></div>
+                    <div id="webhook-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-link" class="modal" onclick="this.classList.remove('active')"><div class="modal-content" onclick="event.stopPropagation()">
+        <h2>创建支付链接</h2><br>
+        <div class="input-group"><label>商品描述</label><input id="l-desc" placeholder="例如：月度订阅费用"></div>
+        <div class="input-group"><label>金额 (PHP)</label><input id="l-amt" type="number" placeholder="0.00"></div>
+        <button class="btn btn-primary btn-full" onclick="createLink()">立即生成</button>
+    </div></div>
+
+    <div id="modal-invoice" class="modal" onclick="this.classList.remove('active')"><div class="modal-content" onclick="event.stopPropagation()">
+        <h2>发送新发票</h2><br>
+        <div class="input-group"><label>客户描述</label><input id="i-desc" placeholder="例如：咨询服务 - 6月"></div>
+        <div class="input-group"><label>账单金额 (PHP)</label><input id="i-amt" type="number" placeholder="0.00"></div>
+        <button class="btn btn-primary btn-full" onclick="createInvoice()">发送发票</button>
+    </div></div>
+
+    <div id="modal-qr" class="modal" onclick="this.classList.remove('active')"><div class="modal-content" onclick="event.stopPropagation()" style="text-align: center;">
+        <h2>QR Ph 动态收款</h2><br>
+        <div class="input-group" style="text-align: left;"><label>收款金额</label><input id="q-amt" type="number" placeholder="0.00"></div>
+        <div id="qr-display" class="hidden" style="margin: 20px 0;"><img id="qr-img" style="width: 180px;"><p style="font-weight: 700; color: var(--primary);">已生成</p></div>
+        <button id="qr-gen-btn" class="btn btn-primary btn-full" onclick="genQR()">生成二维码</button>
+    </div></div>
+
+    <div id="modal-member" class="modal" onclick="this.classList.remove('active')"><div class="modal-content" onclick="event.stopPropagation()">
+        <h2>添加团队成员</h2><br>
+        <div class="input-group"><label>姓名</label><input id="m-name" placeholder="输入姓名"></div>
+        <div class="input-group"><label>邮箱地址</label><input id="m-email" placeholder="email@example.com"></div>
+        <div class="input-group"><label>权限角色</label><select id="m-role"><option value="ADMIN">管理员</option><option value="OPERATOR">操作员</option><option value="FINANCE">财务</option></select></div>
+        <button class="btn btn-primary btn-full" onclick="addMember()">确认添加</button>
+    </div></div>
+
+    <div id="modal-webhook" class="modal" onclick="this.classList.remove('active')"><div class="modal-content" onclick="event.stopPropagation()">
+        <h2>注册 Webhook</h2><br>
+        <div class="input-group"><label>名称</label><input id="w-name" placeholder="支付成功通知"></div>
+        <div class="input-group"><label>回调 URL (POST)</label><input id="w-url" placeholder="https://api.yoursite.com/callback"></div>
+        <button class="btn btn-primary btn-full" onclick="addWebhook()">保存配置</button>
+    </div></div>
+
+    <script>
+        // Core Logic
+        function post(action, data = null) { if (window.SwiftPaySDK) window.SwiftPaySDK.postMessage(JSON.stringify({ action, data })); }
+        function showPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            event?.currentTarget?.classList.add('active');
+            if (id === 'page-developer') { post('get_settings'); post('get_webhooks'); }
+            if (id === 'page-members') post('get_members');
+        }
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
+
+        // Actions
+        function refreshAll() { post('get_balance'); post('get_transactions'); }
+        function createLink() { post('create_payment_link', { amount: parseFloat(document.getElementById('l-amt').value), description: document.getElementById('l-desc').value }); closeModal(); }
+        function createInvoice() { post('create_invoice', { amount: parseFloat(document.getElementById('i-amt').value), description: document.getElementById('i-desc').value }); closeModal(); }
+        function genQR() { const a = parseFloat(document.getElementById('q-amt').value); if(a>0) post('generate_dynamic_qr', { amount: a }); }
+        function addMember() { post('add_member', { name: document.getElementById('m-name').value, email: document.getElementById('m-email').value, role: document.getElementById('m-role').value }); closeModal(); }
+        function addWebhook() { post('add_webhook', { name: document.getElementById('w-name').value, url: document.getElementById('w-url').value }); closeModal(); setTimeout(() => post('get_webhooks'), 1000); }
+        function deleteWebhook(id) { post('delete_webhook', { id: id }); setTimeout(() => post('get_webhooks'), 1000); }
+        function deleteMember(id) { post('delete_member', { id: id }); }
+
+        // Response Handling
+        window.onSwiftPayResponse = function(json) {
+            const res = JSON.parse(json);
+
+            if (typeof res.data === 'number') {
+                document.getElementById('balance-val').innerText = "₱ " + res.data.toLocaleString(undefined, {minimumFractionDigits: 2});
+                return;
+            }
+
+            if (Array.isArray(res.data)) {
+                if (res.data.length > 0 && res.data[0].transactionId) renderTransactions(res.data);
+                else if (res.data.length > 0 && res.data[0].role) renderMembers(res.data);
+                else if (res.data.length > 0 && res.data[0].callbackUrl) renderWebhooks(res.data);
+                return;
+            }
+
+            if (res.data?.qrCodeBody) {
+                document.getElementById('qr-display').classList.remove('hidden');
+                document.getElementById('qr-gen-btn').classList.add('hidden');
+                document.getElementById('qr-img').src = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(res.data.qrCodeBody);
+            }
+
+            if (res.data?.publicKey) {
+                document.getElementById('dev-pub').innerText = res.data.publicKey;
+                document.getElementById('dev-mid').innerText = res.data.mid || '未配置';
+            }
+
+            if (res.data?.invoiceUrl) {
+                const body = document.getElementById('invoice-list-body');
+                const row = `<tr><td>#${Date.now().toString().slice(-6)}</td><td>${document.getElementById('i-desc').value || '发票'}</td><td>₱ ${parseFloat(document.getElementById('i-amt').value).toFixed(2)}</td><td><span class="status status-pending">PENDING</span></td></tr>`;
+                body.innerHTML = row + body.innerHTML;
+            }
+        };
+
+        function renderTransactions(txs) {
+            const body = document.getElementById('home-tx-body');
+            const success = txs.filter(t => t.status === 'SUCCESS');
+            const total = success.reduce((s, t) => s + t.amount, 0);
+            document.getElementById('stat-vol').innerText = "₱ " + total.toLocaleString(undefined, {minimumFractionDigits: 2});
+            document.getElementById('stat-count').innerText = success.length;
+
+            body.innerHTML = txs.slice(0, 5).map(t => `<tr><td>${t.transactionId.slice(0,10)}..</td><td>₱ ${t.amount.toFixed(2)}</td><td><span class="status ${t.status==='SUCCESS'?'status-active':'status-pending'}">${t.status}</span></td><td>${t.date}</td></tr>`).join('');
+        }
+
+        function renderMembers(members) {
+            document.getElementById('member-list-body').innerHTML = members.map(m => `<tr><td>${m.name}</td><td>${m.email}</td><td>${m.role}</td><td><span class="status status-active">${m.status}</span></td><td><i class="fas fa-trash" style="color:var(--danger)" onclick="deleteMember('${m.id}')"></i></td></tr>`).join('');
+        }
+
+        function renderWebhooks(hooks) {
+            document.getElementById('webhook-list').innerHTML = hooks.map(h => `<div class="stat-card" style="margin-bottom:10px; padding:12px 20px"><div style="flex:1"><b>${h.name}</b><div class="key-box">${h.callbackUrl}</div></div><i class="fas fa-times-circle" style="color:var(--danger)" onclick="deleteWebhook('${h.id}')"></i></div>`).join('');
+        }
+
+        setTimeout(refreshAll, 800);
+    </script>
+</body>
+</html>

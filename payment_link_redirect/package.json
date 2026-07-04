@@ -1,0 +1,15 @@
+{
+  "name": "payment-link-redirect",
+  "version": "1.0.0",
+  "description": "Small redirect helper to forward Maya payment redirects into your app deep link",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "FastPay Helper",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+

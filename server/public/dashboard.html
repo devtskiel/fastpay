@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwiftPay 商户云端后台</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 240px;
+            --primary: #0052CC;
+            --secondary: #002B5B;
+            --success: #22C55E;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --background: #F4F7FE;
+            --surface: #FFFFFF;
+            --text-main: #2B3674;
+            --text-muted: #A3AED0;
+            --border: #E0E5F2;
+            --radius: 20px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--background); color: var(--text-main); display: flex; }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--surface);
+            height: 100vh;
+            position: fixed;
+            border-right: 1px solid var(--border);
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo { font-size: 24px; font-weight: 800; color: var(--primary); margin-bottom: 50px; display: flex; align-items: center; gap: 10px; }
+
+        .nav-item {
+            padding: 16px 20px;
+            border-radius: 12px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: 0.3s;
+        }
+
+        .nav-item:hover { background: #F4F7FE; color: var(--text-main); }
+        .nav-item.active { background: var(--primary); color: white; box-shadow: 0 10px 20px rgba(0, 82, 204, 0.2); }
+
+        /* --- Main Content --- */
+        .main {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 40px;
+            min-height: 100vh;
+        }
+
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.4s ease-out; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+
+        /* --- Stats --- */
+        .grid-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 40px; }
+        .stat-card { background: var(--surface); padding: 24px; border-radius: var(--radius); display: flex; align-items: center; gap: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+        .stat-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .stat-info span { font-size: 14px; color: var(--text-muted); font-weight: 600; }
+        .stat-info h2 { font-size: 24px; font-weight: 800; }
+
+        /* --- Content Cards --- */
+        .card { background: var(--surface); border-radius: var(--radius); padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 24px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; color: var(--text-muted); font-size: 12px; text-transform: uppercase; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+        td { padding: 16px 0; border-bottom: 1px solid var(--border); font-size: 14px; font-weight: 600; }
+
+        .btn { padding: 12px 24px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #0041a3; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+
+        /* --- Modal --- */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--surface); border-radius: 24px; padding: 40px; width: 100%; max-width: 500px; }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-muted); }
+        .form-group input, .form-group select { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 14px; outline: none; }
+
+        #login-overlay { position: fixed; inset: 0; background: var(--secondary); z-index: 5000; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: white; padding: 40px; border-radius: 24px; width: 100%; max-width: 400px; text-align: center; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="login-overlay">
+        <div class="login-card">
+            <h1 style="color: var(--primary); margin-bottom: 10px;">SwiftPay</h1>
+            <p style="color: var(--text-muted); margin-bottom: 30px;">管理后台安全登录</p>
+            <div class="form-group" style="text-align: left;">
+                <label>API Access Key</label>
+                <input type="password" id="auth-key" placeholder="输入您的管理密钥">
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="attemptLogin()">进入控制台</button>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="logo"><i class="fas fa-bolt"></i> SwiftPay</div>
+        <a href="#" class="nav-item active" onclick="showPage('home', this)"><i class="fas fa-chart-pie"></i> 概览仪表盘</a>
+        <a href="#" class="nav-item" onclick="showPage('txs', this)"><i class="fas fa-exchange-alt"></i> 交易流水</a>
+        <a href="#" class="nav-item" onclick="showPage('links', this)"><i class="fas fa-link"></i> 收款链接</a>
+        <a href="#" class="nav-item" onclick="showPage('members', this)"><i class="fas fa-users"></i> 团队管理</a>
+        <a href="#" class="nav-item" onclick="showPage('dev', this)"><i class="fas fa-cog"></i> 开发者中心</a>
+
+        <div style="margin-top: auto; padding: 20px; background: #F4F7FE; border-radius: 16px; font-size: 12px;">
+            <div style="font-weight: 800;">系统状态</div>
+            <div style="color: var(--success); display: flex; align-items: center; gap: 5px; margin-top: 5px;">
+                <span style="width: 8px; height: 8px; background: var(--success); border-radius: 50%;"></span>
+                所有服务运行正常
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- Page: Home -->
+        <div id="page-home" class="page active">
+            <div class="header"><h1>商户实时概览</h1><button class="btn btn-outline" onclick="refreshData()"><i class="fas fa-sync"></i> 刷新数据</button></div>
+            <div class="grid-stats">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #E0F2FE; color: var(--primary);"><i class="fas fa-wallet"></i></div>
+                    <div class="stat-info"><span>钱包余额</span><h2 id="bal-h2">₱ --.--</h2></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #DCFCE7; color: var(--success);"><i class="fas fa-coins"></i></div>
+                    <div class="stat-info"><span>累计收款</span><h2 id="stat-total">₱ 0.00</h2></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #FEF3C7; color: var(--warning);"><i class="fas fa-shopping-bag"></i></div>
+                    <div class="stat-info"><span>订单笔数</span><h2 id="stat-count">0</h2></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #FEE2E2; color: var(--danger);"><i class="fas fa-user-shield"></i></div>
+                    <div class="stat-info"><span>团队人数</span><h2 id="stat-members">1</h2></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3>最近收单记录</h3></div>
+                <table>
+                    <thead><tr><th>交易流水号</th><th>金额 (PHP)</th><th>支付状态</th><th>创建时间</th></tr></thead>
+                    <tbody id="tx-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Page: Links -->
+        <div id="page-links" class="page">
+            <div class="header"><h1>收款工具</h1><button class="btn btn-primary" onclick="openModal('modal-link')"><i class="fas fa-plus"></i> 创建新链接</button></div>
+            <div class="card">
+                <div class="card-header"><h3>活跃收款链接</h3></div>
+                <table>
+                    <thead><tr><th>描述</th><th>金额</th><th>短链接</th><th>操作</th></tr></thead>
+                    <tbody id="links-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Page: Members -->
+        <div id="page-members" class="page">
+            <div class="header"><h1>组织架构</h1><button class="btn btn-primary" onclick="openModal('modal-member')"><i class="fas fa-user-plus"></i> 邀请成员</button></div>
+            <div class="card">
+                <table>
+                    <thead><tr><th>姓名</th><th>邮箱</th><th>权限角色</th><th>加入时间</th><th>操作</th></tr></thead>
+                    <tbody id="members-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Page: Dev -->
+        <div id="page-dev" class="page">
+            <div class="header"><h1>API & 安全</h1></div>
+            <div class="card">
+                <h3>API 凭据</h3><br>
+                <div class="form-group"><label>Public Access Key</label><input type="text" id="dev-pub" readonly style="background:#F8FAFC"></div>
+                <div class="form-group"><label>Secret Key</label><input type="password" value="••••••••••••••••" readonly style="background:#F8FAFC"></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>Webhook 配置</h3><button class="btn btn-outline" onclick="openModal('modal-webhook')">新增端点</button></div>
+                <div id="webhook-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-link" class="modal"><div class="modal-content">
+        <h2>创建收款链接</h2><br>
+        <div class="form-group"><label>订单描述</label><input id="l-desc" placeholder="例如：软件服务费"></div>
+        <div class="form-group"><label>金额 (PHP)</label><input id="l-amt" type="number" placeholder="0.00"></div>
+        <button class="btn btn-primary" style="width:100%" onclick="saveLink()">生成并保存</button>
+    </div></div>
+
+    <div id="modal-member" class="modal"><div class="modal-content">
+        <h2>添加新成员</h2><br>
+        <div class="form-group"><label>姓名</label><input id="m-name"></div>
+        <div class="form-group"><label>邮箱</label><input id="m-email"></div>
+        <div class="form-group"><label>角色</label><select id="m-role"><option value="ADMIN">管理员</option><option value="FINANCE">财务</option></select></div>
+        <button class="btn btn-primary" style="width:100%" onclick="saveMember()">确认添加</button>
+    </div></div>
+
+    <script>
+        let serverKey = '';
+        async function api(path, method = 'GET', body = null) {
+            const res = await fetch('/api/swiftpay' + path, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'x-api-key': serverKey },
+                body: body ? JSON.stringify(body) : null
+            });
+            if (res.status === 401) { alert('登录失效'); location.reload(); }
+            return await res.json();
+        }
+
+        function attemptLogin() {
+            serverKey = document.getElementById('auth-key').value;
+            if (serverKey) {
+                document.getElementById('login-overlay').classList.add('hidden');
+                refreshData();
+            }
+        }
+
+        function showPage(id, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + id).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+            if(id === 'members') loadMembers();
+            if(id === 'dev') loadDev();
+        }
+
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        window.onclick = function(e) { if(e.target.classList.contains('modal')) e.target.classList.remove('active'); }
+
+        async function refreshData() {
+            const bal = await api('/balance');
+            document.getElementById('bal-h2').innerText = "₱ " + (bal.balance || 0).toLocaleString();
+
+            const txs = await api('/transactions');
+            const tbody = document.getElementById('tx-tbody');
+            tbody.innerHTML = txs.map(t => `<tr><td>${t.transactionId}</td><td>₱ ${t.amount.toFixed(2)}</td><td><span style="color:${t.status==='SUCCESS'?'var(--success)':'var(--warning)'}">${t.status}</span></td><td>${t.date}</td></tr>`).join('');
+
+            const success = txs.filter(t => t.status === 'SUCCESS');
+            document.getElementById('stat-total').innerText = "₱ " + success.reduce((a,b)=>a+b.amount, 0).toLocaleString();
+            document.getElementById('stat-count').innerText = success.length;
+        }
+
+        async function loadMembers() {
+            const m = await api('/members');
+            document.getElementById('stat-members').innerText = m.length;
+            document.getElementById('members-tbody').innerHTML = m.map(x => `<tr><td>${x.name}</td><td>${x.email}</td><td>${x.role}</td><td>2024-06</td><td><i class="fas fa-trash" style="color:var(--danger); cursor:pointer" onclick="deleteMember('${x.id}')"></i></td></tr>`).join('');
+        }
+
+        async function saveMember() {
+            await api('/members', 'POST', { name: document.getElementById('m-name').value, email: document.getElementById('m-email').value, role: document.getElementById('m-role').value });
+            document.getElementById('modal-member').classList.remove('active');
+            loadMembers();
+        }
+
+        async function loadDev() {
+            const s = await api('/settings');
+            document.getElementById('dev-pub').value = s.publicKey;
+            const hooks = await api('/webhooks');
+            document.getElementById('webhook-list').innerHTML = hooks.map(h => `<div class="stat-card" style="margin-top:10px"><div><b>${h.name}</b><br><small>${h.callbackUrl}</small></div></div>`).join('');
+        }
+
+        async function saveLink() {
+            const res = await api('/payment-links', 'POST', { amount: parseFloat(document.getElementById('l-amt').value), description: document.getElementById('l-desc').value });
+            if(res.paymentLinkUrl) {
+                const tbody = document.getElementById('links-tbody');
+                tbody.innerHTML = `<tr><td>${document.getElementById('l-desc').value}</td><td>₱ ${document.getElementById('l-amt').value}</td><td><a href="${res.paymentLinkUrl}" target="_blank">点击访问</a></td><td><i class="fas fa-copy"></i></td></tr>` + tbody.innerHTML;
+            }
+            document.getElementById('modal-link').classList.remove('active');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,369 @@
+package com.example.myapplication.data.api
+
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
+
+@Serializable
+data class CheckoutRequest(
+    val totalAmount: TotalAmount,
+    val buyer: Buyer? = null,
+    val items: List<Item>? = null,
+    val redirectUrl: RedirectUrl? = null,
+    val requestReferenceNumber: String? = null,
+    val metadata: Map<String, String>? = null,
+)
+
+@Serializable
+data class TotalAmount(
+    val value: Double,
+    val currency: String,
+    val details: AmountDetails? = null,
+)
+
+@Serializable
+data class AmountDetails(
+    val discount: Double? = null,
+    val serviceCharge: Double? = null,
+    val shippingFee: Double? = null,
+    val tax: Double? = null,
+    val subtotal: Double? = null,
+)
+
+@Serializable
+data class Buyer(
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val contact: Contact? = null,
+    val shippingAddress: Address? = null,
+    val billingAddress: Address? = null
+)
+
+@Serializable
+data class Contact(
+    val phone: String? = null,
+    val email: String? = null
+)
+
+@Serializable
+data class Address(
+    val line1: String? = null,
+    val line2: String? = null,
+    val city: String? = null,
+    val state: String? = null,
+    val zipCode: String? = null,
+    val countryCode: String? = null
+)
+
+@Serializable
+data class Item(
+    val name: String,
+    val quantity: Int? = null,
+    val code: String? = null,
+    val description: String? = null,
+    val amount: ItemAmount? = null,
+    val totalAmount: ItemAmount? = null,
+)
+
+@Serializable
+data class ItemAmount(
+    val value: Double,
+    val details: AmountDetails? = null
+)
+
+@Serializable
+data class RedirectUrl(
+    val success: String,
+    val failure: String,
+    val cancel: String
+)
+
+@Serializable
+data class CheckoutResponse(
+    val checkoutId: String? = null,
+    val redirectUrl: String? = null,
+)
+
+@Serializable
+data class CheckoutStatusResponse(
+    val id: String? = null,
+    val status: String? = null,
+    val paymentStatus: String? = null,
+    val transactionReferenceNumber: String? = null,
+    val receiptNumber: String? = null,
+    val requestReferenceNumber: String? = null,
+)
+
+@Serializable
+data class SwiftPayProfileResponse(
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val middleName: String? = null,
+    val businessName: String? = null,
+    val birthday: String? = null,
+    val sex: String? = null,
+    val contact: Contact? = null
+)
+
+@Serializable
+data class MerchantProfileResponse(
+    val id: String? = null,
+    val merchantId: String? = null,
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val businessName: String? = null,
+    val email: String? = null,
+    val phone: String? = null,
+    val kycStatus: String? = null,
+    val accountStatus: String? = null,
+    val createdAt: String? = null,
+    val address: Address? = null,
+    val businessType: String? = null,
+    val monthlyVolume: Double? = null,
+    val masterMid: String? = null,
+    val mids: List<String>? = null
+)
+
+@Serializable
+data class InvoiceRequest(
+    val invoiceNumber: String,
+    val type: String = "SINGLE",
+    val totalAmount: TotalAmount? = null,
+    val redirectUrl: RedirectUrl? = null,
+    val requestReferenceNumber: String? = null,
+    val metadata: Map<String, String>? = null,
+)
+
+@Serializable
+data class InvoiceResponse(
+    val invoiceId: String? = null,
+    val invoiceUrl: String? = null,
+)
+
+@Serializable
+data class PaymentLinkRequest(
+    val description: String? = null,
+    val totalAmount: TotalAmount? = null,
+    val requestReferenceNumber: String? = null,
+    val redirectUrl: RedirectUrl? = null,
+    val metadata: Map<String, String>? = null,
+    val expiresAt: String? = null
+)
+
+@Serializable
+data class PaymentLinkResponse(
+    val id: String? = null,
+    val paymentLinkUrl: String? = null,
+    val shortCode: String? = null,
+    val status: String? = null,
+    val description: String? = null,
+    val totalAmount: TotalAmount? = null,
+    @SerialName("createdAt")
+    val createdAt: String? = null,
+    @SerialName("expiresAt")
+    val expiresAt: String? = null,
+)
+
+@Serializable
+data class SwiftPayTransactionResponse(
+    val data: List<SwiftPayTransaction>? = null,
+    val payments: List<SwiftPayTransaction>? = null,
+    val metadata: PagingMetadata? = null
+)
+
+@Serializable
+data class PagingMetadata(
+    val totalCount: Int? = null,
+    val page: Int? = null,
+    val size: Int? = null,
+    val totalPages: Int? = null
+)
+
+@Serializable
+data class SwiftPayTransaction(
+    val id: String? = null,
+    @SerialName("requestReferenceNo")
+    val requestReferenceNumber: String? = null,
+    val amount: String? = null,
+    val currency: String? = null,
+    val status: String? = null,
+    @SerialName("createdAt")
+    val timestamp: String? = null,
+    val description: String? = null,
+)
+
+@Serializable
+data class BalanceResponse(
+    val balance: Double? = null,
+    val availableBalance: Double? = null,
+    val totalBalance: Double? = null,
+    val currency: String? = null,
+)
+
+@Serializable
+data class BalanceInquiryRequest(
+    val merchant: MerchantInfo = MerchantInfo()
+)
+
+@Serializable
+data class MerchantInfo(
+    val acquiringTerminal: TerminalInfo = TerminalInfo()
+)
+
+@Serializable
+data class TerminalInfo(
+    val type: String = "POS"
+)
+
+@Serializable
+data class InternalTransaction(
+    val transactionId: String,
+    val amount: Double,
+    val status: String,
+    val date: String,
+)
+
+@Serializable
+data class PaymentChannel(
+    val name: String,
+    val status: String,
+    val icon: String? = null,
+)
+
+@Serializable
+data class PaymentTokenRequest(
+    val card: CardDetails
+)
+
+@Serializable
+data class CardDetails(
+    val number: String,
+    val expMonth: String,
+    val expYear: String,
+    val cvc: String? = null
+)
+
+@Serializable
+data class PaymentTokenResponse(
+    val paymentTokenId: String? = null,
+    val state: String? = null,
+)
+
+@Serializable
+data class VaultPaymentRequest(
+    val totalAmount: TotalAmount,
+    val paymentTokenId: String,
+    val requestReferenceNumber: String,
+    val redirectUrl: RedirectUrl? = null,
+    val metadata: Map<String, String>? = null
+)
+
+@Serializable
+data class VaultPaymentResponse(
+    val id: String? = null,
+    val paymentId: String? = null,
+    val status: String? = null,
+    val amount: String? = null,
+    val currency: String? = null,
+    val verificationUrl: String? = null,
+)
+
+@Serializable
+data class DynamicQrRequest(
+    val totalAmount: TotalAmount,
+    val requestReferenceNumber: String,
+    val redirectUrl: RedirectUrl? = null,
+    val metadata: Map<String, String>? = null,
+    val type: String? = null
+)
+
+@Serializable
+data class DynamicQrResponse(
+    val paymentId: String? = null,
+    val qrCodeBody: String? = null,
+    val redirectUrl: String? = null,
+)
+
+@Serializable
+data class CustomizationRequest(
+    val logoUrl: String? = null,
+    val iconUrl: String? = null,
+    val appleTouchIconUrl: String? = null,
+    val customTitle: String? = null,
+    val colorScheme: String? = null,
+    val showMerchantName: Boolean? = null,
+    val skipResultPage: Boolean? = null,
+    val redirectTimer: Int? = null
+)
+
+@Serializable
+data class OtpRequest(
+    val email: String,
+    val type: String = "LOGIN"
+)
+
+@Serializable
+data class OtpVerifyRequest(
+    val email: String,
+    val code: String
+)
+
+@Serializable
+data class ResendRequest(
+    @SerialName("from") val from: String,
+    @SerialName("to") val to: List<String>,
+    @SerialName("subject") val subject: String,
+    @SerialName("html") val html: String
+)
+
+@Serializable
+data class ResendResponse(
+    val id: String? = null,
+)
+
+@Serializable
+data class Recipient(
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val accountNumber: String? = null,
+)
+
+@Serializable
+data class DisbursementRequest(
+    val totalAmount: TotalAmount,
+    val recipient: Recipient,
+    val requestReferenceNumber: String,
+    val metadata: Map<String, String>? = null
+)
+
+@Serializable
+data class DisbursementResponse(
+    val id: String? = null,
+    val disbursementId: String? = null,
+    val status: String? = null,
+    val amount: Double? = null,
+    val amountString: String? = null,
+    val currency: String? = null,
+    val recipient: Recipient? = null,
+    val createdAt: String? = null,
+)
+
+@Serializable
+data class SwiftPayError(
+    val code: String? = null,
+    val message: String? = null,
+    val errors: List<SwiftPayErrorDetail>? = null
+)
+
+@Serializable
+data class SwiftPayErrorDetail(
+    val code: String? = null,
+    val message: String? = null,
+    val field: String? = null
+)
+
+@Serializable
+data class WebhookRequest(
+    val name: String,
+    val callbackUrl: String,
+    val id: String? = null
+)
