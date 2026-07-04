@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: swiftpay-merchant-gateway
+    env: node
+    plan: starter
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: swiftpay-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: APP_SERVER_KEY
+        sync: false
+      - key: SWIFTPAY_PUBLIC_KEY
+        sync: false
+      - key: SWIFTPAY_SECRET_KEY
+        sync: false
+
+databases:
+  - name: swiftpay-db
+    plan: starter
