@@ -2,7 +2,7 @@ services:
   - type: web
     name: swiftpay-merchant-gateway
     env: node
-    plan: starter
+    plan: free
     rootDir: server
     buildCommand: npm install
     startCommand: node index.js
@@ -22,4 +22,4 @@ services:
 
 databases:
   - name: swiftpay-db
-    plan: starter
+    plan: free
