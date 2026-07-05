@@ -170,6 +170,13 @@ app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
     } catch (e) { res.json([]) }
 })
 
+// --- Webhook Handler ---
+app.post('/api/swiftpay/webhook', async (req, res) => {
+    console.log('🔔 Received SwiftPay Webhook:', JSON.stringify(req.body, null, 2))
+    // Add logic here to process payment status changes (e.g., notify Android app via FCM or update DB)
+    res.status(200).json({ status: 'received' })
+})
+
 app.use(express.static(path.join(__dirname, 'public')))
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')))
 
