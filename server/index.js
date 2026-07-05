@@ -90,6 +90,42 @@ async function startServer() {
     app.listen(PORT, '0.0.0.0', () => console.log('Merchant Portal Server listening on port', PORT))
 }
 
+// --- Netbank Token Helper ---
+const getNetbankToken = async (pub, sec) => {
+    try {
+        console.log('📡 Requesting Netbank Access Token...')
+        const data = qs.stringify({
+            'grant_type': 'client_credentials',
+            'client_id': pub,
+            'client_secret': sec
+        })
+        const config = {
+            method: 'post',
+            url: 'https://auth.netbank.ph/oauth2/token',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            data: data
+        }
+        const response = await axios(config)
+        return response.data.access_token
+    } catch (e) {
+        console.error('🔥 Auth Error:', e.response?.data || e.message)
+        throw new Error('Netbank Auth Failed: ' + (e.response?.data?.message || e.message))
+    }
+}
+
+const getSwiftPayClient = async (userId) => {
+    const r = await pgPool.query('SELECT sp_public_key, sp_secret_key, business_name, source_account_number FROM users WHERE id = $1', [userId])
+    const u = r.rows[0]
+    if (!u?.sp_secret_key) throw new Error('SwiftPay API keys are missing')
+    return {
+        axios: axios.create({ baseURL: 'https://api.netbank.ph/', headers: { 'Authorization': 'Basic ' + Buffer.from(cleanKey(u.sp_secret_key) + ':').toString('base64'), 'Content-Type': 'application/json' } }),
+        pub: cleanKey(u.sp_public_key),
+        sec: cleanKey(u.sp_secret_key),
+        biz: u.business_name || 'SwiftPay Merchant',
+        sourceAccount: u.source_account_number
+    }
+}
+
 // --- Auth Endpoints ---
 app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body
@@ -111,33 +147,13 @@ const requireAuth = (req, res, next) => {
     } catch (e) { res.status(401).json({ error: 'Session has expired' }) }
 }
 
-const getNetbankToken = async (pub, sec) => {
-    try {
-        const data = qs.stringify({ 'grant_type': 'client_credentials', 'client_id': pub, 'client_secret': sec })
-        const config = { method: 'post', url: 'https://auth.netbank.ph/oauth2/token', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, data: data }
-        const response = await axios(config)
-        return response.data.access_token
-    } catch (e) { throw new Error('Netbank token authentication failed') }
-}
-
-const getSwiftPayClient = async (userId) => {
-    const r = await pgPool.query('SELECT sp_secret_key, business_name FROM users WHERE id = $1', [userId])
-    const secret = cleanKey(r.rows[0]?.sp_secret_key)
-    const biz = r.rows[0]?.business_name || 'SwiftPay Merchant'
-    if (!secret) throw new Error('SwiftPay API keys are missing')
-    return {
-        axios: axios.create({ baseURL: 'https://api.netbank.ph/', headers: { 'Authorization': 'Basic ' + Buffer.from(secret + ':').toString('base64'), 'Content-Type': 'application/json' } }),
-        businessName: biz
-    }
-}
-
 // --- Functional Endpoints ---
 app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
     try {
         const { axios: client } = await getSwiftPayClient(req.user.id)
         const resp = await client.get('v1/account/balance')
         res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: 'Failed to retrieve wallet balance' }) }
+    } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
 app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
@@ -150,20 +166,50 @@ app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
 
 app.post('/api/swiftpay/qr', requireAuth, async (req, res) => {
     try {
-        const r = await pgPool.query('SELECT sp_public_key, sp_secret_key, business_name FROM users WHERE id = $1', [req.user.id])
-        const pub = cleanKey(r.rows[0]?.sp_public_key)
-        const sec = cleanKey(r.rows[0]?.sp_secret_key)
-        const biz = r.rows[0]?.business_name || 'Merchant'
-        const accessToken = await getNetbankToken(pub, sec)
-        const payload = { amount: { currency: 'PHP', value: req.body.amount.toFixed(2) }, merchant_name: biz.substring(0, 25), merchant_city: 'Manila', reference_no: 'QR_' + Date.now(), generate_additional_fields: false }
-        const resp = await axios.post('https://api.netbank.ph/v1/qrph/generate', payload, { headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' } })
+        const u = await getSwiftPayClient(req.user.id)
+
+        if (!u.sourceAccount) {
+            return res.status(400).json({ error: 'Please configure Source Netbank Account in Settings first.' })
+        }
+
+        const accessToken = await getNetbankToken(u.pub, u.sec)
+
+        const payload = {
+            destination_account: u.sourceAccount,
+            amount: { currency: 'PHP', value: parseFloat(req.body.amount).toFixed(2) },
+            merchant_name: u.biz.substring(0, 25),
+            merchant_city: 'Manila',
+            reference_no: 'FP_' + Date.now(),
+            generate_additional_fields: false
+        }
+
+        console.log('📡 Generating QR Ph for:', payload.destination_account)
+        const resp = await axios.post('https://api.netbank.ph/v1/qrph/generate', payload, {
+            headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' }
+        })
         res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: 'QR Ph generation failed' }) }
+    } catch (e) {
+        const errMsg = e.response?.data?.message || e.message
+        console.error('🔥 QR Error:', errMsg)
+        res.status(500).json({ error: errMsg })
+    }
 })
 
 app.get('/api/swiftpay/settings', requireAuth, async (req, res) => {
     const r = await pgPool.query('SELECT business_name, shop_url, source_account_number, sp_public_key FROM users WHERE id = $1', [req.user.id])
     res.json(r.rows[0])
+})
+
+app.post('/api/swiftpay/profile', requireAuth, async (req, res) => {
+    const { businessName, shopUrl, sourceAccountNumber } = req.body
+    await pgPool.query('UPDATE users SET business_name = $1, shop_url = $2, source_account_number = $3 WHERE id = $4', [businessName, shopUrl, sourceAccountNumber, req.user.id])
+    res.json({ status: 'success' })
+})
+
+app.post('/api/swiftpay/keys', requireAuth, async (req, res) => {
+    const { publicKey, secretKey } = req.body
+    await pgPool.query('UPDATE users SET sp_public_key = $1, sp_secret_key = $2 WHERE id = $3', [publicKey, secretKey, req.user.id])
+    res.json({ status: 'success' })
 })
 
 app.use(express.static(path.join(__dirname, 'public')))
