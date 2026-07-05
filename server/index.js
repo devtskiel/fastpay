@@ -56,6 +56,20 @@ if (usePg) {
         created_at BIGINT
       )`)
       console.log('✅ Postgres Production Tables Ready with Multi-User Support')
+
+      // --- Admin Seeding ---
+      const adminEmail = 'admin@fastpay.com'
+      const adminPass = 'SwiftPay#Admin#2024'
+      const adminCheck = await pgPool.query('SELECT id FROM users WHERE email = $1', [adminEmail])
+
+      if (adminCheck.rows.length === 0) {
+        const hash = await bcrypt.hash(adminPass, 10)
+        await pgPool.query(
+          'INSERT INTO users(email, password_hash, sp_public_key, sp_secret_key) VALUES($1, $2, $3, $4)',
+          [adminEmail, hash, process.env.SWIFTPAY_PUBLIC_KEY, process.env.SWIFTPAY_SECRET_KEY]
+        )
+        console.log('👤 Main Admin Account Seeded Successfully')
+      }
     } catch (e) {
       console.error('❌ DB Migration Failed:', e.message)
     }
