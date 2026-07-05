@@ -17,17 +17,22 @@ app.use(bodyParser.json())
 const JWT_SECRET = process.env.JWT_SECRET || 'fastpay-super-secret-2024'
 
 // --- Persistence Layer ---
-const usePg = !!process.env.DATABASE_URL
+const rawDbUrl = process.env.DATABASE_URL
+const usePg = !!rawDbUrl
 let pgPool = null
 
 if (usePg) {
   const { Pool } = require('pg')
+  // Ensure the protocol is 'postgres://' which is most compatible
+  const connectionString = rawDbUrl.replace('postgresql://', 'postgres://')
+
   pgPool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: connectionString,
     ssl: { rejectUnauthorized: false }
   })
 
-  ;(async () => {
+  // Auto-migrate tables
+  const initDb = async () => {
     try {
       await pgPool.query(`CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -47,23 +52,40 @@ if (usePg) {
         status TEXT DEFAULT 'ACTIVE',
         created_at TIMESTAMPTZ DEFAULT NOW()
       )`)
-      console.log('✅ Postgres Multi-User Schema Ready')
+      console.log('✅ Postgres Connected & Schema Ready')
 
-      // Admin Seeding
+      // Seed Admin
       const adminEmail = 'admin@fastpay.com'
       const adminPass = 'SwiftPay#Admin#2024'
-      const adminCheck = await pgPool.query('SELECT id FROM users WHERE email = $1', [adminEmail])
-      if (adminCheck.rows.length === 0) {
+      const { rows } = await pgPool.query('SELECT id FROM users WHERE email = $1', [adminEmail])
+
+      if (rows.length === 0) {
         const hash = await bcrypt.hash(adminPass, 10)
+        // Clean keys just in case user pasted with spaces/slashes
+        const pub = (process.env.SWIFTPAY_PUBLIC_KEY || '').split('/')[0].trim()
+        const sec = (process.env.SWIFTPAY_SECRET_KEY || '').split('/')[0].trim()
+
         await pgPool.query(
           'INSERT INTO users(email, password_hash, business_name, sp_public_key, sp_secret_key) VALUES($1, $2, $3, $4, $5)',
-          [adminEmail, hash, 'FastPay HQ', process.env.SWIFTPAY_PUBLIC_KEY, process.env.SWIFTPAY_SECRET_KEY]
+          [adminEmail, hash, 'FastPay Admin', pub, sec]
         )
-        console.log('👤 Main Admin Seeded')
+        console.log('👤 Admin Account Seeded: admin@fastpay.com / SwiftPay#Admin#2024')
       }
-    } catch (e) { console.error('❌ DB Error:', e.message) }
-  })()
+    } catch (e) {
+      console.error('❌ DB Initialization Failed:', e.message)
+    }
+  }
+  initDb()
 }
+
+// --- Status Endpoint ---
+app.get('/api/status', (req, res) => {
+    res.json({
+        database: usePg ? 'connected' : 'disconnected',
+        environment: process.env.NODE_ENV || 'development',
+        uptime: process.uptime()
+    })
+})
 
 // --- Auth Middleware ---
 const requireAuth = (req, res, next) => {
@@ -77,29 +99,29 @@ const requireAuth = (req, res, next) => {
 
 // --- Auth Endpoints ---
 app.post('/api/auth/signup', async (req, res) => {
-    if (!usePg) return res.status(500).json({ error: 'Database not connected' })
+    if (!usePg) return res.status(500).json({ error: 'Database disconnected' })
     const { email, password, businessName } = req.body
     try {
         const hash = await bcrypt.hash(password, 10)
         await pgPool.query('INSERT INTO users(email, password_hash, business_name) VALUES($1, $2, $3)', [email.toLowerCase(), hash, businessName])
         res.json({ status: 'success' })
     } catch (e) {
-        if (e.code === '23505') return res.status(400).json({ error: 'Email already registered' })
-        res.status(400).json({ error: 'Account creation failed' })
+        res.status(400).json({ error: e.code === '23505' ? 'Email exists' : 'Signup failed' })
     }
 })
 
 app.post('/api/auth/login', async (req, res) => {
-    if (!usePg) return res.status(500).json({ error: 'Database not connected' })
+    if (!usePg) return res.status(500).json({ error: 'Database disconnected' })
     const { email, password } = req.body
     try {
         const r = await pgPool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase()])
         const user = r.rows[0]
-        if (!user || !(await bcrypt.compare(password, user.password_hash))) return res.status(401).json({ error: 'Invalid email or password' })
-
+        if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+            return res.status(401).json({ error: 'Invalid email or password' })
+        }
         const token = jwt.sign({ id: user.id, email: user.email, businessName: user.business_name }, JWT_SECRET, { expiresIn: '24h' })
         res.json({ token, user: { email: user.email, businessName: user.business_name, hasKeys: !!user.sp_secret_key } })
-    } catch (e) { res.status(500).json({ error: 'Authentication failed' }) }
+    } catch (e) { res.status(500).json({ error: 'Server Auth Error' }) }
 })
 
 // --- SwiftPay Proxy ---
@@ -109,7 +131,7 @@ const getClient = async (uid) => {
     if (!secret) throw new Error('API Keys Missing')
     return axios.create({
         baseURL: 'https://api.netbank.ph/',
-        headers: { 'Authorization': 'Basic ' + Buffer.from(secret + ':').toString('base64') }
+        headers: { 'Authorization': 'Basic ' + Buffer.from(secret.trim() + ':').toString('base64') }
     })
 }
 
@@ -118,7 +140,7 @@ app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
         const client = await getClient(req.user.id)
         const resp = await client.get('v1/account/balance')
         res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: 'API Error' }) }
+    } catch (e) { res.status(500).json({ error: 'SwiftPay API Error' }) }
 })
 
 app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
@@ -141,7 +163,7 @@ app.post('/api/swiftpay/payment-links', requireAuth, async (req, res) => {
         const client = await getClient(req.user.id)
         const resp = await client.post('v1/collect/payment-links', req.body)
         res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: 'Failed to create link' }) }
+    } catch (e) { res.status(500).json({ error: 'Link failed' }) }
 })
 
 app.post('/api/swiftpay/qr', requireAuth, async (req, res) => {
@@ -149,7 +171,7 @@ app.post('/api/swiftpay/qr', requireAuth, async (req, res) => {
         const client = await getClient(req.user.id)
         const resp = await client.post('v1/collect/qr/payments', req.body)
         res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: 'Failed to generate QR' }) }
+    } catch (e) { res.status(500).json({ error: 'QR failed' }) }
 })
 
 app.post('/api/swiftpay/invoice', requireAuth, async (req, res) => {
@@ -157,7 +179,7 @@ app.post('/api/swiftpay/invoice', requireAuth, async (req, res) => {
         const client = await getClient(req.user.id)
         const resp = await client.post('v1/collect/invoice', req.body)
         res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: 'Failed to create invoice' }) }
+    } catch (e) { res.status(500).json({ error: 'Invoice failed' }) }
 })
 
 app.post('/api/swiftpay/keys', requireAuth, async (req, res) => {
