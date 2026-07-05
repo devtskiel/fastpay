@@ -77,6 +77,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        .header h1 { font-size: 28px; font-weight: 800; }
 
         /* --- Stats --- */
         .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 40px; }
@@ -88,6 +89,7 @@
         /* --- Content Cards --- */
         .card { background: var(--surface); border-radius: var(--radius); padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 24px; }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .card-header h3 { font-size: 20px; font-weight: 700; }
 
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; color: var(--text-muted); font-size: 12px; text-transform: uppercase; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
@@ -97,6 +99,7 @@
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:hover { background: var(--primary-hover); }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-danger-outline { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
 
         /* --- Auth Container --- */
         #auth-container { position: fixed; inset: 0; background: var(--secondary); z-index: 5000; display: flex; align-items: center; justify-content: center; }
@@ -118,10 +121,14 @@
         #setup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 4000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         #setup-overlay.active { display: flex; }
 
+        .badge { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; }
+        .badge-success { background: #DCFCE7; color: #166534; }
+        .badge-pending { background: #FEF3C7; color: #92400E; }
+
         .hidden { display: none !important; }
     </style>
 </head>
-<body class="">
+<body>
 
     <!-- Authentication -->
     <div id="auth-container">
@@ -162,27 +169,28 @@
         </div>
     </div>
 
-    <!-- API Key Setup (Shown for new users) -->
+    <!-- API Key Setup -->
     <div id="setup-overlay">
         <div class="auth-card" style="max-width: 500px;">
-            <h2 style="margin-bottom: 10px;">Welcome to SwiftPay</h2>
-            <p style="color: var(--text-muted); margin-bottom: 30px;">Please configure your production API keys to start collecting payments.</p>
+            <h2 style="margin-bottom: 10px;">API Configuration</h2>
+            <p style="color: var(--text-muted); margin-bottom: 30px;">Enter your SwiftPay Production keys to enable payments.</p>
             <div class="form-group">
-                <label>Production Public Access Key</label>
+                <label>Production Public Key</label>
                 <input type="text" id="setup-pub" placeholder="0C5112C9...">
             </div>
             <div class="form-group">
                 <label>Production Secret Key</label>
                 <input type="password" id="setup-sec" placeholder="6EF06D96...">
             </div>
-            <button class="btn btn-primary" style="width: 100%;" onclick="saveKeys()">Save & Continue</button>
-            <p style="font-size: 11px; margin-top: 15px; color: var(--text-muted);">You can find these keys in your SwiftPay Merchant Portal.</p>
+            <button class="btn btn-primary" style="width: 100%;" onclick="saveKeys()">Save Settings</button>
+            <button class="btn btn-outline" style="width: 100%; margin-top: 10px;" onclick="document.getElementById('setup-overlay').classList.remove('active')">Cancel</button>
         </div>
     </div>
 
     <div class="sidebar">
         <div class="logo"><i class="fas fa-bolt"></i> SwiftPay</div>
         <a href="#" class="nav-item active" onclick="showPage('home', this)"><i class="fas fa-chart-pie"></i> Dashboard</a>
+        <a href="#" class="nav-item" onclick="showPage('tools', this)"><i class="fas fa-tools"></i> Payment Tools</a>
         <a href="#" class="nav-item" onclick="showPage('txs', this)"><i class="fas fa-exchange-alt"></i> Transactions</a>
         <a href="#" class="nav-item" onclick="showPage('members', this)"><i class="fas fa-users"></i> Team</a>
         <a href="#" class="nav-item" onclick="showPage('dev', this)"><i class="fas fa-cog"></i> Settings</a>
@@ -193,12 +201,13 @@
     </div>
 
     <div class="main">
+        <!-- Page: Home -->
         <div id="page-home" class="page active">
-            <div class="header"><h1>Business Overview</h1><button class="btn btn-outline" onclick="refreshData()"><i class="fas fa-sync"></i> Sync</button></div>
+            <div class="header"><h1>Merchant Overview</h1><button class="btn btn-outline" onclick="refreshData()"><i class="fas fa-sync"></i> Sync</button></div>
             <div class="grid-stats">
                 <div class="stat-card">
                     <div class="stat-icon" style="background: #E0F2FE; color: var(--primary);"><i class="fas fa-wallet"></i></div>
-                    <div class="stat-info"><span>Wallet Balance</span><h2 id="bal-h2">₱ --.--</h2></div>
+                    <div class="stat-info"><span>Available Balance</span><h2 id="bal-h2">₱ --.--</h2></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon" style="background: #DCFCE7; color: var(--success);"><i class="fas fa-coins"></i></div>
@@ -206,53 +215,109 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon" style="background: #FEF3C7; color: var(--warning);"><i class="fas fa-shopping-bag"></i></div>
-                    <div class="stat-info"><span>Sales Volume</span><h2 id="stat-count">0</h2></div>
+                    <div class="stat-info"><span>Order Count</span><h2 id="stat-count">0</h2></div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-header"><h3>Live Transactions</h3></div>
+                <div class="card-header"><h3>Recent Transactions</h3></div>
                 <table>
-                    <thead><tr><th>TX ID</th><th>Amount (PHP)</th><th>Status</th><th>Time</th></tr></thead>
+                    <thead><tr><th>TX ID</th><th>Amount</th><th>Status</th><th>Time</th></tr></thead>
                     <tbody id="tx-tbody"></tbody>
                 </table>
             </div>
         </div>
 
+        <!-- Page: Tools -->
+        <div id="page-tools" class="page">
+            <div class="header"><h1>Payment Tools</h1></div>
+            <div class="grid-stats">
+                <div class="stat-card" style="cursor: pointer" onclick="openModal('modal-link')">
+                    <div class="stat-icon" style="background: #F4F7FE; color: var(--primary);"><i class="fas fa-link"></i></div>
+                    <div class="stat-info"><span>Payment Link</span><h3>Instant billing</h3></div>
+                </div>
+                <div class="stat-card" style="cursor: pointer" onclick="openModal('modal-invoice')">
+                    <div class="stat-icon" style="background: #F4F7FE; color: var(--primary);"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <div class="stat-info"><span>Professional Invoice</span><h3>B2B billing</h3></div>
+                </div>
+                <div class="stat-card" style="cursor: pointer" onclick="openModal('modal-qr')">
+                    <div class="stat-icon" style="background: #F4F7FE; color: var(--primary);"><i class="fas fa-qrcode"></i></div>
+                    <div class="stat-info"><span>Dynamic QR Ph</span><h3>In-store payments</h3></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page: Transactions -->
         <div id="page-txs" class="page">
-            <div class="header"><h1>Transaction History</h1></div>
+            <div class="header"><h1>All Transactions</h1></div>
             <div class="card">
                 <table id="full-tx-table">
-                    <thead><tr><th>Transaction ID</th><th>Amount</th><th>Status</th><th>Created At</th></tr></thead>
+                    <thead><tr><th>Transaction ID</th><th>Amount (PHP)</th><th>Status</th><th>Date</th></tr></thead>
                     <tbody id="full-tx-body"></tbody>
                 </table>
             </div>
         </div>
 
+        <!-- Page: Members -->
         <div id="page-members" class="page">
-            <div class="header"><h1>Team Access</h1><button class="btn btn-primary" onclick="openModal('modal-member')"><i class="fas fa-user-plus"></i> Invite</button></div>
+            <div class="header"><h1>Team Access Control</h1><button class="btn btn-primary" onclick="openModal('modal-member')"><i class="fas fa-user-plus"></i> Add User</button></div>
             <div class="card">
                 <table>
-                    <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Full Name</th><th>Email Address</th><th>Role</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody id="members-tbody"></tbody>
                 </table>
             </div>
         </div>
 
+        <!-- Page: Dev -->
         <div id="page-dev" class="page">
             <div class="header"><h1>Account Settings</h1></div>
             <div class="card">
                 <h3>Gateway Configuration</h3><br>
-                <div class="form-group"><label>Email Address</label><input type="text" id="user-email" readonly style="background:#F8FAFC"></div>
-                <div class="form-group"><label>Public Access Key</label><input type="text" id="dev-pub" readonly style="background:#F8FAFC"></div>
-                <button class="btn btn-outline" onclick="document.getElementById('setup-overlay').classList.add('active')">Update API Keys</button>
+                <div class="form-group"><label>Logged in as</label><input type="text" id="user-email" readonly style="background:#F8FAFC"></div>
+                <div class="form-group"><label>Production Public Key</label><input type="text" id="dev-pub" readonly style="background:#F8FAFC"></div>
+                <button class="btn btn-primary" onclick="document.getElementById('setup-overlay').classList.add('active')">Update API Credentials</button>
             </div>
         </div>
     </div>
 
+    <!-- Modals -->
+    <div id="modal-link" class="modal"><div class="modal-content">
+        <h2>Create Payment Link</h2><br>
+        <div class="form-group"><label>Product Name</label><input id="l-desc" placeholder="e.g. Premium Subscription"></div>
+        <div class="form-group"><label>Amount (PHP)</label><input id="l-amt" type="number" placeholder="0.00"></div>
+        <button class="btn btn-primary" style="width:100%" onclick="saveLink()">Generate Link</button>
+    </div></div>
+
+    <div id="modal-invoice" class="modal"><div class="modal-content">
+        <h2>Issue New Invoice</h2><br>
+        <div class="form-group"><label>Service Description</label><input id="i-desc" placeholder="e.g. Design Services"></div>
+        <div class="form-group"><label>Total Amount (PHP)</label><input id="i-amt" type="number" placeholder="0.00"></div>
+        <button class="btn btn-primary" style="width:100%" onclick="saveInvoice()">Generate Invoice</button>
+    </div></div>
+
+    <div id="modal-qr" class="modal"><div class="modal-content" style="text-align: center;">
+        <h2>QR Ph Generator</h2><br>
+        <div class="form-group"><label>Payment Amount</label><input id="q-amt" type="number" placeholder="0.00"></div>
+        <div id="qr-display" class="hidden" style="margin: 20px 0;"><img id="qr-img" style="width: 200px;"><p style="font-weight: 700; color: var(--primary); margin-top: 10px;">SCAN TO PAY</p></div>
+        <button id="qr-gen-btn" class="btn btn-primary" style="width:100%" onclick="genQR()">Generate QR Code</button>
+    </div></div>
+
+    <div id="modal-member" class="modal"><div class="modal-content">
+        <h2>Add Team Member</h2><br>
+        <div class="form-group"><label>Full Name</label><input id="m-name" placeholder="John Doe"></div>
+        <div class="form-group"><label>Email Address</label><input id="m-email" placeholder="john@example.com"></div>
+        <div class="form-group"><label>Assigned Role</label><select id="m-role"><option value="SENDER">Sender</option><option value="DEVELOPER">Developer</option><option value="APPROVER">Approver</option></select></div>
+        <button class="btn btn-primary" style="width:100%" onclick="saveMember()">Confirm Invite</button>
+    </div></div>
+
     <script>
         let token = localStorage.getItem('sp_token');
-        if (token) document.body.classList.add('logged-in');
+        if (token) {
+            document.body.classList.add('logged-in');
+            const user = JSON.parse(localStorage.getItem('sp_user') || '{}');
+            if(user.email) document.getElementById('user-email').value = user.email;
+        }
 
         function switchAuth(type, el) {
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -265,8 +330,12 @@
         function showAlert(msg, type='danger') {
             const div = document.getElementById('auth-alert');
             div.innerText = msg;
-            div.className = msg ? `alert alert-${type}` : 'alert';
+            div.className = `alert alert-${type}`;
+            div.style.display = msg ? 'block' : 'none';
         }
+
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        window.onclick = function(e) { if(e.target.classList.contains('modal')) e.target.classList.remove('active'); }
 
         async function signup() {
             const email = document.getElementById('signup-email').value;
@@ -296,18 +365,17 @@
                 if (data.error) showAlert(data.error);
                 else {
                     localStorage.setItem('sp_token', data.token);
+                    localStorage.setItem('sp_user', JSON.stringify(data.user));
                     token = data.token;
                     document.body.classList.add('logged-in');
+                    document.getElementById('user-email').value = data.user.email;
                     if (!data.user.hasKeys) document.getElementById('setup-overlay').classList.add('active');
                     else refreshData();
                 }
             } catch (e) { showAlert('Network error'); }
         }
 
-        function logout() {
-            localStorage.removeItem('sp_token');
-            location.reload();
-        }
+        function logout() { localStorage.removeItem('sp_token'); localStorage.removeItem('sp_user'); location.reload(); }
 
         async function request(path, method = 'GET', body = null) {
             const res = await fetch('/api/swiftpay' + path, {
@@ -319,35 +387,86 @@
             return await res.json();
         }
 
+        async function refreshData() {
+            if (!token) return;
+            try {
+                const bal = await request('/balance');
+                document.getElementById('bal-h2').innerText = "₱ " + (bal.balance || 0).toLocaleString();
+
+                const txs = await request('/transactions');
+                renderTransactions(txs);
+
+                const success = txs.filter(t => t.status === 'SUCCESS');
+                document.getElementById('stat-total').innerText = "₱ " + success.reduce((a,b)=>a+b.amount, 0).toLocaleString();
+                document.getElementById('stat-count').innerText = success.length;
+            } catch(e) {}
+        }
+
+        function renderTransactions(txs) {
+            const rows = txs.map(t => `<tr><td>${t.transactionId.substring(0,14)}..</td><td>₱ ${t.amount.toFixed(2)}</td><td><span class="badge ${t.status==='SUCCESS'?'badge-success':'badge-pending'}">${t.status}</span></td><td>${new Date(t.date).toLocaleTimeString()}</td></tr>`).join('');
+            document.getElementById('tx-tbody').innerHTML = txs.slice(0, 5).map(t => `<tr><td>${t.transactionId.substring(0,10)}..</td><td>₱ ${t.amount.toFixed(2)}</td><td><span style="color:var(--success)">${t.status}</span></td><td>${new Date(t.date).toLocaleTimeString()}</td></tr>`).join('');
+            document.getElementById('full-tx-body').innerHTML = rows;
+        }
+
         async function saveKeys() {
             const publicKey = document.getElementById('setup-pub').value;
             const secretKey = document.getElementById('setup-sec').value;
             const data = await request('/keys', 'POST', { publicKey, secretKey });
-            if (data.status === 'success') {
-                document.getElementById('setup-overlay').classList.remove('active');
-                refreshData();
+            if (data.status === 'success') { document.getElementById('setup-overlay').classList.remove('active'); refreshData(); loadDev(); }
+        }
+
+        async function saveLink() {
+            const amount = parseFloat(document.getElementById('l-amt').value);
+            const description = document.getElementById('l-desc').value;
+            await request('/payment-links', 'POST', { amount, description });
+            document.getElementById('modal-link').classList.remove('active');
+            refreshData();
+        }
+
+        async function saveInvoice() {
+            const amount = parseFloat(document.getElementById('i-amt').value);
+            const description = document.getElementById('i-desc').value;
+            await request('/create_invoice', 'POST', { amount, description });
+            document.getElementById('modal-invoice').classList.remove('active');
+            refreshData();
+        }
+
+        async function genQR() {
+            const amount = parseFloat(document.getElementById('q-amt').value);
+            const data = await request('/generate_dynamic_qr', 'POST', { totalAmount: { value: amount, currency: 'PHP' } });
+            if (data.qrCodeBody) {
+                document.getElementById('qr-img').src = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(data.qrCodeBody);
+                document.getElementById('qr-display').classList.remove('hidden');
+                document.getElementById('qr-gen-btn').classList.add('hidden');
             }
         }
 
-        function showPage(id, el) {
+        async function showPage(id, el) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById('page-' + id).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
-            if (id === 'dev') loadDev();
+            if(id === 'members') loadMembers();
+            if(id === 'dev') loadDev();
         }
 
-        async function refreshData() {
-            if (!token) return;
-            const bal = await request('/balance');
-            document.getElementById('bal-h2').innerText = "₱ " + (bal.balance || 0).toLocaleString();
+        async function loadMembers() {
+            const m = await request('/members');
+            document.getElementById('members-tbody').innerHTML = m.map(x => `<tr><td>${x.name}</td><td>${x.email}</td><td>${x.role}</td><td><span class="badge badge-success">${x.status}</span></td><td><i class="fas fa-trash" style="color:var(--danger); cursor:pointer" onclick="deleteMember('${x.id}')"></i></td></tr>`).join('');
+        }
 
-            const txs = await request('/transactions');
-            document.getElementById('tx-tbody').innerHTML = txs.slice(0, 5).map(t => `<tr><td>${t.transactionId}</td><td>₱ ${t.amount.toFixed(2)}</td><td><span style="color:var(--success)">${t.status}</span></td><td>${new Date(t.date).toLocaleTimeString()}</td></tr>`).join('');
+        async function saveMember() {
+            const name = document.getElementById('m-name').value;
+            const email = document.getElementById('m-email').value;
+            const role = document.getElementById('m-role').value;
+            await request('/members', 'POST', { name, email, role });
+            document.getElementById('modal-member').classList.remove('active');
+            loadMembers();
+        }
 
-            const success = txs.filter(t => t.status === 'SUCCESS');
-            document.getElementById('stat-total').innerText = "₱ " + success.reduce((a,b)=>a+b.amount, 0).toLocaleString();
-            document.getElementById('stat-count').innerText = success.length;
+        async function deleteMember(id) {
+            await fetch('/api/swiftpay/members/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+            loadMembers();
         }
 
         async function loadDev() {

@@ -102,7 +102,6 @@ app.post('/api/auth/signup', async (req, res) => {
         if (usePg) {
             await pgPool.query('INSERT INTO users(email, password_hash) VALUES($1, $2)', [email.toLowerCase(), hash])
         } else {
-            // Local file fallback not implemented for multi-user for simplicity, use PG for production
             return res.status(500).json({ error: 'Signup requires DATABASE_URL configured' })
         }
         res.json({ status: 'success', message: 'User created' })
@@ -128,28 +127,30 @@ app.post('/api/auth/login', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
-// --- Merchant Gateway Routes (Proxy) ---
+// --- SwiftPay Proxy Endpoints ---
+
+const getSwiftPayClient = async (userId) => {
+    const user = await pgPool.query('SELECT sp_secret_key FROM users WHERE id = $1', [userId])
+    const secret = user.rows[0]?.sp_secret_key
+    if (!secret) throw new Error('Keys not configured')
+    return axios.create({
+        baseURL: 'https://api.netbank.ph/',
+        headers: { 'Authorization': 'Basic ' + Buffer.from(secret + ':').toString('base64') }
+    })
+}
 
 app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
     try {
-        const user = await pgPool.query('SELECT sp_secret_key FROM users WHERE id = $1', [req.user.id])
-        const secret = user.rows[0]?.sp_secret_key
-        if (!secret) return res.status(400).json({ error: 'Keys not configured' })
-
-        const authHeader = { 'Authorization': 'Basic ' + Buffer.from(secret + ':').toString('base64') }
-        const resp = await axios.get(`https://api.netbank.ph/v1/account/balance`, { headers: authHeader })
+        const client = await getSwiftPayClient(req.user.id)
+        const resp = await client.get('v1/account/balance')
         res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: 'SwiftPay API Error' }) }
+    } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
 app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
     try {
-        const user = await pgPool.query('SELECT sp_secret_key FROM users WHERE id = $1', [req.user.id])
-        const secret = user.rows[0]?.sp_secret_key
-        if (!secret) return res.json([])
-
-        const authHeader = { 'Authorization': 'Basic ' + Buffer.from(secret + ':').toString('base64') }
-        const resp = await axios.get(`https://api.netbank.ph/v1/collect/payments`, { headers: authHeader })
+        const client = await getSwiftPayClient(req.user.id)
+        const resp = await client.get('v1/collect/payments')
         const data = resp.data.data || resp.data.payments || []
         res.json(data.map(t => ({
             transactionId: t.id,
@@ -158,6 +159,30 @@ app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
             date: t.createdAt || new Date().toISOString()
         })))
     } catch (e) { res.json([]) }
+})
+
+app.post('/api/swiftpay/payment-links', requireAuth, async (req, res) => {
+    try {
+        const client = await getSwiftPayClient(req.user.id)
+        const resp = await client.post('v1/collect/payment-links', req.body)
+        res.json(resp.data)
+    } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/swiftpay/generate_dynamic_qr', requireAuth, async (req, res) => {
+    try {
+        const client = await getSwiftPayClient(req.user.id)
+        const resp = await client.post('v1/collect/qr/payments', req.body)
+        res.json(resp.data)
+    } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+app.post('/api/swiftpay/create_invoice', requireAuth, async (req, res) => {
+    try {
+        const client = await getSwiftPayClient(req.user.id)
+        const resp = await client.post('v1/collect/invoice', req.body)
+        res.json(resp.data)
+    } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
 app.post('/api/swiftpay/keys', requireAuth, async (req, res) => {
@@ -187,6 +212,11 @@ app.post('/api/swiftpay/members', requireAuth, async (req, res) => {
       'INSERT INTO members(id, owner_id, name, email, role) VALUES($1, $2, $3, $4, $5)',
       [Date.now().toString(), req.user.id, name, email, role]
     )
+    res.json({ status: 'success' })
+})
+
+app.delete('/api/swiftpay/members/:id', requireAuth, async (req, res) => {
+    await pgPool.query('DELETE FROM members WHERE id = $1 AND owner_id = $2', [req.params.id, req.user.id])
     res.json({ status: 'success' })
 })
 
