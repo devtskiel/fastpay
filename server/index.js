@@ -32,16 +32,19 @@ if (usePg) {
 
   const initDb = async () => {
     try {
-      // Use simple TEXT IDs for maximum compatibility
+      // 1. Create base table
       await pgPool.query(`CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
-        business_name TEXT,
-        sp_public_key TEXT,
-        sp_secret_key TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       )`)
+
+      // 2. Ensure all required columns exist (Migrations)
+      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS business_name TEXT`)
+      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS sp_public_key TEXT`)
+      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS sp_secret_key TEXT`)
+
       await pgPool.query(`CREATE TABLE IF NOT EXISTS members (
         id TEXT PRIMARY KEY,
         owner_id TEXT NOT NULL,
@@ -51,7 +54,8 @@ if (usePg) {
         status TEXT DEFAULT 'ACTIVE',
         created_at TIMESTAMPTZ DEFAULT NOW()
       )`)
-      console.log('✅ Postgres Schema Initialized')
+
+      console.log('✅ Postgres Schema Synced')
 
       // Seed Admin
       const adminEmail = 'admin@fastpay.com'
@@ -64,10 +68,10 @@ if (usePg) {
           'INSERT INTO users(id, email, password_hash, business_name, sp_public_key, sp_secret_key) VALUES($1, $2, $3, $4, $5, $6)',
           ['ADMIN_ROOT', adminEmail, hash, 'FastPay Admin', process.env.SWIFTPAY_PUBLIC_KEY, process.env.SWIFTPAY_SECRET_KEY]
         )
-        console.log('👤 Admin Seeded Successfully')
+        console.log('👤 Admin Seeded')
       }
     } catch (e) {
-      console.error('❌ DB INIT ERROR:', e.message)
+      console.error('❌ DB SYNC ERROR:', e.message)
     }
   }
   initDb()
@@ -97,7 +101,7 @@ app.post('/api/auth/signup', async (req, res) => {
         )
         res.json({ status: 'success' })
     } catch (e) {
-        res.status(400).json({ error: e.message }) // Return real error for debugging
+        res.status(400).json({ error: e.message })
     }
 })
 
