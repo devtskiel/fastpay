@@ -26,7 +26,6 @@ if (usePg) {
   pgPool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } })
 }
 
-// Function to clean keys
 const cleanKey = (key) => {
     if (!key) return ''
     return key.split('/')[0].split(' ')[0].trim()
@@ -35,8 +34,6 @@ const cleanKey = (key) => {
 async function startServer() {
     if (usePg) {
         try {
-            console.log('🏗️  Starting Database Maintenance...')
-
             await pgPool.query(`CREATE TABLE IF NOT EXISTS users (
                 id TEXT PRIMARY KEY,
                 email TEXT UNIQUE NOT NULL,
@@ -48,7 +45,6 @@ async function startServer() {
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )`)
 
-            // Migrations
             const migrations = [
                 'ALTER TABLE users ADD COLUMN IF NOT EXISTS business_name TEXT',
                 'ALTER TABLE users ADD COLUMN IF NOT EXISTS shop_url TEXT',
@@ -67,7 +63,6 @@ async function startServer() {
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )`)
 
-            // Seed Admin
             const adminEmail = 'admin@fastpay.com'
             const adminPass = 'SwiftPay#Admin#2024'
             const hash = await bcrypt.hash(adminPass, 10)
@@ -81,11 +76,9 @@ async function startServer() {
             } else {
                 await pgPool.query('UPDATE users SET password_hash = $1, sp_public_key = $2, sp_secret_key = $3 WHERE email = $4', [hash, cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY), adminEmail])
             }
-            console.log('✅ Database & Admin Ready')
         } catch (e) { console.error('❌ DB ERROR:', e.message) }
     }
-    const PORT = process.env.PORT || 3000
-    app.listen(PORT, '0.0.0.0', () => console.log('🚀 Merchant Portal Live on', PORT))
+    app.listen(process.env.PORT || 3000, '0.0.0.0', () => console.log('🚀 Server Live'))
 }
 
 // --- Auth ---
@@ -97,7 +90,7 @@ app.post('/api/auth/login', async (req, res) => {
         if (!user || !(await bcrypt.compare(password, user.password_hash))) return res.status(401).json({ error: 'Invalid credentials' })
         const token = jwt.sign({ id: user.id, email: user.email, businessName: user.business_name }, JWT_SECRET, { expiresIn: '24h' })
         res.json({ token, user: { id: user.id, email: user.email, businessName: user.business_name || 'Merchant', hasKeys: !!user.sp_secret_key } })
-    } catch (e) { res.status(500).json({ error: 'Server Error' }) }
+    } catch (e) { res.status(500).json({ error: 'Auth error' }) }
 })
 
 const requireAuth = (req, res, next) => {
@@ -106,30 +99,39 @@ const requireAuth = (req, res, next) => {
     try {
         req.user = jwt.verify(authHeader.split(' ')[1], JWT_SECRET)
         next()
-    } catch (e) { res.status(401).json({ error: 'Session Expired' }) }
+    } catch (e) { res.status(401).json({ error: 'Expired session' }) }
 }
 
 const getClient = async (uid) => {
-    const r = await pgPool.query('SELECT sp_secret_key, business_name FROM users WHERE id = $1', [uid])
-    const secret = cleanKey(r.rows[0]?.sp_secret_key)
+    const r = await pgPool.query('SELECT sp_public_key, sp_secret_key, business_name FROM users WHERE id = $1', [uid])
+    const pub = cleanKey(r.rows[0]?.sp_public_key)
+    const sec = cleanKey(r.rows[0]?.sp_secret_key)
     const biz = r.rows[0]?.business_name || 'SwiftPay Merchant'
-    if (!secret) throw new Error('SwiftPay Keys Missing')
+    if (!sec) throw new Error('Secret Key Missing')
+
     return {
         axios: axios.create({
             baseURL: 'https://api.netbank.ph/',
-            headers: { 'Authorization': 'Basic ' + Buffer.from(secret + ':').toString('base64'), 'Content-Type': 'application/json' }
+            headers: {
+                'Authorization': 'Basic ' + Buffer.from(sec + ':').toString('base64'),
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Client-Id': pub // Added Public Key as Client-Id header
+            }
         }),
         businessName: biz
     }
 }
 
-// --- SwiftPay Proxy ---
+// --- Endpoints ---
+app.get('/api/status', (req, res) => res.json({ database: usePg ? 'connected' : 'disconnected' }))
+
 app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
     try {
         const { axios: client } = await getClient(req.user.id)
         const resp = await client.get('v1/account/balance')
         res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: e.message }) }
+    } catch (e) { res.status(500).json({ error: e.response?.data?.message || e.message }) }
 })
 
 app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
@@ -143,23 +145,19 @@ app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
 app.post('/api/swiftpay/qr', requireAuth, async (req, res) => {
     try {
         const { axios: client, businessName } = await getClient(req.user.id)
-        // Correct Netbank QR Payload
         const payload = {
-            amount: {
-                currency: 'PHP',
-                value: req.body.amount.toString()
-            },
+            amount: { currency: 'PHP', value: req.body.amount.toFixed(2) },
             merchant_name: businessName.substring(0, 25),
             merchant_city: 'Manila',
-            reference_no: 'QR_' + Date.now(),
+            reference_no: 'FP_' + Date.now(),
             generate_additional_fields: false
         }
-        console.log('📡 Generating QR Ph via Netbank:', payload.reference_no)
+        console.log('📡 Requesting QR from Netbank...')
         const resp = await client.post('v1/qrph/generate', payload)
         res.json(resp.data)
     } catch (e) {
-        console.error('🔥 QR Error:', e.response?.data || e.message)
-        res.status(500).json({ error: e.response?.data?.message || 'Failed to generate QR Ph' })
+        console.error('🔥 QR Failure:', e.response?.data || e.message)
+        res.status(500).json({ error: e.response?.data?.message || 'Unauthenticated' })
     }
 })
 
