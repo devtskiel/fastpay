@@ -98,6 +98,7 @@
         .input-box:focus { border-color: var(--orange); background: #111; box-shadow: 0 0 40px rgba(244, 97, 25, 0.15); }
         .btn-authorize { width: 100%; padding: 22px; background: var(--orange); color: #fff; border: none; border-radius: 18px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.4s; }
         .btn-authorize:hover { transform: translateY(-5px); box-shadow: 0 20px 40px var(--orange-glow); }
+        .btn-authorize:disabled { opacity: 0.5; cursor: wait; }
 
         /* --- Modals --- */
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 5000; align-items: center; justify-content: center; backdrop-filter: blur(20px); }
@@ -112,7 +113,6 @@
 </head>
 <body class="logged-out">
 
-    <!-- Cinematic Splash -->
     <div id="splash">
         <div class="splash-core">
             <div class="splash-ring"></div>
@@ -121,10 +121,8 @@
         <p style="margin-top:40px; font-size:12px; font-weight:800; color:#222; letter-spacing:6px;">ESTABLISHING QUANTUM LINK</p>
     </div>
 
-    <!-- Neural Matrix Background -->
     <canvas id="neural-canvas"></canvas>
 
-    <!-- Auth Layer -->
     <div id="auth-overlay">
         <div class="auth-card">
             <div class="sidebar-logo" style="justify-content: center; font-size: 32px; margin-bottom: 50px;"><i class="fas fa-bolt"></i> SwiftPay</div>
@@ -135,7 +133,6 @@
         </div>
     </div>
 
-    <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-logo"><i class="fas fa-bolt"></i> SwiftPay</div>
         <div class="nav-section">
@@ -146,7 +143,7 @@
         <div class="nav-section">
             <div class="nav-label">Finance Core</div>
             <div class="nav-item" onclick="showPage('payments', this)"><i class="fas fa-satellite-dish"></i> Ledger</div>
-            <div class="nav-item" onclick="showPage('paylinks', this)"><i class="fas fa-link-horizontal"></i> Link Node</div>
+            <div class="nav-item" onclick="showPage('paylinks', this)"><i class="fas fa-link"></i> Link Node</div>
         </div>
         <div class="nav-section" style="margin-top:auto;">
             <div class="nav-item" onclick="showPage('settings', this)"><i class="fas fa-atom"></i> Terminal</div>
@@ -206,7 +203,7 @@
     <div id="modal-qr" class="modal" onclick="closeModal('modal-qr')">
         <div class="modal-content" onclick="event.stopPropagation()" style="text-align:center">
             <h2 style="font-size:24px; font-weight:800;">QR PH NODE</h2><br>
-            <input type="number" id="qr-amt" class="input-box" placeholder="VALUE (PHP)">
+            <input type="number" id="qr-amt" class="input-box" placeholder="VALUE (PHP)" value="100">
             <div id="qr-display" class="hidden" style="margin-bottom:30px;"><img id="qr-img" style="width:260px; border-radius:20px; border:4px solid #111;"></div>
             <button class="btn-authorize" id="qr-btn" onclick="genQR()">GENERATE SYMBOL</button>
         </div>
@@ -224,7 +221,6 @@
     </div>
 
     <script>
-        // --- 4D Neural Matrix logic ---
         const canvas = document.getElementById('neural-canvas');
         const ctx = canvas.getContext('2d');
         let dots = [];
@@ -250,13 +246,12 @@
         }
         window.addEventListener('resize', init); init(); draw();
 
-        // --- Splash Handle ---
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const s = document.getElementById('splash');
                 s.style.opacity = '0'; s.style.transform = 'scale(1.5)';
                 setTimeout(() => s.style.display = 'none', 1000);
-            }, 2500);
+            }, 2000);
         });
 
         let token = localStorage.getItem('sp_token');
@@ -278,40 +273,66 @@
             const u = JSON.parse(localStorage.getItem('sp_user'));
             document.getElementById('biz-header').innerText = u.businessName;
 
-            const res = await fetch('/api/swiftpay/balance', { headers: { 'Authorization': 'Bearer '+t } });
-            const bal = await res.json();
-            document.getElementById('val-bal').innerText = '₱ ' + (bal.balance || 0).toLocaleString();
+            try {
+                const res = await fetch('/api/swiftpay/balance', { headers: { 'Authorization': 'Bearer '+t } });
+                const bal = await res.json();
+                document.getElementById('val-bal').innerText = '₱ ' + (bal.balance || 0).toLocaleString();
 
-            const txRes = await fetch('/api/swiftpay/transactions', { headers: { 'Authorization': 'Bearer '+t } });
-            const txs = await txRes.json();
-            document.getElementById('tx-ledger').innerHTML = txs.slice(0,10).map(tx => `
-                <tr><td>${new Date(tx.date).toLocaleTimeString()}</td><td>${tx.id.slice(0,18)}...</td><td style="color:#fff; font-weight:800;">₱ ${tx.amount.toFixed(2)}</td><td><span class="status-pill">VERIFIED</span></td></tr>
-            `).join('');
-            document.getElementById('val-vol').innerText = '₱ ' + txs.reduce((a,b)=>a+b.amount,0).toLocaleString();
+                const txRes = await fetch('/api/swiftpay/transactions', { headers: { 'Authorization': 'Bearer '+t } });
+                const txs = await txRes.json();
+                document.getElementById('tx-ledger').innerHTML = txs.slice(0,10).map(tx => `
+                    <tr><td>${new Date(tx.date).toLocaleTimeString()}</td><td>${tx.id.slice(0,18)}...</td><td style="color:#fff; font-weight:800;">₱ ${tx.amount.toFixed(2)}</td><td><span class="status-pill">VERIFIED</span></td></tr>
+                `).join('');
+                document.getElementById('val-vol').innerText = '₱ ' + txs.reduce((a,b)=>a+b.amount,0).toLocaleString();
 
-            const ctxChart = document.getElementById('volChart').getContext('2d');
-            new Chart(ctxChart, {
-                type: 'line',
-                data: {
-                    labels: txs.map((_,i) => `S-${i+1}`).reverse(),
-                    datasets: [{ data: txs.map(t=>t.amount).reverse(), borderColor: '#F46119', borderWidth: 3, pointRadius: 0, fill: true, backgroundColor: 'rgba(244,97,25,0.05)', tension: 0.5 }]
-                },
-                options: { plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
-            });
+                const ctxChart = document.getElementById('volChart').getContext('2d');
+                new Chart(ctxChart, {
+                    type: 'line',
+                    data: {
+                        labels: txs.map((_,i) => `S-${i+1}`).reverse(),
+                        datasets: [{ data: txs.map(t=>t.amount).reverse(), borderColor: '#F46119', borderWidth: 3, pointRadius: 0, fill: true, backgroundColor: 'rgba(244,97,25,0.05)', tension: 0.5 }]
+                    },
+                    options: { plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+                });
+            } catch(e) {}
 
-            const sRes = await fetch('/api/swiftpay/settings', { headers: { 'Authorization': 'Bearer '+t } });
-            const s = await sRes.json();
-            document.getElementById('p-biz').value = s.business_name;
-            document.getElementById('p-url').value = s.shop_url;
+            try {
+                const sRes = await fetch('/api/swiftpay/settings', { headers: { 'Authorization': 'Bearer '+t } });
+                const s = await sRes.json();
+                document.getElementById('p-biz').value = s.business_name;
+                document.getElementById('p-url').value = s.shop_url;
+            } catch(e) {}
         }
 
         async function genQR() {
-            const res = await fetch('/api/swiftpay/qr', { method: 'POST', headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' }, body: JSON.stringify({ totalAmount: { value: parseFloat(document.getElementById('qr-amt').value), currency: 'PHP' } }) });
-            const data = await res.json();
-            if(data.qrCodeBody) {
-                document.getElementById('qr-img').src = "https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=" + encodeURIComponent(data.qrCodeBody);
-                document.getElementById('qr-display').classList.remove('hidden');
-                document.getElementById('qr-btn').innerText = 'AUTHORIZED';
+            const amt = parseFloat(document.getElementById('qr-amt').value);
+            if(!amt || amt <= 0) return alert('Invalid amount');
+
+            const btn = document.getElementById('qr-btn');
+            btn.disabled = true;
+            btn.innerText = 'COMMUNICATING...';
+
+            try {
+                const res = await fetch('/api/swiftpay/qr', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: amt })
+                });
+                const data = await res.json();
+                if(data.qrCodeBody || data.qr_string) {
+                    const qrStr = data.qrCodeBody || data.qr_string;
+                    document.getElementById('qr-img').src = "https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=" + encodeURIComponent(qrStr);
+                    document.getElementById('qr-display').classList.remove('hidden');
+                    btn.innerText = 'AUTHORIZED';
+                } else {
+                    alert(data.error || 'Netbank Rejected Request');
+                    btn.disabled = false;
+                    btn.innerText = 'GENERATE SYMBOL';
+                }
+            } catch(e) {
+                alert('Network Timeout');
+                btn.disabled = false;
+                btn.innerText = 'GENERATE SYMBOL';
             }
         }
 
@@ -321,7 +342,6 @@
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
         }
-
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         function logout() { localStorage.clear(); location.reload(); }
