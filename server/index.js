@@ -75,8 +75,10 @@ async function startServer() {
                     'INSERT INTO users(id, email, password_hash, business_name, sp_public_key, sp_secret_key) VALUES($1, $2, $3, $4, $5, $6)',
                     ['ADMIN_01', adminEmail, hash, 'Click Store', cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY)]
                 )
+                console.log('👤 Admin Created with provided keys')
             } else {
                 await pgPool.query('UPDATE users SET password_hash = $1, sp_public_key = $2, sp_secret_key = $3 WHERE email = $4', [hash, cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY), adminEmail])
+                console.log('👤 Admin Keys & Password Synced')
             }
             console.log('✅ DB & Keys Ready')
         } catch (e) { console.error('❌ DB ERROR:', e.message) }
