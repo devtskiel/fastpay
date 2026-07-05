@@ -7,6 +7,7 @@ const axios = require('axios')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const path = require('path')
+const qs = require('qs')
 
 const app = express()
 app.use(helmet({ contentSecurityPolicy: false }))
@@ -81,7 +82,39 @@ async function startServer() {
     app.listen(process.env.PORT || 3000, '0.0.0.0', () => console.log('🚀 Server Live'))
 }
 
-// --- Auth ---
+// --- Netbank Token Helper ---
+const getNetbankToken = async (pub, sec) => {
+    try {
+        const data = qs.stringify({
+            'grant_type': 'client_credentials',
+            'client_id': pub,
+            'client_secret': sec
+        })
+        const config = {
+            method: 'post',
+            url: 'https://auth.netbank.ph/oauth2/token',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            data: data
+        }
+        const response = await axios(config)
+        return response.data.access_token
+    } catch (e) {
+        console.error('🔑 Token Exchange Failed:', e.response?.data || e.message)
+        throw new Error('Authentication with Netbank failed')
+    }
+}
+
+// --- Auth Middleware ---
+const requireAuth = (req, res, next) => {
+    const authHeader = req.headers.authorization
+    if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+    try {
+        req.user = jwt.verify(authHeader.split(' ')[1], JWT_SECRET)
+        next()
+    } catch (e) { res.status(401).json({ error: 'Expired session' }) }
+}
+
+// --- Auth Endpoints ---
 app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body
     try {
@@ -93,71 +126,53 @@ app.post('/api/auth/login', async (req, res) => {
     } catch (e) { res.status(500).json({ error: 'Auth error' }) }
 })
 
-const requireAuth = (req, res, next) => {
-    const authHeader = req.headers.authorization
-    if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-    try {
-        req.user = jwt.verify(authHeader.split(' ')[1], JWT_SECRET)
-        next()
-    } catch (e) { res.status(401).json({ error: 'Expired session' }) }
-}
-
-const getClient = async (uid) => {
-    const r = await pgPool.query('SELECT sp_public_key, sp_secret_key, business_name FROM users WHERE id = $1', [uid])
-    const pub = cleanKey(r.rows[0]?.sp_public_key)
-    const sec = cleanKey(r.rows[0]?.sp_secret_key)
-    const biz = r.rows[0]?.business_name || 'SwiftPay Merchant'
-    if (!sec) throw new Error('Secret Key Missing')
-
-    return {
-        axios: axios.create({
-            baseURL: 'https://api.netbank.ph/',
-            headers: {
-                'Authorization': 'Basic ' + Buffer.from(sec + ':').toString('base64'),
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Client-Id': pub // Added Public Key as Client-Id header
-            }
-        }),
-        businessName: biz
-    }
-}
-
-// --- Endpoints ---
-app.get('/api/status', (req, res) => res.json({ database: usePg ? 'connected' : 'disconnected' }))
-
+// --- SwiftPay Proxy ---
 app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
     try {
-        const { axios: client } = await getClient(req.user.id)
-        const resp = await client.get('v1/account/balance')
+        const r = await pgPool.query('SELECT sp_secret_key FROM users WHERE id = $1', [req.user.id])
+        const secret = cleanKey(r.rows[0]?.sp_secret_key)
+        const auth = { 'Authorization': 'Basic ' + Buffer.from(secret + ':').toString('base64') }
+        const resp = await axios.get('https://api.netbank.ph/v1/account/balance', { headers: auth })
         res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: e.response?.data?.message || e.message }) }
+    } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
 app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
     try {
-        const { axios: client } = await getClient(req.user.id)
-        const resp = await client.get('v1/collect/payments')
+        const r = await pgPool.query('SELECT sp_secret_key FROM users WHERE id = $1', [req.user.id])
+        const secret = cleanKey(r.rows[0]?.sp_secret_key)
+        const auth = { 'Authorization': 'Basic ' + Buffer.from(secret + ':').toString('base64') }
+        const resp = await axios.get('https://api.netbank.ph/v1/collect/payments', { headers: auth })
         res.json((resp.data.data || []).map(t => ({ id: t.id, amount: parseFloat(t.amount), status: t.status, date: t.createdAt })))
     } catch (e) { res.json([]) }
 })
 
 app.post('/api/swiftpay/qr', requireAuth, async (req, res) => {
     try {
-        const { axios: client, businessName } = await getClient(req.user.id)
+        const r = await pgPool.query('SELECT sp_public_key, sp_secret_key, business_name FROM users WHERE id = $1', [req.user.id])
+        const pub = cleanKey(r.rows[0]?.sp_public_key)
+        const sec = cleanKey(r.rows[0]?.sp_secret_key)
+        const biz = r.rows[0]?.business_name || 'SwiftPay Merchant'
+
+        // 1. Get OAuth Token
+        const accessToken = await getNetbankToken(pub, sec)
+
+        // 2. Generate QR
         const payload = {
             amount: { currency: 'PHP', value: req.body.amount.toFixed(2) },
-            merchant_name: businessName.substring(0, 25),
+            merchant_name: biz.substring(0, 25),
             merchant_city: 'Manila',
             reference_no: 'FP_' + Date.now(),
             generate_additional_fields: false
         }
-        console.log('📡 Requesting QR from Netbank...')
-        const resp = await client.post('v1/qrph/generate', payload)
+
+        const resp = await axios.post('https://api.netbank.ph/v1/qrph/generate', payload, {
+            headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' }
+        })
         res.json(resp.data)
     } catch (e) {
-        console.error('🔥 QR Failure:', e.response?.data || e.message)
-        res.status(500).json({ error: e.response?.data?.message || 'Unauthenticated' })
+        console.error('🔥 QR Error:', e.response?.data || e.message)
+        res.status(500).json({ error: e.message || 'QR Generation Failed' })
     }
 })
 
