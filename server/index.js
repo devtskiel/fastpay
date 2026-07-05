@@ -45,6 +45,7 @@ async function startServer() {
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 business_name TEXT,
+                shop_url TEXT,
                 sp_public_key TEXT,
                 sp_secret_key TEXT,
                 created_at TIMESTAMPTZ DEFAULT NOW()
@@ -91,54 +92,7 @@ async function startServer() {
 // --- Status Endpoint ---
 app.get('/api/status', (req, res) => res.json({ database: usePg ? 'connected' : 'disconnected' }))
 
-// --- Auth Endpoints ---
-app.post('/api/auth/login', async (req, res) => {
-    const { email, password } = req.body
-    if (!usePg) return res.status(500).json({ error: 'DB not connected' })
-    try {
-        console.log(`🔑 Login attempt: ${email}`)
-        const r = await pgPool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()])
-        const user = r.rows[0]
-
-        if (!user) {
-            console.log('❌ User not found')
-            return res.status(401).json({ error: 'Account not found. Please Sign Up.' })
-        }
-
-        const valid = await bcrypt.compare(password, user.password_hash)
-        if (!valid) {
-            console.log('❌ Incorrect password')
-            return res.status(401).json({ error: 'Incorrect password' })
-        }
-
-        const token = jwt.sign({ id: user.id, email: user.email, businessName: user.business_name }, JWT_SECRET, { expiresIn: '24h' })
-        console.log('✅ Login successful')
-        res.json({ token, user: { email: user.email, businessName: user.business_name || 'Merchant', hasKeys: !!user.sp_secret_key } })
-    } catch (e) {
-        console.error('🔥 Login Error:', e.message)
-        res.status(500).json({ error: 'Server Error: ' + e.message })
-    }
-})
-
-app.post('/api/auth/signup', async (req, res) => {
-    const { email, password, businessName } = req.body
-    try {
-        console.log(`📝 Signup attempt: ${email}`)
-        const hash = await bcrypt.hash(password, 10)
-        const id = 'USER_' + Date.now()
-        await pgPool.query(
-            'INSERT INTO users(id, email, password_hash, business_name) VALUES($1, $2, $3, $4)',
-            [id, email.toLowerCase().trim(), hash, businessName]
-        )
-        console.log('✅ Signup successful')
-        res.json({ status: 'success' })
-    } catch (e) {
-        console.error('🔥 Signup Error:', e.message)
-        res.status(400).json({ error: e.message })
-    }
-})
-
-// --- SwiftPay Proxy ---
+// --- Auth Middleware ---
 const requireAuth = (req, res, next) => {
     const authHeader = req.headers.authorization
     if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
@@ -148,33 +102,122 @@ const requireAuth = (req, res, next) => {
     } catch (e) { res.status(401).json({ error: 'Session Expired' }) }
 }
 
+// --- Auth Endpoints ---
+app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body
+    if (!usePg) return res.status(500).json({ error: 'DB not connected' })
+    try {
+        const r = await pgPool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()])
+        const user = r.rows[0]
+        if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+            return res.status(401).json({ error: 'Invalid credentials' })
+        }
+        const token = jwt.sign({ id: user.id, email: user.email, businessName: user.business_name }, JWT_SECRET, { expiresIn: '24h' })
+        res.json({ token, user: { id: user.id, email: user.email, businessName: user.business_name || 'Merchant', hasKeys: !!user.sp_secret_key } })
+    } catch (e) { res.status(500).json({ error: 'Server Error' }) }
+})
+
+app.post('/api/auth/signup', async (req, res) => {
+    const { email, password, businessName } = req.body
+    try {
+        const hash = await bcrypt.hash(password, 10)
+        await pgPool.query(
+            'INSERT INTO users(id, email, password_hash, business_name) VALUES($1, $2, $3, $4)',
+            ['USER_' + Date.now(), email.toLowerCase().trim(), hash, businessName]
+        )
+        res.json({ status: 'success' })
+    } catch (e) { res.status(400).json({ error: e.message }) }
+})
+
+// --- SwiftPay Proxy Endpoints ---
+
+const getSwiftPayClient = async (userId) => {
+    const r = await pgPool.query('SELECT sp_secret_key FROM users WHERE id = $1', [userId])
+    const secret = r.rows[0]?.sp_secret_key
+    if (!secret) throw new Error('API Keys Missing')
+    return axios.create({
+        baseURL: 'https://api.netbank.ph/',
+        headers: { 'Authorization': 'Basic ' + Buffer.from(secret.trim() + ':').toString('base64') }
+    })
+}
+
 app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
     try {
-        const r = await pgPool.query('SELECT sp_secret_key FROM users WHERE id = $1', [req.user.id])
-        const secret = r.rows[0]?.sp_secret_key
-        if (!secret) return res.status(400).json({ error: 'API Keys Missing' })
-        const auth = { 'Authorization': 'Basic ' + Buffer.from(secret.trim() + ':').toString('base64') }
-        const resp = await axios.get('https://api.netbank.ph/v1/account/balance', { headers: auth })
+        const client = await getSwiftPayClient(req.user.id)
+        const resp = await client.get('v1/account/balance')
         res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: 'SwiftPay API Error' }) }
+    } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
 app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
     try {
-        const r = await pgPool.query('SELECT sp_secret_key FROM users WHERE id = $1', [req.user.id])
-        const secret = r.rows[0]?.sp_secret_key
-        if (!secret) return res.json([])
-        const auth = { 'Authorization': 'Basic ' + Buffer.from(secret.trim() + ':').toString('base64') }
-        const resp = await axios.get('https://api.netbank.ph/v1/collect/payments', { headers: auth })
+        const client = await getSwiftPayClient(req.user.id)
+        const resp = await client.get('v1/collect/payments')
         res.json((resp.data.data || []).map(t => ({ id: t.id, amount: parseFloat(t.amount), status: t.status, date: t.createdAt })))
     } catch (e) { res.json([]) }
 })
 
-// --- Webhook Handler ---
+app.post('/api/swiftpay/paylinks', requireAuth, async (req, res) => {
+    try {
+        const client = await getSwiftPayClient(req.user.id)
+        const resp = await client.post('v1/collect/payment-links', req.body)
+        res.json(resp.data)
+    } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+app.get('/api/swiftpay/paylinks', requireAuth, async (req, res) => {
+    try {
+        const client = await getSwiftPayClient(req.user.id)
+        const resp = await client.get('v1/collect/payment-links')
+        res.json(resp.data.data || [])
+    } catch (e) { res.json([]) }
+})
+
+app.post('/api/swiftpay/qr', requireAuth, async (req, res) => {
+    try {
+        const client = await getSwiftPayClient(req.user.id)
+        const resp = await client.post('v1/collect/qr/payments', req.body)
+        res.json(resp.data)
+    } catch (e) { res.status(500).json({ error: e.message }) }
+})
+
+// --- Merchant Settings ---
+app.get('/api/swiftpay/settings', requireAuth, async (req, res) => {
+    const r = await pgPool.query('SELECT business_name, shop_url, sp_public_key FROM users WHERE id = $1', [req.user.id])
+    res.json(r.rows[0])
+})
+
+app.post('/api/swiftpay/profile', requireAuth, async (req, res) => {
+    const { businessName, shopUrl } = req.body
+    await pgPool.query('UPDATE users SET business_name = $1, shop_url = $2 WHERE id = $3', [businessName, shopUrl, req.user.id])
+    res.json({ status: 'success' })
+})
+
+app.post('/api/swiftpay/keys', requireAuth, async (req, res) => {
+    const { publicKey, secretKey } = req.body
+    await pgPool.query('UPDATE users SET sp_public_key = $1, sp_secret_key = $2 WHERE id = $3', [publicKey, secretKey, req.user.id])
+    res.json({ status: 'success' })
+})
+
+app.get('/api/swiftpay/members', requireAuth, async (req, res) => {
+    const r = await pgPool.query('SELECT * FROM members WHERE owner_id = $1', [req.user.id])
+    res.json(r.rows)
+})
+
+app.post('/api/swiftpay/members', requireAuth, async (req, res) => {
+    const { name, email, role } = req.body
+    await pgPool.query('INSERT INTO members(id, owner_id, name, email, role) VALUES($1, $2, $3, $4, $5)', [Date.now().toString(), req.user.id, name, email, role])
+    res.json({ status: 'success' })
+})
+
+app.delete('/api/swiftpay/members/:id', requireAuth, async (req, res) => {
+    await pgPool.query('DELETE FROM members WHERE id = $1 AND owner_id = $2', [req.params.id, req.user.id])
+    res.json({ status: 'success' })
+})
+
 app.post('/api/swiftpay/webhook', async (req, res) => {
-    console.log('🔔 Received SwiftPay Webhook:', JSON.stringify(req.body, null, 2))
-    // Add logic here to process payment status changes (e.g., notify Android app via FCM or update DB)
-    res.status(200).json({ status: 'received' })
+    console.log('🔔 Webhook:', req.body)
+    res.status(200).send('OK')
 })
 
 app.use(express.static(path.join(__dirname, 'public')))
