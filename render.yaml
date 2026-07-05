@@ -19,6 +19,9 @@ services:
         sync: false
       - key: SWIFTPAY_SECRET_KEY
         sync: false
+      - key: JWT_SECRET
+        sync: false # Set a secure random string in Render UI
+
 
 databases:
   - name: swiftpay-db

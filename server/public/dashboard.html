@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwiftPay Cloud Merchant Portal</title>
+    <title>SwiftPay Merchant Portal</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --sidebar-width: 240px;
+            --sidebar-width: 260px;
             --primary: #0052CC;
+            --primary-hover: #0747A6;
             --secondary: #002B5B;
             --success: #22C55E;
             --warning: #F59E0B;
@@ -22,7 +24,7 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: var(--background); color: var(--text-main); display: flex; }
+        body { font-family: 'Inter', sans-serif; background: var(--background); color: var(--text-main); display: flex; min-height: 100vh; }
 
         /* --- Sidebar --- */
         .sidebar {
@@ -34,13 +36,14 @@
             padding: 40px 20px;
             display: flex;
             flex-direction: column;
+            z-index: 100;
         }
 
-        .logo { font-size: 24px; font-weight: 800; color: var(--primary); margin-bottom: 50px; display: flex; align-items: center; gap: 10px; }
+        .logo { font-size: 26px; font-weight: 800; color: var(--primary); margin-bottom: 50px; display: flex; align-items: center; gap: 12px; }
 
         .nav-item {
             padding: 16px 20px;
-            border-radius: 12px;
+            border-radius: 16px;
             color: var(--text-muted);
             text-decoration: none;
             font-weight: 700;
@@ -54,13 +57,19 @@
         .nav-item:hover { background: #F4F7FE; color: var(--text-main); }
         .nav-item.active { background: var(--primary); color: white; box-shadow: 0 10px 20px rgba(0, 82, 204, 0.2); }
 
+        .logout-btn { margin-top: auto; color: var(--danger); cursor: pointer; padding: 16px 20px; font-weight: 700; display: flex; align-items: center; gap: 12px; }
+
         /* --- Main Content --- */
         .main {
             margin-left: var(--sidebar-width);
             flex: 1;
             padding: 40px;
             min-height: 100vh;
+            display: none;
         }
+
+        body.logged-in .main { display: block; }
+        body.logged-in #auth-container { display: none; }
 
         .page { display: none; }
         .page.active { display: block; animation: fadeIn 0.4s ease-out; }
@@ -70,7 +79,7 @@
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
 
         /* --- Stats --- */
-        .grid-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 40px; }
+        .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 40px; }
         .stat-card { background: var(--surface); padding: 24px; border-radius: var(--radius); display: flex; align-items: center; gap: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
         .stat-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
         .stat-info span { font-size: 14px; color: var(--text-muted); font-weight: 600; }
@@ -86,35 +95,88 @@
 
         .btn { padding: 12px 24px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; transition: 0.2s; }
         .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: #0041a3; }
+        .btn-primary:hover { background: var(--primary-hover); }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
 
-        /* --- Modal --- */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-        .modal.active { display: flex; }
-        .modal-content { background: var(--surface); border-radius: 24px; padding: 40px; width: 100%; max-width: 500px; }
+        /* --- Auth Container --- */
+        #auth-container { position: fixed; inset: 0; background: var(--secondary); z-index: 5000; display: flex; align-items: center; justify-content: center; }
+        .auth-card { background: white; padding: 40px; border-radius: 28px; width: 100%; max-width: 420px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .auth-tabs { display: flex; margin-bottom: 30px; border-bottom: 2px solid var(--border); }
+        .auth-tab { flex: 1; padding: 12px; cursor: pointer; font-weight: 700; color: var(--text-muted); transition: 0.3s; }
+        .auth-tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); margin-bottom: -2px; }
 
-        .form-group { margin-bottom: 20px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
         .form-group label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-muted); }
-        .form-group input, .form-group select { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 14px; outline: none; }
+        .form-group input, .form-group select { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 14px; outline: none; font-family: inherit; font-size: 15px; }
+        .form-group input:focus { border-color: var(--primary); }
 
-        #login-overlay { position: fixed; inset: 0; background: var(--secondary); z-index: 5000; display: flex; align-items: center; justify-content: center; }
-        .login-card { background: white; padding: 40px; border-radius: 24px; width: 100%; max-width: 400px; text-align: center; }
+        .alert { padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 600; margin-bottom: 20px; display: none; }
+        .alert-danger { background: #FEE2E2; color: var(--danger); display: block; }
+        .alert-success { background: #DCFCE7; color: var(--success); display: block; }
+
+        /* --- Setup Overlay --- */
+        #setup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 4000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        #setup-overlay.active { display: flex; }
 
         .hidden { display: none !important; }
     </style>
 </head>
-<body>
+<body class="">
 
-    <div id="login-overlay">
-        <div class="login-card">
+    <!-- Authentication -->
+    <div id="auth-container">
+        <div class="auth-card">
             <h1 style="color: var(--primary); margin-bottom: 10px;">SwiftPay</h1>
-            <p style="color: var(--text-muted); margin-bottom: 30px;">Secure Merchant Login</p>
-            <div class="form-group" style="text-align: left;">
-                <label for="auth-key">API Access Key</label>
-                <input type="password" id="auth-key" placeholder="Enter your management key">
+            <p style="color: var(--text-muted); margin-bottom: 30px;">Enterprise Merchant Gateway</p>
+
+            <div class="auth-tabs">
+                <div class="auth-tab active" onclick="switchAuth('login', this)">Login</div>
+                <div class="auth-tab" onclick="switchAuth('signup', this)">Sign Up</div>
             </div>
-            <button class="btn btn-primary" style="width: 100%;" onclick="attemptLogin()">Enter Console</button>
+
+            <div id="auth-alert" class="alert"></div>
+
+            <div id="login-form">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="login-email" placeholder="name@company.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-pass" placeholder="••••••••">
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="login()">Sign In</button>
+            </div>
+
+            <div id="signup-form" class="hidden">
+                <div class="form-group">
+                    <label>Work Email</label>
+                    <input type="email" id="signup-email" placeholder="name@company.com">
+                </div>
+                <div class="form-group">
+                    <label>Create Password</label>
+                    <input type="password" id="signup-pass" placeholder="Min. 8 characters">
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="signup()">Create Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Key Setup (Shown for new users) -->
+    <div id="setup-overlay">
+        <div class="auth-card" style="max-width: 500px;">
+            <h2 style="margin-bottom: 10px;">Welcome to SwiftPay</h2>
+            <p style="color: var(--text-muted); margin-bottom: 30px;">Please configure your production API keys to start collecting payments.</p>
+            <div class="form-group">
+                <label>Production Public Access Key</label>
+                <input type="text" id="setup-pub" placeholder="0C5112C9...">
+            </div>
+            <div class="form-group">
+                <label>Production Secret Key</label>
+                <input type="password" id="setup-sec" placeholder="6EF06D96...">
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="saveKeys()">Save & Continue</button>
+            <p style="font-size: 11px; margin-top: 15px; color: var(--text-muted);">You can find these keys in your SwiftPay Merchant Portal.</p>
         </div>
     </div>
 
@@ -122,23 +184,17 @@
         <div class="logo"><i class="fas fa-bolt"></i> SwiftPay</div>
         <a href="#" class="nav-item active" onclick="showPage('home', this)"><i class="fas fa-chart-pie"></i> Dashboard</a>
         <a href="#" class="nav-item" onclick="showPage('txs', this)"><i class="fas fa-exchange-alt"></i> Transactions</a>
-        <a href="#" class="nav-item" onclick="showPage('links', this)"><i class="fas fa-link"></i> Payment Links</a>
-        <a href="#" class="nav-item" onclick="showPage('members', this)"><i class="fas fa-users"></i> Team Management</a>
-        <a href="#" class="nav-item" onclick="showPage('dev', this)"><i class="fas fa-cog"></i> Developer Center</a>
+        <a href="#" class="nav-item" onclick="showPage('members', this)"><i class="fas fa-users"></i> Team</a>
+        <a href="#" class="nav-item" onclick="showPage('dev', this)"><i class="fas fa-cog"></i> Settings</a>
 
-        <div style="margin-top: auto; padding: 20px; background: #F4F7FE; border-radius: 16px; font-size: 12px;">
-            <div style="font-weight: 800;">System Status</div>
-            <div style="color: var(--success); display: flex; align-items: center; gap: 5px; margin-top: 5px;">
-                <span style="width: 8px; height: 8px; background: var(--success); border-radius: 50%;"></span>
-                All services operational
-            </div>
+        <div class="logout-btn" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
         </div>
     </div>
 
     <div class="main">
-        <!-- Page: Home -->
         <div id="page-home" class="page active">
-            <div class="header"><h1>Merchant Overview</h1><button class="btn btn-outline" onclick="refreshData()"><i class="fas fa-sync"></i> Refresh Data</button></div>
+            <div class="header"><h1>Business Overview</h1><button class="btn btn-outline" onclick="refreshData()"><i class="fas fa-sync"></i> Sync</button></div>
             <div class="grid-stats">
                 <div class="stat-card">
                     <div class="stat-icon" style="background: #E0F2FE; color: var(--primary);"><i class="fas fa-wallet"></i></div>
@@ -150,93 +206,125 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon" style="background: #FEF3C7; color: var(--warning);"><i class="fas fa-shopping-bag"></i></div>
-                    <div class="stat-info"><span>Order Count</span><h2 id="stat-count">0</h2></div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #FEE2E2; color: var(--danger);"><i class="fas fa-user-shield"></i></div>
-                    <div class="stat-info"><span>Members Count</span><h2 id="stat-members">1</h2></div>
+                    <div class="stat-info"><span>Sales Volume</span><h2 id="stat-count">0</h2></div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-header"><h3>Recent Transactions</h3></div>
+                <div class="card-header"><h3>Live Transactions</h3></div>
                 <table>
-                    <thead><tr><th>Transaction ID</th><th>Amount (PHP)</th><th>Status</th><th>Created At</th></tr></thead>
+                    <thead><tr><th>TX ID</th><th>Amount (PHP)</th><th>Status</th><th>Time</th></tr></thead>
                     <tbody id="tx-tbody"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Page: Links -->
-        <div id="page-links" class="page">
-            <div class="header"><h1>Payment Tools</h1><button class="btn btn-primary" onclick="openModal('modal-link')"><i class="fas fa-plus"></i> Create New Link</button></div>
+        <div id="page-txs" class="page">
+            <div class="header"><h1>Transaction History</h1></div>
             <div class="card">
-                <div class="card-header"><h3>Active Payment Links</h3></div>
-                <table>
-                    <thead><tr><th>Description</th><th>Amount</th><th>Short Link</th><th>Action</th></tr></thead>
-                    <tbody id="links-tbody"></tbody>
+                <table id="full-tx-table">
+                    <thead><tr><th>Transaction ID</th><th>Amount</th><th>Status</th><th>Created At</th></tr></thead>
+                    <tbody id="full-tx-body"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Page: Members -->
         <div id="page-members" class="page">
-            <div class="header"><h1>Organization</h1><button class="btn btn-primary" onclick="openModal('modal-member')"><i class="fas fa-user-plus"></i> Invite Member</button></div>
+            <div class="header"><h1>Team Access</h1><button class="btn btn-primary" onclick="openModal('modal-member')"><i class="fas fa-user-plus"></i> Invite</button></div>
             <div class="card">
                 <table>
-                    <thead><tr><th>Name</th><th>Email</th><th>Access Role</th><th>Joined At</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
                     <tbody id="members-tbody"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Page: Dev -->
         <div id="page-dev" class="page">
-            <div class="header"><h1>API & Security</h1></div>
+            <div class="header"><h1>Account Settings</h1></div>
             <div class="card">
-                <h3>API Credentials</h3><br>
+                <h3>Gateway Configuration</h3><br>
+                <div class="form-group"><label>Email Address</label><input type="text" id="user-email" readonly style="background:#F8FAFC"></div>
                 <div class="form-group"><label>Public Access Key</label><input type="text" id="dev-pub" readonly style="background:#F8FAFC"></div>
-                <div class="form-group"><label>Secret Key</label><input type="password" value="••••••••••••••••" readonly style="background:#F8FAFC"></div>
-            </div>
-            <div class="card">
-                <div class="card-header"><h3>Webhook Configuration</h3><button class="btn btn-outline" onclick="openModal('modal-webhook')">Add Endpoint</button></div>
-                <div id="webhook-list"></div>
+                <button class="btn btn-outline" onclick="document.getElementById('setup-overlay').classList.add('active')">Update API Keys</button>
             </div>
         </div>
     </div>
 
-    <!-- Modals -->
-    <div id="modal-link" class="modal"><div class="modal-content">
-        <h2>Create Payment Link</h2><br>
-        <div class="form-group"><label>Order Description</label><input id="l-desc" placeholder="e.g. Software Service Fee"></div>
-        <div class="form-group"><label>Amount (PHP)</label><input id="l-amt" type="number" placeholder="0.00"></div>
-        <button class="btn btn-primary" style="width:100%" onclick="saveLink()">Generate & Save</button>
-    </div></div>
-
-    <div id="modal-member" class="modal"><div class="modal-content">
-        <h2>Add New Member</h2><br>
-        <div class="form-group"><label>Name</label><input id="m-name"></div>
-        <div class="form-group"><label>Email</label><input id="m-email"></div>
-        <div class="form-group"><label>Role</label><select id="m-role"><option value="ADMIN">Admin</option><option value="FINANCE">Finance</option></select></div>
-        <button class="btn btn-primary" style="width:100%" onclick="saveMember()">Confirm Invite</button>
-    </div></div>
-
     <script>
-        let serverKey = '';
-        async function api(path, method = 'GET', body = null) {
+        let token = localStorage.getItem('sp_token');
+        if (token) document.body.classList.add('logged-in');
+
+        function switchAuth(type, el) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('login-form').classList.toggle('hidden', type === 'signup');
+            document.getElementById('signup-form').classList.toggle('hidden', type === 'login');
+            showAlert('');
+        }
+
+        function showAlert(msg, type='danger') {
+            const div = document.getElementById('auth-alert');
+            div.innerText = msg;
+            div.className = msg ? `alert alert-${type}` : 'alert';
+        }
+
+        async function signup() {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-pass').value;
+            try {
+                const res = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (data.error) showAlert(data.error);
+                else { showAlert('Account created! Please login.', 'success'); switchAuth('login', document.querySelectorAll('.auth-tab')[0]); }
+            } catch (e) { showAlert('Network error'); }
+        }
+
+        async function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-pass').value;
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (data.error) showAlert(data.error);
+                else {
+                    localStorage.setItem('sp_token', data.token);
+                    token = data.token;
+                    document.body.classList.add('logged-in');
+                    if (!data.user.hasKeys) document.getElementById('setup-overlay').classList.add('active');
+                    else refreshData();
+                }
+            } catch (e) { showAlert('Network error'); }
+        }
+
+        function logout() {
+            localStorage.removeItem('sp_token');
+            location.reload();
+        }
+
+        async function request(path, method = 'GET', body = null) {
             const res = await fetch('/api/swiftpay' + path, {
                 method,
-                headers: { 'Content-Type': 'application/json', 'x-api-key': serverKey },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                 body: body ? JSON.stringify(body) : null
             });
-            if (res.status === 401) { alert('Session expired'); location.reload(); }
+            if (res.status === 401) logout();
             return await res.json();
         }
 
-        function attemptLogin() {
-            serverKey = document.getElementById('auth-key').value;
-            if (serverKey) {
-                document.getElementById('login-overlay').classList.add('hidden');
+        async function saveKeys() {
+            const publicKey = document.getElementById('setup-pub').value;
+            const secretKey = document.getElementById('setup-sec').value;
+            const data = await request('/keys', 'POST', { publicKey, secretKey });
+            if (data.status === 'success') {
+                document.getElementById('setup-overlay').classList.remove('active');
                 refreshData();
             }
         }
@@ -246,53 +334,28 @@
             document.getElementById('page-' + id).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
-            if(id === 'members') loadMembers();
-            if(id === 'dev') loadDev();
+            if (id === 'dev') loadDev();
         }
 
-        function openModal(id) { document.getElementById(id).classList.add('active'); }
-        window.onclick = function(e) { if(e.target.classList.contains('modal')) e.target.classList.remove('active'); }
-
         async function refreshData() {
-            const bal = await api('/balance');
+            if (!token) return;
+            const bal = await request('/balance');
             document.getElementById('bal-h2').innerText = "₱ " + (bal.balance || 0).toLocaleString();
 
-            const txs = await api('/transactions');
-            const tbody = document.getElementById('tx-tbody');
-            tbody.innerHTML = txs.map(t => `<tr><td>${t.transactionId}</td><td>₱ ${t.amount.toFixed(2)}</td><td><span style="color:${t.status==='SUCCESS'?'var(--success)':'var(--warning)'}">${t.status}</span></td><td>${t.date}</td></tr>`).join('');
+            const txs = await request('/transactions');
+            document.getElementById('tx-tbody').innerHTML = txs.slice(0, 5).map(t => `<tr><td>${t.transactionId}</td><td>₱ ${t.amount.toFixed(2)}</td><td><span style="color:var(--success)">${t.status}</span></td><td>${new Date(t.date).toLocaleTimeString()}</td></tr>`).join('');
 
             const success = txs.filter(t => t.status === 'SUCCESS');
             document.getElementById('stat-total').innerText = "₱ " + success.reduce((a,b)=>a+b.amount, 0).toLocaleString();
             document.getElementById('stat-count').innerText = success.length;
         }
 
-        async function loadMembers() {
-            const m = await api('/members');
-            document.getElementById('stat-members').innerText = m.length;
-            document.getElementById('members-tbody').innerHTML = m.map(x => `<tr><td>${x.name}</td><td>${x.email}</td><td>${x.role}</td><td>2024-06</td><td><i class="fas fa-trash" style="color:var(--danger); cursor:pointer" onclick="deleteMember('${x.id}')"></i></td></tr>`).join('');
-        }
-
-        async function saveMember() {
-            await api('/members', 'POST', { name: document.getElementById('m-name').value, email: document.getElementById('m-email').value, role: document.getElementById('m-role').value });
-            document.getElementById('modal-member').classList.remove('active');
-            loadMembers();
-        }
-
         async function loadDev() {
-            const s = await api('/settings');
-            document.getElementById('dev-pub').value = s.publicKey;
-            const hooks = await api('/webhooks');
-            document.getElementById('webhook-list').innerHTML = hooks.map(h => `<div class="stat-card" style="margin-top:10px"><div><b>${h.name}</b><br><small>${h.callbackUrl}</small></div></div>`).join('');
+            const data = await request('/settings');
+            document.getElementById('dev-pub').value = data.publicKey;
         }
 
-        async function saveLink() {
-            const res = await api('/payment-links', 'POST', { amount: parseFloat(document.getElementById('l-amt').value), description: document.getElementById('l-desc').value });
-            if(res.paymentLinkUrl) {
-                const tbody = document.getElementById('links-tbody');
-                tbody.innerHTML = `<tr><td>${document.getElementById('l-desc').value}</td><td>₱ ${document.getElementById('l-amt').value}</td><td><a href="${res.paymentLinkUrl}" target="_blank">Click to visit</a></td><td><i class="fas fa-copy"></i></td></tr>` + tbody.innerHTML;
-            }
-            document.getElementById('modal-link').classList.remove('active');
-        }
+        if (token) refreshData();
     </script>
 </body>
 </html>

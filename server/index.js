@@ -6,11 +6,15 @@ const helmet = require('helmet')
 const fs = require('fs')
 const path = require('path')
 const axios = require('axios')
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
 
 const app = express()
 app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors())
 app.use(bodyParser.json())
+
+const JWT_SECRET = process.env.JWT_SECRET || 'fastpay-super-secret'
 
 // --- Persistence Layer ---
 const usePg = !!process.env.DATABASE_URL
@@ -26,8 +30,17 @@ if (usePg) {
   // Auto-migrate tables for Production
   ;(async () => {
     try {
+      await pgPool.query(`CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        sp_public_key TEXT,
+        sp_secret_key TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )`)
       await pgPool.query(`CREATE TABLE IF NOT EXISTS members (
         id TEXT PRIMARY KEY,
+        owner_id TEXT NOT NULL,
         name TEXT NOT NULL,
         email TEXT NOT NULL,
         role TEXT NOT NULL,
@@ -42,75 +55,87 @@ if (usePg) {
         status TEXT NOT NULL,
         created_at BIGINT
       )`)
-      console.log('✅ Postgres Production Tables Ready')
+      console.log('✅ Postgres Production Tables Ready with Multi-User Support')
     } catch (e) {
       console.error('❌ DB Migration Failed:', e.message)
     }
   })()
 }
 
-const MEMBER_FILE = path.join(__dirname, 'members.json')
-
-async function getMembers() {
-  if (usePg) {
-    const r = await pgPool.query('SELECT * FROM members ORDER BY created_at DESC')
-    return r.rows
-  }
-  try { return JSON.parse(fs.readFileSync(MEMBER_FILE, 'utf8')) } catch (e) { return [] }
-}
-
-async function saveMember(m) {
-  if (usePg) {
-    await pgPool.query(
-      'INSERT INTO members(id, name, email, role) VALUES($1, $2, $3, $4)',
-      [Date.now().toString(), m.name, m.email, m.role]
-    )
-    return
-  }
-  const members = await getMembers()
-  members.push({ ...m, id: Date.now().toString() })
-  fs.writeFileSync(MEMBER_FILE, JSON.stringify(members, null, 2))
-}
-
-// --- SwiftPay Config ---
-const API_KEY = process.env.APP_SERVER_KEY || 'dev_key'
-const SP_SECRET = process.env.SWIFTPAY_SECRET_KEY
-const SP_PUBLIC = process.env.SWIFTPAY_PUBLIC_KEY
-const BASE_URL = "https://api.netbank.ph/"
-
-const getAuthHeader = () => ({ 'Authorization': 'Basic ' + Buffer.from(SP_SECRET + ':').toString('base64') })
-
-// Middleware: Production Key Protection
+// --- Auth Middleware ---
 const requireAuth = (req, res, next) => {
-    const key = req.headers['x-api-key'] || req.headers['x-app-key']
-    if (key === API_KEY) return next()
-    res.status(401).json({ error: 'Unauthorized access to merchant gateway.' })
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized. Please login.' })
+    }
+    const token = authHeader.split(' ')[1]
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET)
+        req.user = decoded
+        next()
+    } catch (e) {
+        res.status(401).json({ error: 'Invalid or expired token.' })
+    }
 }
 
-// --- Routes ---
+// --- Auth Routes ---
+app.post('/api/auth/signup', async (req, res) => {
+    const { email, password } = req.body
+    if (!email || !password) return res.status(400).json({ error: 'Email and password required' })
 
-app.use(express.static(path.join(__dirname, 'public')))
-
-app.get('/', (req, res) => {
-    res.redirect('/dashboard')
+    try {
+        const hash = await bcrypt.hash(password, 10)
+        if (usePg) {
+            await pgPool.query('INSERT INTO users(email, password_hash) VALUES($1, $2)', [email.toLowerCase(), hash])
+        } else {
+            // Local file fallback not implemented for multi-user for simplicity, use PG for production
+            return res.status(500).json({ error: 'Signup requires DATABASE_URL configured' })
+        }
+        res.json({ status: 'success', message: 'User created' })
+    } catch (e) {
+        if (e.code === '23505') return res.status(400).json({ error: 'Email already exists' })
+        res.status(500).json({ error: e.message })
+    }
 })
 
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', environment: process.env.NODE_ENV || 'development' })
+app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body
+    try {
+        let user = null
+        if (usePg) {
+            const r = await pgPool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase()])
+            user = r.rows[0]
+        }
+        if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+            return res.status(401).json({ error: 'Invalid email or password' })
+        }
+        const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '24h' })
+        res.json({ token, user: { email: user.email, id: user.id, hasKeys: !!user.sp_secret_key } })
+    } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')))
+// --- Merchant Gateway Routes (Proxy) ---
 
 app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
     try {
-        const resp = await axios.get(`${BASE_URL}v1/account/balance`, { headers: getAuthHeader() })
+        const user = await pgPool.query('SELECT sp_secret_key FROM users WHERE id = $1', [req.user.id])
+        const secret = user.rows[0]?.sp_secret_key
+        if (!secret) return res.status(400).json({ error: 'Keys not configured' })
+
+        const authHeader = { 'Authorization': 'Basic ' + Buffer.from(secret + ':').toString('base64') }
+        const resp = await axios.get(`https://api.netbank.ph/v1/account/balance`, { headers: authHeader })
         res.json(resp.data)
     } catch (e) { res.status(500).json({ error: 'SwiftPay API Error' }) }
 })
 
 app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
     try {
-        const resp = await axios.get(`${BASE_URL}v1/collect/payments`, { headers: getAuthHeader() })
+        const user = await pgPool.query('SELECT sp_secret_key FROM users WHERE id = $1', [req.user.id])
+        const secret = user.rows[0]?.sp_secret_key
+        if (!secret) return res.json([])
+
+        const authHeader = { 'Authorization': 'Basic ' + Buffer.from(secret + ':').toString('base64') }
+        const resp = await axios.get(`https://api.netbank.ph/v1/collect/payments`, { headers: authHeader })
         const data = resp.data.data || resp.data.payments || []
         res.json(data.map(t => ({
             transactionId: t.id,
@@ -121,38 +146,40 @@ app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
     } catch (e) { res.json([]) }
 })
 
-app.post('/api/swiftpay/payment-links', requireAuth, async (req, res) => {
+app.post('/api/swiftpay/keys', requireAuth, async (req, res) => {
+    const { publicKey, secretKey } = req.body
     try {
-        const resp = await axios.post(`${BASE_URL}v1/collect/payment-links`, req.body, { headers: getAuthHeader() })
-        res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: 'Failed to create link' }) }
+        await pgPool.query('UPDATE users SET sp_public_key = $1, sp_secret_key = $2 WHERE id = $3', [publicKey, secretKey, req.user.id])
+        res.json({ status: 'success' })
+    } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
-app.get('/api/swiftpay/settings', requireAuth, (req, res) => res.json({ publicKey: SP_PUBLIC }))
+app.get('/api/swiftpay/settings', requireAuth, async (req, res) => {
+    const user = await pgPool.query('SELECT sp_public_key, sp_secret_key FROM users WHERE id = $1', [req.user.id])
+    res.json({
+        publicKey: user.rows[0]?.sp_public_key || '',
+        hasSecret: !!user.rows[0]?.sp_secret_key
+    })
+})
 
-app.get('/api/swiftpay/members', requireAuth, async (req, res) => res.json(await getMembers()))
+app.get('/api/swiftpay/members', requireAuth, async (req, res) => {
+    const r = await pgPool.query('SELECT * FROM members WHERE owner_id = $1 ORDER BY created_at DESC', [req.user.id])
+    res.json(r.rows)
+})
+
 app.post('/api/swiftpay/members', requireAuth, async (req, res) => {
-    await saveMember(req.body)
+    const { name, email, role } = req.body
+    await pgPool.query(
+      'INSERT INTO members(id, owner_id, name, email, role) VALUES($1, $2, $3, $4, $5)',
+      [Date.now().toString(), req.user.id, name, email, role]
+    )
     res.json({ status: 'success' })
 })
 
-app.get('/api/swiftpay/webhooks', requireAuth, async (req, res) => {
-    try {
-        const resp = await axios.get(`${BASE_URL}v1/collect/webhooks`, { headers: getAuthHeader() })
-        res.json(resp.data)
-    } catch (e) { res.json([]) }
-})
-
-// Support Mobile App Login Approvals
-app.post('/approvals', async (req, res) => {
-    const { email, deviceId, deviceName } = req.body
-    const entry = { requestId: Math.random().toString(36).slice(2), email, deviceId, deviceName, status: 'APPROVED', createdAt: Date.now() }
-    if (usePg) {
-        await pgPool.query('INSERT INTO approvals(request_id, email, device_id, device_name, status, created_at) VALUES($1,$2,$3,$4,$5,$6)',
-        [entry.requestId, email, deviceId, deviceName, 'APPROVED', entry.createdAt])
-    }
-    res.json(entry)
-})
+// --- UI & Static ---
+app.use(express.static(path.join(__dirname, 'public')))
+app.get('/', (req, res) => res.redirect('/dashboard'))
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')))
 
 const PORT = process.env.PORT || 3000
-app.listen(PORT, '0.0.0.0', () => console.log('🚀 SwiftPay Production Server listening on port', PORT))
+app.listen(PORT, '0.0.0.0', () => console.log('🚀 SwiftPay Multi-User Server listening on port', PORT))
