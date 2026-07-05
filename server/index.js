@@ -41,6 +41,12 @@ if (usePg) {
         sp_secret_key TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       )`)
+
+      // Migrations
+      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS business_name TEXT`)
+      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS sp_public_key TEXT`)
+      await pgPool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS sp_secret_key TEXT`)
+
       await pgPool.query(`CREATE TABLE IF NOT EXISTS members (
         id TEXT PRIMARY KEY,
         owner_id TEXT NOT NULL,
@@ -50,41 +56,66 @@ if (usePg) {
         status TEXT DEFAULT 'ACTIVE',
         created_at TIMESTAMPTZ DEFAULT NOW()
       )`)
-      console.log('✅ Postgres Schema Ready')
 
-      // Seed Admin
+      // Seed/Reset Admin
       const adminEmail = 'admin@fastpay.com'
       const adminPass = 'SwiftPay#Admin#2024'
+      const hash = await bcrypt.hash(adminPass, 10)
+
       const { rows } = await pgPool.query('SELECT id FROM users WHERE email = $1', [adminEmail])
 
       if (rows.length === 0) {
-        const hash = await bcrypt.hash(adminPass, 10)
         await pgPool.query(
           'INSERT INTO users(id, email, password_hash, business_name, sp_public_key, sp_secret_key) VALUES($1, $2, $3, $4, $5, $6)',
           ['ADMIN_ROOT', adminEmail, hash, 'Click Store', process.env.SWIFTPAY_PUBLIC_KEY, process.env.SWIFTPAY_SECRET_KEY]
         )
-        console.log('👤 Admin Seeded')
+      } else {
+        // Force update password to ensure it matches the provided one
+        await pgPool.query('UPDATE users SET password_hash = $1 WHERE email = $2', [hash, adminEmail])
       }
-    } catch (e) { console.error('❌ DB INIT ERROR:', e.message) }
+      console.log('✅ System Database Ready & Admin Synced')
+    } catch (e) {
+      console.error('❌ DB SYNC ERROR:', e.message)
+    }
   }
   initDb()
 }
 
-app.get('/api/status', (req, res) => res.json({ database: usePg ? 'connected' : 'disconnected' }))
+app.get('/api/status', (req, res) => res.json({ database: usePg ? 'connected' : 'disconnected', time: Date.now() }))
 
 app.post('/api/auth/login', async (req, res) => {
     if (!usePg) return res.status(500).json({ error: 'DB not connected' })
     const { email, password } = req.body
     try {
-        const r = await pgPool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase()])
+        const r = await pgPool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()])
         const user = r.rows[0]
-        if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-            return res.status(401).json({ error: 'Invalid credentials' })
-        }
-        // CRITICAL FIX: Return businessName so dashboard loads
+
+        if (!user) return res.status(401).json({ error: 'Account not found. Please Sign Up.' })
+
+        const valid = await bcrypt.compare(password, user.password_hash)
+        if (!valid) return res.status(401).json({ error: 'Incorrect password' })
+
         const token = jwt.sign({ id: user.id, email: user.email, businessName: user.business_name }, JWT_SECRET, { expiresIn: '24h' })
-        res.json({ token, user: { email: user.email, businessName: user.business_name, hasKeys: !!user.sp_secret_key } })
-    } catch (e) { res.status(500).json({ error: e.message }) }
+        res.json({ token, user: { email: user.email, businessName: user.business_name || 'Merchant', hasKeys: !!user.sp_secret_key } })
+    } catch (e) {
+        console.error('Login Error:', e.message)
+        res.status(500).json({ error: 'Internal Server Error' })
+    }
+})
+
+app.post('/api/auth/signup', async (req, res) => {
+    if (!usePg) return res.status(500).json({ error: 'DB not connected' })
+    const { email, password, businessName } = req.body
+    try {
+        const hash = await bcrypt.hash(password, 10)
+        await pgPool.query(
+            'INSERT INTO users(id, email, password_hash, business_name) VALUES($1, $2, $3, $4)',
+            ['USER_' + Date.now(), email.toLowerCase().trim(), hash, businessName]
+        )
+        res.json({ status: 'success' })
+    } catch (e) {
+        res.status(400).json({ error: e.message })
+    }
 })
 
 // --- SwiftPay Proxy ---
@@ -117,8 +148,28 @@ app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
         const client = await getClient(req.user.id)
         const resp = await client.get('v1/collect/payments')
         const data = resp.data.data || []
-        res.json(data.map(t => ({ id: t.id, amount: parseFloat(t.amount), status: t.status, date: t.createdAt })))
+        res.json(data.map(t => ({ id: t.id, amount: parseFloat(t.amount), status: t.status, date: t.createdAt, method: 'SwiftPay' })))
     } catch (e) { res.json([]) }
+})
+
+app.post('/api/swiftpay/keys', requireAuth, async (req, res) => {
+    await pgPool.query('UPDATE users SET sp_public_key = $1, sp_secret_key = $2 WHERE id = $3', [req.body.publicKey, req.body.secretKey, req.user.id])
+    res.json({ status: 'success' })
+})
+
+app.get('/api/swiftpay/settings', requireAuth, async (req, res) => {
+    const r = await pgPool.query('SELECT sp_public_key, business_name FROM users WHERE id = $1', [req.user.id])
+    res.json(r.rows[0])
+})
+
+app.get('/api/swiftpay/members', requireAuth, async (req, res) => {
+    const r = await pgPool.query('SELECT * FROM members WHERE owner_id = $1', [req.user.id])
+    res.json(r.rows)
+})
+
+app.post('/api/swiftpay/members', requireAuth, async (req, res) => {
+    await pgPool.query('INSERT INTO members(id, owner_id, name, email, role) VALUES($1, $2, $3, $4, $5)', [Date.now().toString(), req.user.id, req.body.name, req.body.email, req.body.role])
+    res.json({ status: 'success' })
 })
 
 app.use(express.static(path.join(__dirname, 'public')))
