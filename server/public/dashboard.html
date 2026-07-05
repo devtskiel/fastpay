@@ -3,116 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwiftPay Merchant Portal | Enterprise</title>
+    <title>SwiftPay Command Center | Enterprise Edition</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --sidebar-bg: #0A0A0B;
+            --sidebar-bg: #080809;
             --orange: #F46119;
-            --bg: #0F0F11;
-            --glass: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --active-nav: rgba(244, 97, 25, 0.1);
+            --orange-glow: rgba(244, 97, 25, 0.4);
+            --bg: #040405;
+            --glass: rgba(255, 255, 255, 0.02);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --text-main: #FFFFFF;
+            --text-dim: #666666;
+            --success: #00E699;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: #fff; overflow-x: hidden; }
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-font-smoothing: antialiased; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-main); overflow-x: hidden; }
 
-        /* --- Splash Screen --- */
-        #splash-screen {
+        /* --- 4D Background Neural Matrix --- */
+        #neural-canvas { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.3; }
+
+        /* --- Cinematic Splash --- */
+        #splash {
             position: fixed; inset: 0; background: #000; z-index: 10000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: all 1s ease;
+            transition: all 1.2s cubic-bezier(0.8, 0, 0.2, 1);
         }
-        .splash-logo { font-size: 48px; font-weight: 800; color: #fff; }
-        .splash-logo i { color: var(--orange); animation: boltPulse 1.5s infinite alternate; }
-        @keyframes boltPulse { from { opacity: 0.5; } to { opacity: 1; text-shadow: 0 0 20px var(--orange); } }
+        .splash-core { position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; }
+        .splash-ring { position: absolute; border: 2px solid var(--orange); border-radius: 50%; width: 100%; height: 100%; border-top-color: transparent; animation: spin 1s linear infinite; }
+        .splash-logo { font-size: 42px; z-index: 2; animation: logoPulse 2s infinite alternate; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes logoPulse { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 15px var(--orange)); } }
 
-        /* --- Layout --- */
+        /* --- Global Layout --- */
         .sidebar {
-            width: 240px; background: var(--sidebar-bg); height: 100vh; position: fixed;
-            display: flex; flex-direction: column; z-index: 1000; transition: 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-            border-right: 1px solid var(--glass-border);
+            width: 260px; background: var(--sidebar-bg); height: 100vh; position: fixed;
+            display: flex; flex-direction: column; z-index: 1000; transition: 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            border-right: 1px solid var(--glass-border); transform: translateX(-100%);
         }
-        body.logged-out .sidebar { transform: translateX(-100%); }
+        body.logged-in .sidebar { transform: translateX(0); }
 
-        .sidebar-logo { padding: 40px 24px; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+        .sidebar-logo { padding: 40px 30px; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 12px; }
         .sidebar-logo i { color: var(--orange); }
 
-        .nav-section { margin-bottom: 30px; }
-        .nav-label { padding: 0 24px; font-size: 10px; font-weight: 700; color: #444; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 1px; }
-
+        .nav-label { padding: 0 30px; font-size: 10px; font-weight: 800; color: #333; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 20px; }
         .nav-item {
-            padding: 12px 24px; display: flex; align-items: center; gap: 12px; color: #666;
-            text-decoration: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s;
-            border-left: 3px solid transparent;
+            padding: 16px 30px; display: flex; align-items: center; gap: 15px; color: #555;
+            text-decoration: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.4s;
+            position: relative;
         }
         .nav-item:hover { color: #fff; background: rgba(255,255,255,0.02); }
-        .nav-item.active { color: #fff; background: var(--active-nav); border-left-color: var(--orange); }
+        .nav-item.active { color: #fff; background: rgba(244, 97, 25, 0.05); }
+        .nav-item.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--orange); box-shadow: 5px 0 20px var(--orange-glow); }
         .nav-item.active i { color: var(--orange); }
 
-        .sidebar-footer { margin-top: auto; padding: 24px; border-top: 1px solid var(--glass-border); }
-        .powered { font-size: 10px; color: #333; margin-top: 10px; font-weight: 700; }
+        .main { margin-left: 260px; position: relative; z-index: 10; flex: 1; display: none; padding: 50px 80px; }
+        body.logged-in .main { display: block; animation: pageEntry 1.2s forwards cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes pageEntry { from { opacity: 0; transform: perspective(2000px) rotateX(5deg) translateY(30px); } to { opacity: 1; transform: perspective(2000px) rotateX(0) translateY(0); } }
 
-        .main { margin-left: 240px; flex: 1; min-height: 100vh; display: none; padding: 40px 60px; }
-        body.logged-in .main { display: block; animation: entry 0.8s forwards ease-out; }
-        @keyframes entry { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* --- Components --- */
-        .page { display: none; }
-        .page.active { display: block; }
-
-        .glass-card {
-            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
-            backdrop-filter: blur(10px); border-radius: 20px; border: 1px solid var(--glass-border);
-            padding: 30px; transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        /* --- 3D Stats --- */
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; margin-bottom: 50px; perspective: 1500px; }
+        .stat-card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+            border: 1px solid var(--glass-border); border-radius: 30px; padding: 40px;
+            backdrop-filter: blur(30px); transition: 0.6s cubic-bezier(0.16, 1, 0.3, 1);
             transform-style: preserve-3d;
         }
-        .glass-card:hover { transform: translateY(-5px); border-color: var(--orange); }
-        .stat-val { font-size: 32px; font-weight: 800; margin-top: 10px; }
+        .stat-card:hover { border-color: var(--orange); transform: translateZ(50px) rotateY(10deg); box-shadow: 0 40px 80px rgba(0,0,0,0.6); }
+        .stat-card h4 { font-size: 13px; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px; }
+        .stat-card .val { font-size: 48px; font-weight: 800; letter-spacing: -1.5px; text-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .stat-card .growth { font-size: 12px; font-weight: 700; color: var(--success); margin-top: 15px; display: flex; align-items: center; gap: 5px; }
 
-        .table-wrap { background: var(--glass); border-radius: 20px; border: 1px solid var(--glass-border); overflow: hidden; margin-top: 30px; }
+        /* --- Transaction Ledger --- */
+        .ledger-box { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 30px; overflow: hidden; }
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 16px 24px; font-size: 11px; font-weight: 700; color: #444; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
-        td { padding: 16px 24px; border-bottom: 1px solid var(--glass-border); font-size: 14px; color: #bbb; }
+        th { text-align: left; padding: 25px 35px; font-size: 11px; font-weight: 800; color: #333; text-transform: uppercase; letter-spacing: 1px; }
+        td { padding: 22px 35px; border-top: 1px solid var(--glass-border); font-size: 14px; font-weight: 500; color: #888; transition: 0.3s; }
+        tr:hover td { background: rgba(255,255,255,0.01); color: #fff; }
+        .status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 100px; font-size: 11px; font-weight: 800; background: rgba(0,230,153,0.05); color: var(--success); }
 
-        .btn { padding: 12px 24px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.3s; border: none; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-orange { background: var(--orange); color: white; }
-        .btn-orange:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(244, 97, 25, 0.3); }
-
-        .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group label { display: block; font-size: 11px; font-weight: 700; color: #666; text-transform: uppercase; margin-bottom: 8px; }
-        .input-group input, .input-group select { width: 100%; padding: 14px 18px; background: #151517; border: 1px solid var(--glass-border); border-radius: 12px; color: #fff; }
-
-        /* --- Auth Layer --- */
+        /* --- Auth Layer (4D Entry) --- */
         #auth-overlay { position: fixed; inset: 0; background: #000; z-index: 5000; display: flex; align-items: center; justify-content: center; }
-        body.logged-in #auth-overlay { display: none; }
-        .auth-card { background: #0D0D0E; padding: 50px; border-radius: 32px; width: 440px; text-align: center; border: 1px solid var(--glass-border); }
+        body.logged-in #auth-overlay { opacity: 0; visibility: hidden; transition: 1s ease; }
+        .auth-card {
+            background: #080809; padding: 70px; border-radius: 45px; width: 500px; text-align: center;
+            border: 1px solid var(--glass-border); box-shadow: 0 80px 150px rgba(0,0,0,0.8);
+            animation: authZoom 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes authZoom { from { opacity: 0; transform: scale(0.8) translateZ(-500px); } to { opacity: 1; transform: scale(1) translateZ(0); } }
+        .input-box { width: 100%; padding: 20px 28px; background: #0D0D0E; border: 1px solid var(--glass-border); border-radius: 18px; color: #fff; font-size: 16px; margin-bottom: 25px; transition: 0.4s; }
+        .input-box:focus { border-color: var(--orange); background: #111; box-shadow: 0 0 40px rgba(244, 97, 25, 0.15); }
+        .btn-authorize { width: 100%; padding: 22px; background: var(--orange); color: #fff; border: none; border-radius: 18px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.4s; }
+        .btn-authorize:hover { transform: translateY(-5px); box-shadow: 0 20px 40px var(--orange-glow); }
 
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+        /* --- Modals --- */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 5000; align-items: center; justify-content: center; backdrop-filter: blur(20px); }
         .modal.active { display: flex; }
-        .modal-content { background: #0D0D0E; border: 1px solid var(--glass-border); border-radius: 24px; padding: 40px; width: 100%; max-width: 500px; }
+        .modal-content { background: #080809; border: 1px solid var(--glass-border); border-radius: 35px; padding: 50px; width: 100%; max-width: 550px; animation: modalEntry 0.5s ease; }
+        @keyframes modalEntry { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
         .hidden { display: none !important; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .page { display: none; }
+        .page.active { display: block; }
     </style>
 </head>
 <body class="logged-out">
 
-    <!-- Splash -->
-    <div id="splash-screen">
-        <div class="splash-logo"><i class="fas fa-bolt"></i> SwiftPay</div>
-        <p style="margin-top:20px; font-size:10px; color:#444; font-weight:700; letter-spacing:2px;">ENCRYPTED GATEWAY v3.0</p>
+    <!-- Cinematic Splash -->
+    <div id="splash">
+        <div class="splash-core">
+            <div class="splash-ring"></div>
+            <div class="splash-logo"><i class="fas fa-bolt"></i></div>
+        </div>
+        <p style="margin-top:40px; font-size:12px; font-weight:800; color:#222; letter-spacing:6px;">ESTABLISHING QUANTUM LINK</p>
     </div>
 
-    <!-- Login -->
+    <!-- Neural Matrix Background -->
+    <canvas id="neural-canvas"></canvas>
+
+    <!-- Auth Layer -->
     <div id="auth-overlay">
         <div class="auth-card">
-            <div class="sidebar-logo" style="justify-content: center; font-size: 32px; margin-bottom: 40px;"><i class="fas fa-bolt"></i> SwiftPay</div>
-            <div class="input-group"><label>Email</label><input type="email" id="l-email" value="admin@fastpay.com"></div>
-            <div class="input-group"><label>Key</label><input type="password" id="l-pass" value="SwiftPay#Admin#2024"></div>
-            <button class="btn btn-orange" style="width:100%" onclick="login()">Enter Portal</button>
+            <div class="sidebar-logo" style="justify-content: center; font-size: 32px; margin-bottom: 50px;"><i class="fas fa-bolt"></i> SwiftPay</div>
+            <input type="email" id="email" class="input-box" placeholder="SYSTEM ID (EMAIL)" value="admin@fastpay.com">
+            <input type="password" id="pass" class="input-box" placeholder="SECURITY KEY" value="SwiftPay#Admin#2024">
+            <button class="btn-authorize" onclick="login()">INITIATE AUTHORIZATION</button>
+            <p style="margin-top:40px; font-size:11px; color:#1a1a1a; font-weight:800; letter-spacing:2px;">SECURED BY NETBANK CRYPTO-CORE</p>
         </div>
     </div>
 
@@ -120,73 +139,65 @@
     <div class="sidebar">
         <div class="sidebar-logo"><i class="fas fa-bolt"></i> SwiftPay</div>
         <div class="nav-section">
-            <div class="nav-item active" onclick="showPage('home', this)"><i class="fas fa-grid-2"></i> Overview</div>
-            <div class="nav-item" onclick="showPage('approvals', this)"><i class="fas fa-shield-check"></i> Approvals</div>
+            <div class="nav-label">Command</div>
+            <div class="nav-item active" onclick="showPage('home', this)"><i class="fas fa-microchip"></i> Dashboard</div>
+            <div class="nav-item" onclick="showPage('approvals', this)"><i class="fas fa-shield-virus"></i> Approvals</div>
         </div>
         <div class="nav-section">
-            <div class="nav-label">Transactions</div>
-            <div class="nav-item" onclick="showPage('payments', this)"><i class="fas fa-exchange-alt"></i> Payments</div>
-            <div class="nav-item" onclick="showPage('paylinks', this)"><i class="fas fa-link"></i> Pay Links</div>
+            <div class="nav-label">Finance Core</div>
+            <div class="nav-item" onclick="showPage('payments', this)"><i class="fas fa-satellite-dish"></i> Ledger</div>
+            <div class="nav-item" onclick="showPage('paylinks', this)"><i class="fas fa-link-horizontal"></i> Link Node</div>
         </div>
-        <div class="sidebar-footer">
-            <div class="nav-item" onclick="showPage('settings', this)"><i class="fas fa-sliders"></i> Settings</div>
-            <div class="nav-item" onclick="logout()"><i class="fas fa-power-off"></i> Logout</div>
+        <div class="nav-section" style="margin-top:auto;">
+            <div class="nav-item" onclick="showPage('settings', this)"><i class="fas fa-atom"></i> Terminal</div>
+            <div class="nav-item" onclick="logout()"><i class="fas fa-power-off"></i> Purge Session</div>
         </div>
+        <div style="padding:24px; font-size:9px; font-weight:900; color:#222; text-align:center; letter-spacing:1px;">SWIFTPAY ENTERPRISE v3.1</div>
     </div>
 
     <div class="main">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:50px;">
-            <h1 id="biz-header">Merchant Console</h1>
-            <button class="btn btn-orange" onclick="openModal('modal-qr')"><i class="fas fa-qrcode"></i> Generate QR</button>
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:60px;">
+            <div>
+                <h1 style="font-size:38px; font-weight:800; letter-spacing:-2px;">Ops Control Center</h1>
+                <p style="color:#444; font-weight:700; font-size:14px; margin-top:5px;">System Active: <span style="color:var(--orange)" id="biz-header">Merchant Hub</span></p>
+            </div>
+            <button class="btn-authorize" style="width:auto; padding:12px 30px; border-radius:100px;" onclick="openModal('modal-qr')">GENERATE QR NODE</button>
         </div>
 
-        <!-- Home Page -->
         <div id="page-home" class="page active">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
-                <div class="glass-card"><h4>Wallet Balance</h4><div class="stat-val" id="val-bal">₱ 0.00</div></div>
-                <div class="glass-card"><h4>Lifetime Volume</h4><div class="stat-val" id="val-vol">₱ 0.00</div></div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4>Liquidity Reserve</h4>
+                    <div class="val" id="val-bal">₱ 0.00</div>
+                    <div class="growth"><i class="fas fa-chart-line"></i> +14.2% VOLATILITY SYNC</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Throughput Volume</h4>
+                    <div class="val" id="val-vol">₱ 0.00</div>
+                    <div style="margin-top:15px; font-size:12px; font-weight:700; color:#333;">REAL-TIME DATA STREAM</div>
+                </div>
             </div>
-            <div class="table-wrap">
-                <div style="padding:20px 24px; font-weight:700;">Recent Stream</div>
+
+            <div style="background:var(--glass); border:1px solid var(--glass-border); border-radius:30px; padding:40px; margin-bottom:40px;">
+                <h4 style="font-size:12px; font-weight:800; color:#333; margin-bottom:30px; letter-spacing:2px;">VOLUME PROJECTION</h4>
+                <canvas id="volChart" height="100"></canvas>
+            </div>
+
+            <div class="ledger-box">
                 <table>
-                    <thead><tr><th>Reference</th><th>Value</th><th>Status</th></tr></thead>
-                    <tbody id="home-tx-list"></tbody>
+                    <thead><tr><th>Temporal Stamp</th><th>Reference Hash</th><th>Value</th><th>Status</th></tr></thead>
+                    <tbody id="tx-ledger"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Payments Page -->
-        <div id="page-payments" class="page">
-            <h1>Transaction Ledger</h1>
-            <div class="table-wrap">
-                <table>
-                    <thead><tr><th>Date</th><th>ID</th><th>Amount</th><th>Status</th></tr></thead>
-                    <tbody id="full-tx-list"></tbody>
-                </table>
-            </div>
-        </div>
+        <div id="page-approvals" class="page"><h1>Authorization Queue</h1><div style="text-align:center; padding:100px; color:#222;"><i class="fas fa-shield-slash" style="font-size:64px; margin-bottom:30px;"></i><h3>No security flags detected in stream.</h3></div></div>
 
-        <!-- Pay Links Page -->
-        <div id="page-paylinks" class="page">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-                <h1>Payment Links</h1>
-                <button class="btn btn-orange" onclick="openModal('modal-link')">+ New Link</button>
-            </div>
-            <div class="table-wrap">
-                <table>
-                    <thead><tr><th>Link</th><th>Amount</th><th>Status</th></tr></thead>
-                    <tbody id="paylink-list"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Settings Page -->
         <div id="page-settings" class="page">
-            <h1>Merchant Settings</h1><br>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
-                <div class="glass-card" onclick="openModal('modal-profile')"><h4>Store Profile</h4><p style="color:#666; font-size:12px">Edit business name and URL.</p></div>
-                <div class="glass-card" onclick="openModal('modal-keys')"><h4>API Access</h4><p style="color:#666; font-size:12px">Manage production keys.</p></div>
-                <div class="glass-card" onclick="openModal('modal-team')"><h4>Team Management</h4><p style="color:#666; font-size:12px">Invite and manage users.</p></div>
+            <h1>Terminal Config</h1><br>
+            <div class="stats-grid">
+                <div class="stat-card" onclick="openModal('modal-profile')"><h4>Business Profile</h4><p style="color:#444; font-size:13px">Identity and Brand Metadata</p></div>
+                <div class="stat-card" onclick="openModal('modal-keys')"><h4>Encryption Keys</h4><p style="color:#444; font-size:13px">Netbank Production Credentials</p></div>
             </div>
         </div>
     </div>
@@ -194,51 +205,62 @@
     <!-- Modals -->
     <div id="modal-qr" class="modal" onclick="closeModal('modal-qr')">
         <div class="modal-content" onclick="event.stopPropagation()" style="text-align:center">
-            <h2>Dynamic QR Ph</h2><br>
-            <div class="input-group"><label>Amount (PHP)</label><input type="number" id="qr-amt" placeholder="100.00"></div>
-            <div id="qr-result" class="hidden"><img id="qr-img" style="width:240px; border-radius:12px; margin-bottom:20px;"></div>
-            <button class="btn btn-orange" style="width:100%" id="btn-gen-qr" onclick="genQR()">Generate Code</button>
-        </div>
-    </div>
-
-    <div id="modal-link" class="modal" onclick="closeModal('modal-link')">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h2>New Payment Link</h2><br>
-            <div class="input-group"><label>Product / Description</label><input id="pl-desc"></div>
-            <div class="input-group"><label>Amount (PHP)</label><input type="number" id="pl-amt"></div>
-            <button class="btn btn-orange" style="width:100%" onclick="saveLink()">Create & Copy</button>
+            <h2 style="font-size:24px; font-weight:800;">QR PH NODE</h2><br>
+            <input type="number" id="qr-amt" class="input-box" placeholder="VALUE (PHP)">
+            <div id="qr-display" class="hidden" style="margin-bottom:30px;"><img id="qr-img" style="width:260px; border-radius:20px; border:4px solid #111;"></div>
+            <button class="btn-authorize" id="qr-btn" onclick="genQR()">GENERATE SYMBOL</button>
         </div>
     </div>
 
     <div id="modal-profile" class="modal" onclick="closeModal('modal-profile')">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <h2>Store Profile</h2><br>
-            <div class="input-group"><label>Business Name</label><input id="p-biz"></div>
-            <div class="input-group"><label>Shop URL</label><input id="p-url"></div>
-            <button class="btn btn-orange" style="width:100%" onclick="updateProfile()">Save Profile</button>
-        </div>
-    </div>
-
-    <div id="modal-keys" class="modal" onclick="closeModal('modal-keys')">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h2>Production Keys</h2><br>
-            <div class="input-group"><label>Public Key</label><input id="k-pub"></div>
-            <div class="input-group"><label>Secret Key</label><input type="password" id="k-sec"></div>
-            <button class="btn btn-orange" style="width:100%" onclick="saveKeys()">Sync Gateway</button>
+            <h2>System Identity</h2><br>
+            <label style="font-size:11px; font-weight:800; color:#444;">BUSINESS NAME</label>
+            <input id="p-biz" class="input-box">
+            <label style="font-size:11px; font-weight:800; color:#444;">ENDPOINT URL</label>
+            <input id="p-url" class="input-box">
+            <button class="btn-authorize" style="width:100%" onclick="updateProfile()">SAVE METADATA</button>
         </div>
     </div>
 
     <script>
-        let token = localStorage.getItem('sp_token');
+        // --- 4D Neural Matrix logic ---
+        const canvas = document.getElementById('neural-canvas');
+        const ctx = canvas.getContext('2d');
+        let dots = [];
+        function init() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            dots = [];
+            for(let i=0; i<60; i++) dots.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, vx: (Math.random()-0.5)*0.8, vy: (Math.random()-0.5)*0.8 });
+        }
+        function draw() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.strokeStyle = 'rgba(244,97,25,0.15)';
+            ctx.lineWidth = 1;
+            dots.forEach(d => {
+                d.x += d.vx; d.y += d.vy;
+                if(d.x<0 || d.x>canvas.width) d.vx *= -1;
+                if(d.y<0 || d.y>canvas.height) d.vy *= -1;
+                dots.forEach(d2 => {
+                    const dist = Math.hypot(d.x-d2.x, d.y-d2.y);
+                    if(dist < 200) { ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d2.x, d2.y); ctx.stroke(); }
+                });
+            });
+            requestAnimationFrame(draw);
+        }
+        window.addEventListener('resize', init); init(); draw();
 
+        // --- Splash Handle ---
         window.addEventListener('load', () => {
             setTimeout(() => {
-                const s = document.getElementById('splash-screen');
-                s.style.opacity = '0';
+                const s = document.getElementById('splash');
+                s.style.opacity = '0'; s.style.transform = 'scale(1.5)';
                 setTimeout(() => s.style.display = 'none', 1000);
-            }, 2000);
-            if(token) { document.body.className = 'logged-in'; sync(); }
+            }, 2500);
         });
+
+        let token = localStorage.getItem('sp_token');
+        if (token) { document.body.className = 'logged-in'; sync(); }
 
         async function login() {
             const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: document.getElementById('email').value, password: document.getElementById('pass').value }) });
@@ -253,55 +275,43 @@
 
         async function sync() {
             const t = localStorage.getItem('sp_token');
-            const user = JSON.parse(localStorage.getItem('sp_user'));
-            document.getElementById('biz-header').innerText = user.businessName || 'Merchant Console';
+            const u = JSON.parse(localStorage.getItem('sp_user'));
+            document.getElementById('biz-header').innerText = u.businessName;
 
-            // 1. Balance
-            const bRes = await fetch('/api/swiftpay/balance', { headers: { 'Authorization': 'Bearer '+t } });
-            const bal = await bRes.json();
+            const res = await fetch('/api/swiftpay/balance', { headers: { 'Authorization': 'Bearer '+t } });
+            const bal = await res.json();
             document.getElementById('val-bal').innerText = '₱ ' + (bal.balance || 0).toLocaleString();
 
-            // 2. Transactions
             const txRes = await fetch('/api/swiftpay/transactions', { headers: { 'Authorization': 'Bearer '+t } });
             const txs = await txRes.json();
-            const rows = txs.map(tx => `<tr><td>${new Date(tx.date).toLocaleDateString()}</td><td>${tx.id.slice(0,14)}...</td><td style="font-weight:700">₱ ${tx.amount.toFixed(2)}</td><td><span class="dot" style="background:#00c389"></span> EXECUTED</td></tr>`).join('');
-            document.getElementById('home-tx-list').innerHTML = rows;
-            document.getElementById('full-tx-list').innerHTML = rows;
+            document.getElementById('tx-ledger').innerHTML = txs.slice(0,10).map(tx => `
+                <tr><td>${new Date(tx.date).toLocaleTimeString()}</td><td>${tx.id.slice(0,18)}...</td><td style="color:#fff; font-weight:800;">₱ ${tx.amount.toFixed(2)}</td><td><span class="status-pill">VERIFIED</span></td></tr>
+            `).join('');
             document.getElementById('val-vol').innerText = '₱ ' + txs.reduce((a,b)=>a+b.amount,0).toLocaleString();
 
-            // 3. Settings Load
+            const ctxChart = document.getElementById('volChart').getContext('2d');
+            new Chart(ctxChart, {
+                type: 'line',
+                data: {
+                    labels: txs.map((_,i) => `S-${i+1}`).reverse(),
+                    datasets: [{ data: txs.map(t=>t.amount).reverse(), borderColor: '#F46119', borderWidth: 3, pointRadius: 0, fill: true, backgroundColor: 'rgba(244,97,25,0.05)', tension: 0.5 }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+            });
+
             const sRes = await fetch('/api/swiftpay/settings', { headers: { 'Authorization': 'Bearer '+t } });
-            const settings = await sRes.json();
-            document.getElementById('p-biz').value = settings.business_name;
-            document.getElementById('p-url').value = settings.shop_url;
-            document.getElementById('k-pub').value = settings.sp_public_key;
-        }
-
-        async function updateProfile() {
-            await fetch('/api/swiftpay/profile', { method: 'POST', headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' }, body: JSON.stringify({ businessName: document.getElementById('p-biz').value, shopUrl: document.getElementById('p-url').value }) });
-            location.reload();
-        }
-
-        async function saveKeys() {
-            await fetch('/api/swiftpay/keys', { method: 'POST', headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' }, body: JSON.stringify({ publicKey: document.getElementById('k-pub').value, secretKey: document.getElementById('k-sec').value }) });
-            location.reload();
-        }
-
-        async function saveLink() {
-            const res = await fetch('/api/swiftpay/paylinks', { method: 'POST', headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: parseFloat(document.getElementById('pl-amt').value), description: document.getElementById('pl-desc').value }) });
-            const data = await res.json();
-            alert('Link Created: ' + data.url);
-            closeModal('modal-link');
-            sync();
+            const s = await sRes.json();
+            document.getElementById('p-biz').value = s.business_name;
+            document.getElementById('p-url').value = s.shop_url;
         }
 
         async function genQR() {
             const res = await fetch('/api/swiftpay/qr', { method: 'POST', headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' }, body: JSON.stringify({ totalAmount: { value: parseFloat(document.getElementById('qr-amt').value), currency: 'PHP' } }) });
             const data = await res.json();
             if(data.qrCodeBody) {
-                document.getElementById('qr-img').src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=" + encodeURIComponent(data.qrCodeBody);
-                document.getElementById('qr-result').classList.remove('hidden');
-                document.getElementById('btn-gen-qr').innerText = 'Done';
+                document.getElementById('qr-img').src = "https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=" + encodeURIComponent(data.qrCodeBody);
+                document.getElementById('qr-display').classList.remove('hidden');
+                document.getElementById('qr-btn').innerText = 'AUTHORIZED';
             }
         }
 
