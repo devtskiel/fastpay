@@ -245,7 +245,7 @@ fun SwiftPayApp() {
                         },
                         label = { 
                             Text(
-                                "首页", 
+                                "Home", 
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = if (currentRoute == Route.Home) FontWeight.ExtraBold else FontWeight.Medium,
                                 color = if (currentRoute == Route.Home) activeColor else inactiveColor
@@ -258,13 +258,13 @@ fun SwiftPayApp() {
                         icon = { 
                             Icon(
                                 Icons.Rounded.AccountBalanceWallet, 
-                                contentDescription = "资产",
+                                contentDescription = "Wallet",
                                 tint = if (currentRoute == Route.Wallet) activeColor else inactiveColor
                             ) 
                         },
                         label = { 
                             Text(
-                                "资产",
+                                "Wallet",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = if (currentRoute == Route.Wallet) FontWeight.ExtraBold else FontWeight.Medium,
                                 color = if (currentRoute == Route.Wallet) activeColor else inactiveColor

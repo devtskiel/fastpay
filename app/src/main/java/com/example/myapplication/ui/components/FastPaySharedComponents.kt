@@ -88,7 +88,7 @@ fun FastPayLogo(
         Column(verticalArrangement = Arrangement.Center) {
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = "极速",
+                    text = "Fast",
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontSize = (28 * scale).sp,
                         fontWeight = FontWeight.Black,
@@ -97,7 +97,7 @@ fun FastPayLogo(
                     color = if (isDark) Color.White else FastPayNavy
                 )
                 Text(
-                    text = "支付",
+                    text = "Pay",
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontSize = (28 * scale).sp,
                         fontWeight = FontWeight.ExtraLight,
@@ -115,7 +115,7 @@ fun FastPayLogo(
                 modifier = Modifier.offset(y = (-4 * scale).dp)
             ) {
                 Text(
-                    text = "商 务 版",
+                    text = "BUSINESS",
                     modifier = Modifier.padding(horizontal = (8 * scale).dp, vertical = (2 * scale).dp),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = (8 * scale).sp,

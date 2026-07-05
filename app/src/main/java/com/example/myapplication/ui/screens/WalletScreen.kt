@@ -60,7 +60,7 @@ import com.example.myapplication.LocalNavController
 import com.example.myapplication.navigation.Route
 import com.example.myapplication.data.SettingsManager
 import com.example.myapplication.data.TransactionStore
-import com.example.myapplication.data.createMayaService
+import com.example.myapplication.data.createSwiftPayService
 import com.example.myapplication.data.mergeTransactions
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.ui.theme.*
@@ -90,9 +90,9 @@ fun WalletScreen(
 
     val filteredTransactions = remember(transactions, selectedFilter) {
         when (selectedFilter) {
-            "收入" -> transactions.filter { it.amount > 0 }
-            "支出" -> transactions.filter { it.amount < 0 }
-            "失败" -> transactions.filter { it.status.uppercase() == "FAILED" }
+            "Inflow" -> transactions.filter { it.amount > 0 }
+            "Outflow" -> transactions.filter { it.amount < 0 }
+            "Failed" -> transactions.filter { it.status.uppercase() == "FAILED" }
             else -> transactions
         }
     }
@@ -103,7 +103,7 @@ fun WalletScreen(
                 val context = viewModel.getApplication<Application>()
                 val settings = SettingsManager(context)
                 val transactionStore = TransactionStore(context)
-                val service = settings.createMayaService()
+                val service = settings.createSwiftPayService()
                 
                 viewModel.refreshBalance()
                 transactionStore.transactions.collectLatest { localTransactions ->
@@ -126,7 +126,7 @@ fun WalletScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        text = "钱包",
+                        text = "Wallet",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = textColor
@@ -155,7 +155,7 @@ fun WalletScreen(
                                     val context = viewModel.getApplication<Application>()
                                     val settings = SettingsManager(context)
                                     val transactionStore = TransactionStore(context)
-                                    val service = settings.createMayaService()
+                                    val service = settings.createSwiftPayService()
                                     viewModel.refreshBalance()
                                     val localTransactions = transactionStore.transactions.first()
                                     val remoteTransactions = service.getInternalTransactions().getOrNull() ?: emptyList()
@@ -222,8 +222,6 @@ fun WalletListContent(
     val navController = LocalNavController.current
     val transactionStatusMap = viewModel?.transactionStatusMap ?: emptyMap()
 
-    // Fetch transaction statuses only for PENDING ones when list changes
-    // This prevents the infinite refresh loop
     LaunchedEffect(transactions) {
         val pendingIds = transactions
             .filter { it.status.uppercase() == "PENDING" }
@@ -234,7 +232,6 @@ fun WalletListContent(
         }
     }
 
-    // Auto-refresh balance when a transaction becomes SUCCESS
     LaunchedEffect(transactionStatusMap) {
         if (transactionStatusMap.values.any { it.status?.uppercase()?.contains("SUCCESS") == true }) {
             viewModel?.refreshBalance()
@@ -248,31 +245,27 @@ fun WalletListContent(
     ) {
         Spacer(Modifier.height(12.dp))
         
-        // Premium Balance Card
         PremiumBalanceCard(balance)
 
         Spacer(Modifier.height(32.dp))
 
-        // Quick Actions
         QuickActionsRow()
 
         Spacer(Modifier.height(32.dp))
 
-        // Filter Header
         SectionHeader(
-            title = "交易历史",
-            subtitle = "您账户的近期活动",
+            title = "Transaction History",
+            subtitle = "Recent activity from your account",
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(Modifier.height(16.dp))
 
-        // Filter Chips
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            val filters = listOf("全部", "收入", "支出", "失败")
+            val filters = listOf("All", "Inflow", "Outflow", "Failed")
             items(filters) { filter ->
                 PremiumFilterChip(
                     selected = selectedFilter == filter,
@@ -284,7 +277,6 @@ fun WalletListContent(
 
         Spacer(Modifier.height(20.dp))
 
-        // Transaction List
          LazyColumn(
             verticalArrangement = Arrangement.spacedBy(14.dp),
             contentPadding = PaddingValues(bottom = 32.dp),
@@ -337,7 +329,6 @@ fun PremiumBalanceCard(balance: Double) {
                     )
                     drawRect(brush)
                     
-                    // Decorative patterns for professionalism
                     drawCircle(
                         color = Color.White.copy(alpha = 0.04f),
                         radius = size.width * 0.7f,
@@ -362,7 +353,7 @@ fun PremiumBalanceCard(balance: Double) {
                 ) {
                     Column {
                         Text(
-                            text = "总余额",
+                            text = "Total Balance",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.5f),
                             fontWeight = FontWeight.Bold,
@@ -409,7 +400,7 @@ fun PremiumBalanceCard(balance: Double) {
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "激活",
+                                text = "Active",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = FastPayGreen,
                                 fontWeight = FontWeight.Black
@@ -429,13 +420,13 @@ fun QuickActionsRow() {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        QuickActionItem(Icons.Rounded.Add, "充值", FastPayBlue) {
+        QuickActionItem(Icons.Rounded.Add, "Cash In", FastPayBlue) {
             navController.navigate(Route.MiniApp("qr-page"))
         }
-        QuickActionItem(Icons.Rounded.QrCodeScanner, "收款", FastPayAccent) {
+        QuickActionItem(Icons.Rounded.QrCodeScanner, "Collect", FastPayAccent) {
             navController.navigate(Route.MiniApp("qr-page"))
         }
-        QuickActionItem(Icons.Rounded.MoreHoriz, "更多", Color.LightGray) {
+        QuickActionItem(Icons.Rounded.MoreHoriz, "More", Color.LightGray) {
             navController.navigate(Route.MiniApp())
         }
     }
@@ -611,9 +602,9 @@ fun TransactionItem(tx: InternalTransaction, onClick: () -> Unit, viewModel: Min
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = when {
-                        isPending -> "处理中..."
-                        isExpense -> "转账已发送"
-                        else -> "支付已接收"
+                        isPending -> "Processing..."
+                        isExpense -> "Transfer Sent"
+                        else -> "Payment Received"
                     },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
@@ -663,7 +654,7 @@ fun TransactionDetailScreen(
     val bgColor = MaterialTheme.colorScheme.background
     val surfaceColor = MaterialTheme.colorScheme.surface
     val textColor = MaterialTheme.colorScheme.onSurface
-    val secondaryTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val secondaryTextColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
 
     Column(
         modifier = Modifier
@@ -716,7 +707,7 @@ fun TransactionDetailScreen(
                 Spacer(Modifier.height(20.dp))
                 
                 Text(
-                    text = if (isExpense) "汇款成功" else "支付已接收",
+                    text = if (isExpense) "Transfer Success" else "Payment Received",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = textColor
@@ -741,10 +732,10 @@ fun TransactionDetailScreen(
                 Spacer(Modifier.height(24.dp))
                 
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                    ReceiptRow("状态", statusToDisplay, color, isBadge = true)
-                    ReceiptRow("日期", tx.date, textColor)
-                    ReceiptRow("类型", if (isExpense) "业务支出" else "销售收入", textColor)
-                    ReceiptRow("通道", "FastPay 企业版", textColor)
+                    ReceiptRow("Status", statusToDisplay, color, isBadge = true)
+                    ReceiptRow("Date", tx.date, textColor)
+                    ReceiptRow("Type", if (isExpense) "Business Outflow" else "Sales Income", textColor)
+                    ReceiptRow("Channel", "FastPay Enterprise", textColor)
                     
                     val pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 12f), 0f)
                     Canvas(Modifier.fillMaxWidth().height(1.dp)) {
@@ -759,7 +750,7 @@ fun TransactionDetailScreen(
                     
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "参考单号",
+                            text = "Reference No.",
                             style = MaterialTheme.typography.labelSmall,
                             color = secondaryTextColor,
                             fontWeight = FontWeight.Bold,
@@ -780,7 +771,7 @@ fun TransactionDetailScreen(
                             IconButton(
                                 onClick = {
                                     clipboardManager.setText(AnnotatedString(tx.transactionId))
-                                    onShowSnackbar("参考单号已复制到剪贴板")
+                                    onShowSnackbar("Reference No. copied to clipboard")
                                 },
                                 modifier = Modifier.size(32.dp)
                             ) {
@@ -802,34 +793,34 @@ fun TransactionDetailScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedButton(
-                onClick = { onShowSnackbar("正在准备分享...") },
+                onClick = { onShowSnackbar("Preparing to share...") },
                 modifier = Modifier.weight(1f).height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 border = androidx.compose.foundation.BorderStroke(1.5.dp, FastPayBlue)
             ) {
                 Icon(Icons.Rounded.Share, contentDescription = null, tint = FastPayBlue)
                 Spacer(Modifier.width(8.dp))
-                Text("分享", color = FastPayBlue, fontWeight = FontWeight.Bold)
+                Text("Share", color = FastPayBlue, fontWeight = FontWeight.Bold)
             }
             
             Button(
-                onClick = { onShowSnackbar("正在生成 PDF 收据...") },
+                onClick = { onShowSnackbar("Generating PDF receipt...") },
                 modifier = Modifier.weight(1f).height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = FastPayNavy)
             ) {
                 Icon(Icons.Rounded.FileDownload, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("下载", fontWeight = FontWeight.Bold)
+                Text("Download", fontWeight = FontWeight.Bold)
             }
         }
         
         TextButton(
-            onClick = { onShowSnackbar("正在打开支持聊天...") },
+            onClick = { onShowSnackbar("Opening support chat...") },
             modifier = Modifier.padding(top = 8.dp)
         ) {
             Text(
-                text = "需要帮助？联系优先支持",
+                text = "Need help? Contact Priority Support",
                 color = FastPayBlue,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold
@@ -917,14 +908,14 @@ fun EmptyDetailState() {
             }
             Spacer(Modifier.height(24.dp))
             Text(
-                "未选择交易",
+                "No Transaction Selected",
                 style = MaterialTheme.typography.titleMedium,
                 color = textColor,
                 fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                "从列表中选择一条记录以查看其完整详情和收据。",
+                "Select a record from the list to view its full details and receipt.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = secondaryTextColor,
                 textAlign = TextAlign.Center
@@ -950,16 +941,15 @@ fun EmptyHistoryState() {
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            "未找到交易",
+            "No Transactions Found",
             style = MaterialTheme.typography.bodyLarge,
             color = secondaryTextColor,
             fontWeight = FontWeight.Bold
         )
         Text(
-            "您的销售历史将显示在此处。",
+            "Your sales history will appear here.",
             style = MaterialTheme.typography.bodySmall,
             color = Color.Gray.copy(alpha = 0.7f)
         )
     }
 }
-

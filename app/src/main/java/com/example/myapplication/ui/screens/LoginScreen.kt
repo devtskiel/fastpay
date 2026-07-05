@@ -39,7 +39,7 @@ import com.example.myapplication.ui.components.FastPayLogo
 import com.example.myapplication.data.SettingsManager
 import com.example.myapplication.data.SessionManager
 import com.example.myapplication.data.LoginApprovalManager
-import com.example.myapplication.data.createMayaService
+import com.example.myapplication.data.createSwiftPayService
 import com.example.myapplication.data.ApprovalService
 import com.example.myapplication.ui.theme.*
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -128,8 +128,8 @@ fun LoginScreen(
         generatedCode = newCode
 
         scope.launch {
-            val mayaService = settings.createMayaService()
-            val result = mayaService.sendCustomOtp(cleanEmail, newCode)
+            val service = settings.createSwiftPayService()
+            val result = service.sendCustomOtp(cleanEmail, newCode)
             result.onSuccess {
                 stage = LoginStage.Otp
                 resendTimer = 60
@@ -172,8 +172,8 @@ fun LoginScreen(
                             if (username.isNotBlank() && password.isNotBlank()) {
                                 isLoading = true
                                 scope.launch {
-                                    val mayaService = settings.createMayaService()
-                                    val result = mayaService.onlineLogin(username.trim(), password)
+                                    val service = settings.createSwiftPayService()
+                                    val result = service.onlineLogin(username.trim(), password)
                                     result.onSuccess {
                                         // If approval server is configured, use approval flow
                                         val serverUrl = com.example.myapplication.BuildConfig.APP_SERVER_URL
@@ -243,11 +243,11 @@ fun LoginScreen(
 @Composable
 fun WaitingApprovalContent(onCancel: () -> Unit) {
     Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text("正在等待您的受信任设备的授权...", style = MaterialTheme.typography.bodyLarge)
+        Text("Waiting for authorization from your trusted device...", style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.height(16.dp))
         CircularProgressIndicator()
         Spacer(modifier = Modifier.height(24.dp))
-        TextButton(onClick = onCancel) { Text("取消") }
+        TextButton(onClick = onCancel) { Text("Cancel") }
     }
 }
 
@@ -300,7 +300,7 @@ fun LandingContent(onLoginClick: () -> Unit) {
             // Center: Tagline with enhanced styling
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "随时随地，\n开启收款。",
+                    text = "Accept payments,\nanytime, anywhere.",
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontWeight = FontWeight.Bold,
                         lineHeight = 42.sp
@@ -314,7 +314,7 @@ fun LandingContent(onLoginClick: () -> Unit) {
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "二维码 · NFC · 支付链接",
+                        text = "QR · NFC · Payment Links",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White.copy(alpha = 0.9f),
@@ -342,7 +342,7 @@ fun LandingContent(onLoginClick: () -> Unit) {
                 ) {
                     Icon(Icons.AutoMirrored.Rounded.Login, null, modifier = Modifier.size(20.dp), tint = Color.White)
                     Spacer(Modifier.width(8.dp))
-                    Text("登录", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                    Text("Login", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
                 }
             }
         }
@@ -419,7 +419,7 @@ fun LoginContent(
                 Icon(Icons.Rounded.Close, null, tint = textColor)
             }
             Spacer(modifier = Modifier.weight(1f))
-            Text("帮助中心", color = textColor.copy(alpha = 0.6f), style = MaterialTheme.typography.labelLarge)
+            Text("Help Center", color = textColor.copy(alpha = 0.6f), style = MaterialTheme.typography.labelLarge)
         }
 
         Spacer(modifier = Modifier.height(40.dp))
@@ -427,13 +427,13 @@ fun LoginContent(
 
         Spacer(modifier = Modifier.height(28.dp))
         Text(
-            text = "商户登录",
+            text = "Merchant Login",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.ExtraBold,
             color = textColor
         )
         Text(
-            text = "输入您的凭据以继续",
+            text = "Enter your credentials to continue",
             style = MaterialTheme.typography.bodyMedium,
             color = secondaryTextColor
         )
@@ -443,7 +443,7 @@ fun LoginContent(
         CustomTextField(
             value = username,
             onValueChange = onUsernameChange,
-            placeholder = "电子邮件或手机号码",
+            placeholder = "Email or Phone Number",
             leadingIcon = Icons.Rounded.AlternateEmail,
             isDarkTheme = isSystemInDarkTheme()
         )
@@ -453,7 +453,7 @@ fun LoginContent(
         CustomTextField(
             value = password,
             onValueChange = onPasswordChange,
-            placeholder = "密码",
+            placeholder = "Password",
             leadingIcon = Icons.Rounded.Lock,
             isPassword = true,
             isPasswordVisible = isPasswordVisible,
@@ -465,7 +465,7 @@ fun LoginContent(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Text(
-                text = "忘记密码？",
+                text = "Forgot password?",
                 color = FastPayBlue,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyMedium,
@@ -506,7 +506,7 @@ fun LoginContent(
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
             } else {
-                Text("登录账户", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 16.sp)
+                Text("Login to Account", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 16.sp)
             }
         }
 
@@ -620,9 +620,9 @@ fun OtpContent(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        Text("安全验证", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = textColor)
+        Text("Security Verification", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = textColor)
         Text(
-            text = "我们向您的邮箱发送了一个 6 位数代码。\n请检查您的收件箱。",
+            text = "We've sent a 6-digit code to your email.\nPlease check your inbox.",
             color = secondaryTextColor,
             modifier = Modifier.padding(top = 12.dp),
             textAlign = TextAlign.Center
@@ -670,16 +670,16 @@ fun OtpContent(
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
             } else {
-                Text("验证并访问门户", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 16.sp)
+                Text("Verify & Access Portal", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 16.sp)
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("没有收到代码？ ", color = secondaryTextColor, style = MaterialTheme.typography.bodyMedium)
+            Text("Didn't receive code? ", color = secondaryTextColor, style = MaterialTheme.typography.bodyMedium)
             Text(
-                text = if (resendTimer > 0) "等待 ${resendTimer}秒" else "现在重发",
+                text = if (resendTimer > 0) "Wait ${resendTimer}s" else "Resend now",
                 color = FastPayBlue,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.clickable(enabled = resendTimer == 0) { onResendClick() }

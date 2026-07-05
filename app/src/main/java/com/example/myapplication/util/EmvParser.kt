@@ -27,7 +27,7 @@ object EmvParser {
 
     fun readCardData(isoDep: IsoDep, onProgress: ((String) -> Unit)? = null): Triple<String, String, String>? {
         try {
-            onProgress?.invoke("正在初始化...")
+            onProgress?.invoke("Initializing...")
             
             // 1. Select PPSE to find supported AIDs
             val ppseRes = try { isoDep.transceive(PPSE_AID) } catch (e: Exception) { null }
@@ -37,7 +37,7 @@ object EmvParser {
             val aidsToTry = (discoveredAids + KNOWN_AIDS).distinct()
 
             for (aidHex in aidsToTry) {
-                onProgress?.invoke("正在选择应用...")
+                onProgress?.invoke("Selecting Application...")
                 val aidBytes = hexToBytes(aidHex)
                 val selectCommand = byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, aidBytes.size.toByte()) + aidBytes + byteArrayOf(0x00)
                 val aidRes = try { isoDep.transceive(selectCommand) } catch (e: Exception) { continue }
@@ -46,9 +46,9 @@ object EmvParser {
                     val aidResHex = bytesToHex(aidRes)
                     var pan = ""
                     var expiry = ""
-                    val label = extractTag(aidResHex, "50")?.let { hexToAscii(it) } ?: "银行卡"
+                    val label = extractTag(aidResHex, "50")?.let { hexToAscii(it) } ?: "Bank Card"
 
-                    onProgress?.invoke("正在建立安全通道...")
+                    onProgress?.invoke("Establishing Secure Channel...")
                     
                     // 2. Try GPO with multiple common PDOLs
                     val gpoAttempts = listOf(
@@ -74,7 +74,7 @@ object EmvParser {
                     if (aflHex.isNotEmpty()) {
                         val records = parseAfl(aflHex)
                         for (rec in records) {
-                            onProgress?.invoke("正在读取数据...")
+                            onProgress?.invoke("Reading Data...")
                             val readRecCmd = byteArrayOf(0x00, 0xB2.toByte(), rec.second.toByte(), ((rec.first shl 3) or 4).toByte(), 0x00)
                             val recRes = try { isoDep.transceive(readRecCmd) } catch (e: Exception) { null }
                             
@@ -203,6 +203,6 @@ object EmvParser {
             val sb = StringBuilder()
             for (i in 0 until h.length step 2) sb.append(h.substring(i, i + 2).toInt(16).toChar())
             sb.toString().trim()
-        } catch (e: Exception) { "银行卡" }
+        } catch (e: Exception) { "Bank Card" }
     }
 }

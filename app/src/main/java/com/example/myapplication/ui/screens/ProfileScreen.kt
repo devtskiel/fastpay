@@ -68,7 +68,7 @@ fun ProfileScreen() {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("设置", color = textColor) },
+                title = { Text("Settings", color = textColor) },
                 navigationIcon = {},
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = bgColor,
@@ -119,8 +119,8 @@ fun ProfileScreen() {
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            Text("极速支付商户", style = MaterialTheme.typography.titleLarge, color = textColor, fontWeight = FontWeight.Bold)
-            Text("账户设置", style = MaterialTheme.typography.labelSmall, color = secondaryTextColor)
+            Text("SwiftPay Merchant", style = MaterialTheme.typography.titleLarge, color = textColor, fontWeight = FontWeight.Bold)
+            Text("Account Settings", style = MaterialTheme.typography.labelSmall, color = secondaryTextColor)
             Spacer(modifier = Modifier.height(32.dp))
 
             Surface(
@@ -147,8 +147,8 @@ fun ProfileScreen() {
                         }
                         Spacer(Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("关于您的账户", color = Color.White, fontWeight = FontWeight.Bold)
-                            Text("应用版本和系统信息", color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
+                            Text("About Your Account", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("App version and system info", color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
                         }
                         Icon(Icons.Rounded.ChevronRight, null, tint = Color.White.copy(alpha = 0.4f))
                     }
@@ -190,12 +190,12 @@ fun ProfileScreen() {
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("主题模式", fontWeight = FontWeight.Bold, color = textColor)
+                            Text("Theme Mode", fontWeight = FontWeight.Bold, color = textColor)
                             Text(
                                 text = when (themeMode) {
-                                    "LIGHT" -> "浅色模式"
-                                    "DARK" -> "深色模式"
-                                    else -> "跟随系统"
+                                    "LIGHT" -> "Light Mode"
+                                    "DARK" -> "Dark Mode"
+                                    else -> "System Default"
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = secondaryTextColor
@@ -207,6 +207,7 @@ fun ProfileScreen() {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable { navController.navigate(Route.ApiKeys) }
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -221,8 +222,8 @@ fun ProfileScreen() {
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("API 密钥", fontWeight = FontWeight.Bold, color = textColor)
-                            Text("查看并管理 API 凭据", style = MaterialTheme.typography.labelSmall, color = secondaryTextColor)
+                            Text("API Keys", fontWeight = FontWeight.Bold, color = textColor)
+                            Text("View and manage API credentials", style = MaterialTheme.typography.labelSmall, color = secondaryTextColor)
                         }
                         Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = textColor)
                     }
@@ -245,8 +246,8 @@ fun ProfileScreen() {
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("授权管理", fontWeight = FontWeight.Bold, color = textColor)
-                            Text("批准来自其他设备的登录请求", style = MaterialTheme.typography.labelSmall, color = secondaryTextColor)
+                            Text("Authorization Management", fontWeight = FontWeight.Bold, color = textColor)
+                            Text("Approve login requests from other devices", style = MaterialTheme.typography.labelSmall, color = secondaryTextColor)
                         }
                         Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = textColor)
                     }
@@ -269,8 +270,8 @@ fun ProfileScreen() {
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("API 文档", fontWeight = FontWeight.Bold, color = textColor)
-                            Text("极速支付 API 参考指南", style = MaterialTheme.typography.labelSmall, color = secondaryTextColor)
+                            Text("API Documentation", fontWeight = FontWeight.Bold, color = textColor)
+                            Text("SwiftPay API reference guide", style = MaterialTheme.typography.labelSmall, color = secondaryTextColor)
                         }
                         Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = textColor)
                     }
@@ -290,7 +291,7 @@ fun ProfileScreen() {
             ) {
                 Icon(Icons.AutoMirrored.Rounded.Logout, null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(12.dp))
-                Text("从设备退出登录", fontWeight = FontWeight.Bold)
+                Text("Logout from Device", fontWeight = FontWeight.Bold)
             }
             
             Spacer(modifier = Modifier.weight(1f))
@@ -298,13 +299,13 @@ fun ProfileScreen() {
             DebugNetworkOverlay()
 
             Text(
-                text = "极速支付云平台",
+                text = "SwiftPay Cloud Platform",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.Gray,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "版本 2024.12.16-正式版",
+                text = "Version 2024.12.16-Release",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.Gray.copy(alpha = 0.5f)
             )
@@ -315,14 +316,14 @@ fun ProfileScreen() {
     if (showThemeDialog) {
         AlertDialog(
             onDismissRequest = { showThemeDialog = false },
-            title = { Text("选择主题", color = textColor) },
+            title = { Text("Select Theme", color = textColor) },
             containerColor = surfaceColor,
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     val options = listOf(
-                        "SYSTEM" to "跟随系统",
-                        "LIGHT" to "浅色模式",
-                        "DARK" to "深色模式"
+                        "SYSTEM" to "System Default",
+                        "LIGHT" to "Light Mode",
+                        "DARK" to "Dark Mode"
                     )
                     options.forEach { (value, label) ->
                         Row(
@@ -358,7 +359,7 @@ fun ProfileScreen() {
             },
             confirmButton = {
                 TextButton(onClick = { showThemeDialog = false }) {
-                    Text("取消", color = FastPayBlue)
+                    Text("Cancel", color = FastPayBlue)
                 }
             }
         )

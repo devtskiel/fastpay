@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SwiftPay 极速商户后台</title>
+    <title>SwiftPay Merchant Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
@@ -111,74 +111,74 @@
 <body>
 
     <div class="sidebar">
-        <div class="nav-item active" onclick="showPage('page-home')" title="仪表盘"><i class="fas fa-grid-2"></i><i class="fas fa-home"></i></div>
-        <div class="nav-item" onclick="showPage('page-payments')" title="收单工具"><i class="fas fa-credit-card"></i></div>
-        <div class="nav-item" onclick="showPage('page-members')" title="团队管理"><i class="fas fa-users"></i></div>
-        <div class="nav-item" onclick="showPage('page-developer')" title="开发配置"><i class="fas fa-code"></i></div>
+        <div class="nav-item active" onclick="showPage('page-home')" title="Dashboard"><i class="fas fa-home"></i></div>
+        <div class="nav-item" onclick="showPage('page-payments')" title="Payments"><i class="fas fa-credit-card"></i></div>
+        <div class="nav-item" onclick="showPage('page-members')" title="Team"><i class="fas fa-users"></i></div>
+        <div class="nav-item" onclick="showPage('page-developer')" title="Developer"><i class="fas fa-code"></i></div>
         <div class="nav-item" style="margin-top: auto;" onclick="refreshAll()"><i class="fas fa-sync-alt"></i></div>
     </div>
 
     <div class="main">
         <!-- Page: Home -->
         <div id="page-home" class="page active">
-            <div class="header"><h1>极速业务看板</h1><div class="btn btn-outline" id="date-display">Today</div></div>
+            <div class="header"><h1>Business Overview</h1><div class="btn btn-outline" id="date-display">Today</div></div>
             <div class="grid-3">
                 <div class="stat-card">
                     <div class="stat-icon" style="background: #E9EDF7; color: var(--primary);"><i class="fas fa-wallet"></i></div>
-                    <div class="stat-info"><span>账户余额</span><h2 id="balance-val">₱ --.--</h2></div>
+                    <div class="stat-info"><span>Account Balance</span><h2 id="balance-val">₱ --.--</h2></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon" style="background: #E2F5E9; color: var(--success);"><i class="fas fa-chart-line"></i></div>
-                    <div class="stat-info"><span>今日交易额</span><h2 id="stat-vol">₱ 0.00</h2></div>
+                    <div class="stat-info"><span>Today's Volume</span><h2 id="stat-vol">₱ 0.00</h2></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon" style="background: #FFF5E6; color: var(--warning);"><i class="fas fa-shopping-cart"></i></div>
-                    <div class="stat-info"><span>订单总数</span><h2 id="stat-count">0</h2></div>
+                    <div class="stat-info"><span>Total Orders</span><h2 id="stat-count">0</h2></div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-header"><h3>最近交易流水</h3><button class="btn btn-outline" onclick="showPage('page-history')">查看全部</button></div>
+                <div class="card-header"><h3>Recent Transactions</h3><button class="btn btn-outline" onclick="showPage('page-history')">View All</button></div>
                 <table id="home-tx-table">
-                    <thead><tr><th>交易 ID</th><th>金额</th><th>状态</th><th>日期</th></tr></thead>
-                    <tbody id="home-tx-body"><tr><td colspan="4" style="text-align:center">加载中...</td></tr></tbody>
+                    <thead><tr><th>TX ID</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+                    <tbody id="home-tx-body"><tr><td colspan="4" style="text-align:center">Loading...</td></tr></tbody>
                 </table>
             </div>
         </div>
 
         <!-- Page: Payments (Links, Invoices, QR) -->
         <div id="page-payments" class="page">
-            <div class="header"><h1>收单管理</h1></div>
+            <div class="header"><h1>Payment Management</h1></div>
             <div class="grid-3">
                 <div class="stat-card" style="cursor: pointer" onclick="openModal('modal-link')">
                     <div class="stat-icon" style="background: #F4F7FE; color: var(--primary);"><i class="fas fa-link"></i></div>
-                    <div class="stat-info"><span>支付链接</span><h3>创建分享链接</h3></div>
+                    <div class="stat-info"><span>Payment Link</span><h3>Create shareable link</h3></div>
                 </div>
                 <div class="stat-card" style="cursor: pointer" onclick="openModal('modal-invoice')">
                     <div class="stat-icon" style="background: #F4F7FE; color: var(--primary);"><i class="fas fa-file-invoice-dollar"></i></div>
-                    <div class="stat-info"><span>正式发票</span><h3>发送专业账单</h3></div>
+                    <div class="stat-info"><span>Invoice</span><h3>Send professional bill</h3></div>
                 </div>
                 <div class="stat-card" style="cursor: pointer" onclick="openModal('modal-qr')">
                     <div class="stat-icon" style="background: #F4F7FE; color: var(--primary);"><i class="fas fa-qrcode"></i></div>
-                    <div class="stat-info"><span>QR Ph</span><h3>动态二维码</h3></div>
+                    <div class="stat-info"><span>QR Ph</span><h3>Dynamic QR Code</h3></div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-header"><h3>已生成的发票 / 链接</h3></div>
+                <div class="card-header"><h3>Generated Invoices / Links</h3></div>
                 <table>
-                    <thead><tr><th>编号</th><th>描述</th><th>金额</th><th>操作</th></tr></thead>
-                    <tbody id="invoice-list-body"><tr><td colspan="4" style="text-align:center; color:var(--text-muted)">暂无记录</td></tr></tbody>
+                    <thead><tr><th>ID</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead>
+                    <tbody id="invoice-list-body"><tr><td colspan="4" style="text-align:center; color:var(--text-muted)">No records found</td></tr></tbody>
                 </table>
             </div>
         </div>
 
         <!-- Page: Members -->
         <div id="page-members" class="page">
-            <div class="header"><h1>团队成员</h1><button class="btn btn-primary" onclick="openModal('modal-member')"><i class="fas fa-plus"></i> 添加成员</button></div>
+            <div class="header"><h1>Team Members</h1><button class="btn btn-primary" onclick="openModal('modal-member')"><i class="fas fa-plus"></i> Add Member</button></div>
             <div class="card">
                 <table>
-                    <thead><tr><th>姓名</th><th>邮箱</th><th>角色</th><th>状态</th><th>操作</th></tr></thead>
+                    <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody id="member-list-body"></tbody>
                 </table>
             </div>
@@ -186,16 +186,16 @@
 
         <!-- Page: Developer -->
         <div id="page-developer" class="page">
-            <div class="header"><h1>开发者设置</h1></div>
+            <div class="header"><h1>Developer Settings</h1></div>
             <div class="grid-3" style="grid-template-columns: 1fr 1fr;">
                 <div class="card">
-                    <h3>API 凭据</h3>
-                    <div class="input-group"><label>公钥 (Public Access Key)</label><div class="key-box" id="dev-pub">加载中...</div></div>
-                    <div class="input-group"><label>商户 ID (MID)</label><div class="key-box" id="dev-mid">加载中...</div></div>
-                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 10px;">用于客户端集成。请保持密钥安全。</p>
+                    <h3>API Credentials</h3>
+                    <div class="input-group"><label>Public Access Key</label><div class="key-box" id="dev-pub">Loading...</div></div>
+                    <div class="input-group"><label>Merchant ID (MID)</label><div class="key-box" id="dev-mid">Loading...</div></div>
+                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 10px;">Used for client integration. Keep your keys secure.</p>
                 </div>
                 <div class="card">
-                    <div class="card-header"><h3>网络钩子 (Webhooks)</h3><button class="btn btn-outline" onclick="openModal('modal-webhook')">添加</button></div>
+                    <div class="card-header"><h3>Webhooks</h3><button class="btn btn-outline" onclick="openModal('modal-webhook')">Add</button></div>
                     <div id="webhook-list"></div>
                 </div>
             </div>
@@ -204,39 +204,39 @@
 
     <!-- Modals -->
     <div id="modal-link" class="modal" onclick="this.classList.remove('active')"><div class="modal-content" onclick="event.stopPropagation()">
-        <h2>创建支付链接</h2><br>
-        <div class="input-group"><label>商品描述</label><input id="l-desc" placeholder="例如：月度订阅费用"></div>
-        <div class="input-group"><label>金额 (PHP)</label><input id="l-amt" type="number" placeholder="0.00"></div>
-        <button class="btn btn-primary btn-full" onclick="createLink()">立即生成</button>
+        <h2>Create Payment Link</h2><br>
+        <div class="input-group"><label>Product Description</label><input id="l-desc" placeholder="e.g. Monthly Subscription"></div>
+        <div class="input-group"><label>Amount (PHP)</label><input id="l-amt" type="number" placeholder="0.00"></div>
+        <button class="btn btn-primary btn-full" onclick="createLink()">Generate Now</button>
     </div></div>
 
     <div id="modal-invoice" class="modal" onclick="this.classList.remove('active')"><div class="modal-content" onclick="event.stopPropagation()">
-        <h2>发送新发票</h2><br>
-        <div class="input-group"><label>客户描述</label><input id="i-desc" placeholder="例如：咨询服务 - 6月"></div>
-        <div class="input-group"><label>账单金额 (PHP)</label><input id="i-amt" type="number" placeholder="0.00"></div>
-        <button class="btn btn-primary btn-full" onclick="createInvoice()">发送发票</button>
+        <h2>Send New Invoice</h2><br>
+        <div class="input-group"><label>Client Description</label><input id="i-desc" placeholder="e.g. Consulting Services - June"></div>
+        <div class="input-group"><label>Bill Amount (PHP)</label><input id="i-amt" type="number" placeholder="0.00"></div>
+        <button class="btn btn-primary btn-full" onclick="createInvoice()">Send Invoice</button>
     </div></div>
 
     <div id="modal-qr" class="modal" onclick="this.classList.remove('active')"><div class="modal-content" onclick="event.stopPropagation()" style="text-align: center;">
-        <h2>QR Ph 动态收款</h2><br>
-        <div class="input-group" style="text-align: left;"><label>收款金额</label><input id="q-amt" type="number" placeholder="0.00"></div>
-        <div id="qr-display" class="hidden" style="margin: 20px 0;"><img id="qr-img" style="width: 180px;"><p style="font-weight: 700; color: var(--primary);">已生成</p></div>
-        <button id="qr-gen-btn" class="btn btn-primary btn-full" onclick="genQR()">生成二维码</button>
+        <h2>QR Ph Dynamic</h2><br>
+        <div class="input-group" style="text-align: left;"><label>Collection Amount</label><input id="q-amt" type="number" placeholder="0.00"></div>
+        <div id="qr-display" class="hidden" style="margin: 20px 0;"><img id="qr-img" style="width: 180px;"><p style="font-weight: 700; color: var(--primary);">Generated</p></div>
+        <button id="qr-gen-btn" class="btn btn-primary btn-full" onclick="genQR()">Generate QR</button>
     </div></div>
 
     <div id="modal-member" class="modal" onclick="this.classList.remove('active')"><div class="modal-content" onclick="event.stopPropagation()">
-        <h2>添加团队成员</h2><br>
-        <div class="input-group"><label>姓名</label><input id="m-name" placeholder="输入姓名"></div>
-        <div class="input-group"><label>邮箱地址</label><input id="m-email" placeholder="email@example.com"></div>
-        <div class="input-group"><label>权限角色</label><select id="m-role"><option value="ADMIN">管理员</option><option value="OPERATOR">操作员</option><option value="FINANCE">财务</option></select></div>
-        <button class="btn btn-primary btn-full" onclick="addMember()">确认添加</button>
+        <h2>Add Team Member</h2><br>
+        <div class="input-group"><label>Name</label><input id="m-name" placeholder="Enter name"></div>
+        <div class="input-group"><label>Email Address</label><input id="m-email" placeholder="email@example.com"></div>
+        <div class="input-group"><label>Access Role</label><select id="m-role"><option value="ADMIN">Admin</option><option value="OPERATOR">Operator</option><option value="FINANCE">Finance</option></select></div>
+        <button class="btn btn-primary btn-full" onclick="addMember()">Confirm Add</button>
     </div></div>
 
     <div id="modal-webhook" class="modal" onclick="this.classList.remove('active')"><div class="modal-content" onclick="event.stopPropagation()">
-        <h2>注册 Webhook</h2><br>
-        <div class="input-group"><label>名称</label><input id="w-name" placeholder="支付成功通知"></div>
-        <div class="input-group"><label>回调 URL (POST)</label><input id="w-url" placeholder="https://api.yoursite.com/callback"></div>
-        <button class="btn btn-primary btn-full" onclick="addWebhook()">保存配置</button>
+        <h2>Register Webhook</h2><br>
+        <div class="input-group"><label>Name</label><input id="w-name" placeholder="Payment Success Notification"></div>
+        <div class="input-group"><label>Callback URL (POST)</label><input id="w-url" placeholder="https://api.yoursite.com/callback"></div>
+        <button class="btn btn-primary btn-full" onclick="addWebhook()">Save Config</button>
     </div></div>
 
     <script>
@@ -287,12 +287,12 @@
 
             if (res.data?.publicKey) {
                 document.getElementById('dev-pub').innerText = res.data.publicKey;
-                document.getElementById('dev-mid').innerText = res.data.mid || '未配置';
+                document.getElementById('dev-mid').innerText = res.data.mid || 'Not Configured';
             }
 
             if (res.data?.invoiceUrl) {
                 const body = document.getElementById('invoice-list-body');
-                const row = `<tr><td>#${Date.now().toString().slice(-6)}</td><td>${document.getElementById('i-desc').value || '发票'}</td><td>₱ ${parseFloat(document.getElementById('i-amt').value).toFixed(2)}</td><td><span class="status status-pending">PENDING</span></td></tr>`;
+                const row = `<tr><td>#${Date.now().toString().slice(-6)}</td><td>${document.getElementById('i-desc').value || 'Invoice'}</td><td>₱ ${parseFloat(document.getElementById('i-amt').value).toFixed(2)}</td><td><span class="status status-pending">PENDING</span></td></tr>`;
                 body.innerHTML = row + body.innerHTML;
             }
         };

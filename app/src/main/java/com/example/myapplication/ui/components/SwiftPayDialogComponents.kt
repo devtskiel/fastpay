@@ -175,13 +175,13 @@ fun SwiftPayProcessingDialog(message: String) {
 fun SwiftPayErrorDialog(message: String, onDismiss: () -> Unit) {
     SwiftPayBaseDialog(
         onDismissRequest = onDismiss,
-        title = "请求失败",
+        title = "Request Failed",
         description = message,
         icon = Icons.Rounded.ErrorOutline,
         iconColor = MaterialTheme.colorScheme.error,
         buttons = {
             SwiftPayPrimaryButton(
-                text = "关闭",
+                text = "Close",
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -202,8 +202,8 @@ fun SwiftPayCvvDialog(
     SwiftPayBaseDialog(
         onDismissRequest = onCancel,
         icon = Icons.Rounded.Lock,
-        title = "安全检查",
-        description = "请输入您尾号为 $last4 的 $cardLabel 的 3 位 CVV 码，以授权 ₱${"%.2f".format(amount)} 的付款。",
+        title = "Security Check",
+        description = "Please enter the 3-digit CVV for your $cardLabel ending in $last4 to authorize the payment of ₱${"%.2f".format(amount)}.",
         content = {
             Spacer(Modifier.height(16.dp))
             OutlinedTextField(
@@ -231,9 +231,9 @@ fun SwiftPayCvvDialog(
             Spacer(Modifier.height(8.dp))
         },
         buttons = {
-            SwiftPaySecondaryButton(text = "取消", onClick = onCancel, modifier = Modifier.weight(1f))
+            SwiftPaySecondaryButton(text = "Cancel", onClick = onCancel, modifier = Modifier.weight(1f))
             SwiftPayPrimaryButton(
-                text = "授权",
+                text = "Authorize",
                 onClick = { if (cvv.length >= 3) onConfirm(cvv) },
                 modifier = Modifier.weight(1f),
                 enabled = cvv.length >= 3
@@ -246,8 +246,8 @@ fun SwiftPayCvvDialog(
 fun SwiftPayQrDialog(qrData: String, amount: Double, onDismiss: () -> Unit) {
     SwiftPayBaseDialog(
         onDismissRequest = onDismiss,
-        title = "QR Ph 支付",
-        description = "接受来自任何菲律宾银行应用的付款",
+        title = "QR Ph Payment",
+        description = "Accept payments from any Philippine banking app",
         content = {
             val qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${URLEncoder.encode(qrData, "UTF-8")}"
             
@@ -267,7 +267,7 @@ fun SwiftPayQrDialog(qrData: String, amount: Double, onDismiss: () -> Unit) {
             Spacer(Modifier.height(24.dp))
 
             Text(
-                text = "应收金额",
+                text = "AMOUNT DUE",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.2.sp,
@@ -281,7 +281,7 @@ fun SwiftPayQrDialog(qrData: String, amount: Double, onDismiss: () -> Unit) {
             )
         },
         buttons = {
-            SwiftPayPrimaryButton(text = "完成", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+            SwiftPayPrimaryButton(text = "Done", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
         }
     )
 }
@@ -306,15 +306,15 @@ fun SwiftPayNfcTapDialog(
         else -> FastPayBlue
     }
     val statusTitle = when {
-        isError -> "读卡器需要注意"
-        !statusMessage.isNullOrBlank() -> "已检测到卡片"
-        else -> "读卡器已就绪"
+        isError -> "Reader Needs Attention"
+        !statusMessage.isNullOrBlank() -> "Card Detected"
+        else -> "Reader Ready"
     }
     val statusBody = when {
         isError -> errorMessage
         !statusMessage.isNullOrBlank() -> statusMessage
-        isWarning -> "请将卡片稳定地放在手机背面。"
-        else -> "请将卡片或移动钱包贴在设备背面。"
+        isWarning -> "Hold the card steady against the back of your phone."
+        else -> "Hold your card or mobile wallet against the device."
     }
     val progressTarget = if (sessionDurationSeconds <= 0) 0f else {
         (timeLeft.coerceIn(0, sessionDurationSeconds)).toFloat() / sessionDurationSeconds.toFloat()
@@ -388,7 +388,7 @@ fun SwiftPayNfcTapDialog(
                                 tint = accentColor
                             )
                             Text(
-                                text = if (isError) "读卡器已暂停" else "安全 NFC",
+                                text = if (isError) "Reader Paused" else "Secure NFC",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = accentColor
@@ -400,7 +400,7 @@ fun SwiftPayNfcTapDialog(
                 Spacer(Modifier.height(24.dp))
 
                 Text(
-                    text = "触碰支付",
+                    text = "Tap to Pay",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = FastPayNavy,
@@ -421,7 +421,7 @@ fun SwiftPayNfcTapDialog(
 
                 NfcStatusPill(
                     title = statusTitle,
-                    subtitle = if (isError) "检查卡片位置并重试" else "支持感应式卡片、手机或可穿戴设备",
+                    subtitle = if (isError) "Check card position and retry" else "Supports contactless cards, phones, or wearables",
                     accentColor = accentColor,
                     isError = isError
                 )
@@ -454,7 +454,7 @@ fun SwiftPayNfcTapDialog(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "收款金额",
+                                    text = "AMOUNT DUE",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = FontWeight.SemiBold
@@ -513,7 +513,7 @@ fun SwiftPayNfcTapDialog(
                                             tint = accentColor
                                         )
                                         Text(
-                                            text = if (isWarning) "会话即将结束" else "读卡会话激活中",
+                                            text = if (isWarning) "Session Ending" else "Reader Session Active",
                                             style = MaterialTheme.typography.labelLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurface
@@ -549,22 +549,22 @@ fun SwiftPayNfcTapDialog(
                 ) {
                     NfcInstructionRow(
                         index = 1,
-                        title = "定位 NFC 区域",
-                        subtitle = "将卡片靠近手机背面摄像头区域以获得最佳效果。",
+                        title = "Locate NFC Area",
+                        subtitle = "Bring card close to the camera area on the back of your phone.",
                         accentColor = accentColor,
                         isError = isError
                     )
                     NfcInstructionRow(
                         index = 2,
-                        title = "保持卡片稳定",
-                        subtitle = "保持卡片、可穿戴设备或手机静止 2-3 秒。",
+                        title = "Hold Steady",
+                        subtitle = "Keep the card, wearable, or phone still for 2-3 seconds.",
                         accentColor = accentColor,
                         isError = isError
                     )
                     NfcInstructionRow(
                         index = 3,
-                        title = "等待下一步",
-                        subtitle = "如果支持该卡，将自动进行 CVV 或付款确认。",
+                        title = "Wait for Step",
+                        subtitle = "If supported, CVV or payment confirmation will follow automatically.",
                         accentColor = accentColor,
                         isError = isError
                     )
@@ -578,12 +578,12 @@ fun SwiftPayNfcTapDialog(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         SwiftPaySecondaryButton(
-                            text = "取消",
+                            text = "Cancel",
                             onClick = onCancel,
                             modifier = Modifier.weight(1f)
                         )
                         SwiftPayPrimaryButton(
-                            text = "重试",
+                            text = "Retry",
                             onClick = onRetry,
                             modifier = Modifier.weight(1f),
                             icon = Icons.Rounded.Refresh,
@@ -592,7 +592,7 @@ fun SwiftPayNfcTapDialog(
                     }
                 } else {
                     SwiftPaySecondaryButton(
-                        text = "取消支付",
+                        text = "Cancel Payment",
                         onClick = onCancel,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -763,7 +763,7 @@ private fun NfcReaderIllustration(
                             )
                             Spacer(Modifier.height(12.dp))
                             Text(
-                                text = if (isError) "已暂停" else if (isWarning) "保持稳定" else "准备扫描",
+                                text = if (isError) "Paused" else if (isWarning) "Hold Steady" else "Ready to Scan",
                                 style = MaterialTheme.typography.labelLarge,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
@@ -810,7 +810,7 @@ private fun NfcReaderIllustration(
                 )
 
                 Text(
-                    text = if (isError) "再试一次" else "请刷卡",
+                    text = if (isError) "Try Again" else "Tap Card",
                     modifier = Modifier.align(Alignment.BottomStart),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.ExtraBold,

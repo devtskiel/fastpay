@@ -65,8 +65,6 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
         TransactionRepository(SwiftPayService(), transactionStore)
     }
 
-    // ... existing ...
-
     fun onWebhooksRequest() {
         viewModelScope.launch {
             val result = getService().getWebhooks()
@@ -127,7 +125,6 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    // Flow to expose wallet balance as Double
     val walletBalance = settingsManager.walletBalance.map { it?.toDoubleOrNull() ?: 0.0 }
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
 
@@ -171,7 +168,6 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
     var uiState by mutableStateOf<MiniAppUiState>(MiniAppUiState.Idle)
         private set
 
-    // Transaction Status State
     var transactionStatusMap by mutableStateOf<Map<String, VaultPaymentResponse>>(emptyMap())
         private set
 
@@ -258,7 +254,7 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
     fun onPaymentLinkRequest(data: PaymentData) {
         viewModelScope.launch {
             try {
-                uiState = MiniAppUiState.Processing("正在生成支付链接...")
+                uiState = MiniAppUiState.Processing("Generating payment link...")
                 val result = getService().createPaymentLink(
                     amount = if (data.amount > 0) data.amount else 0.0,
                     description = data.description
@@ -297,7 +293,7 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
 
     fun onScanNFCCard(amount: Double) {
         if (amount <= 0.0) {
-            uiState = MiniAppUiState.Error("启动触碰支付前，请输入有效金额。")
+            uiState = MiniAppUiState.Error("Please enter a valid amount before starting Tap to Pay.")
             return
         }
         val activity = bridge?.webView?.context?.findActivity()
@@ -309,7 +305,7 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
             uiState = MiniAppUiState.Error("NFC is disabled.")
         } else {
             viewModelScope.launch {
-                uiState = MiniAppUiState.Processing("正在准备安全 NFC 会话...")
+                uiState = MiniAppUiState.Processing("Preparing secure NFC session...")
                 delay(100)
                 startNFCTimer(amount = amount)
             }
@@ -318,7 +314,7 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
 
     fun onGenerateDynamicQr(amount: Double) {
         viewModelScope.launch {
-            uiState = MiniAppUiState.Processing("正在生成动态 QR Ph...")
+            uiState = MiniAppUiState.Processing("Generating Dynamic QR Ph...")
             val result = getService().createDynamicQr(amount)
             result.onSuccess { response ->
                 val qr = response.qrCodeBody
@@ -348,10 +344,10 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
                     amount = amount,
                     timeLeft = seconds,
                     sessionDurationSeconds = NFC_SESSION_SECONDS,
-                    statusMessage = "读卡器已就绪。请将卡片稳定地贴在手机背面。"
+                    statusMessage = "Reader ready. Please hold the card steady against the back of your phone."
                 )
                 if (seconds == 0) {
-                    uiState = MiniAppUiState.Error("扫描超时")
+                    uiState = MiniAppUiState.Error("Scan timeout")
                     bridge?.sendError("NFC timeout")
                     return@launch
                 }
@@ -377,7 +373,7 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
     fun onCvvEntered(cvv: String) {
         val state = uiState as? MiniAppUiState.WaitingForCVV ?: return
         viewModelScope.launch {
-            uiState = MiniAppUiState.Processing("正在验证卡片...")
+            uiState = MiniAppUiState.Processing("Verifying card...")
             val expiryParts = state.expiry.split("/")
             val month = (expiryParts.getOrNull(0) ?: "12").padStart(2, '0')
             val year = "20" + (expiryParts.getOrNull(1) ?: "28")
@@ -413,7 +409,7 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
 
     fun approvePayment(data: PaymentData) {
         viewModelScope.launch {
-            uiState = MiniAppUiState.Processing("正在创建收银台...")
+            uiState = MiniAppUiState.Processing("Creating checkout...")
             val result = getService().createCheckout(data)
             result.onSuccess { response ->
                 if (response.redirectUrl != null) {

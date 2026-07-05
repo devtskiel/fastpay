@@ -59,11 +59,11 @@ fun MiniAppScreen(
                                     if (cardData != null) {
                                         viewModel.onNFCCardDetected(cardData.first, cardData.second, cardData.third)
                                     } else {
-                                        viewModel.onNfcError("无法读取卡片数据。请保持卡片稳定并重试。")
+                                        viewModel.onNfcError("Unable to read card data. Please keep the card steady and try again.")
                                     }
                                 } catch (e: Exception) {
                                     Log.e("NFC", "Error reading tag", e)
-                                    viewModel.onNfcError("读卡失败: ${e.message}")
+                                    viewModel.onNfcError("Read failed: ${e.message}")
                                 } finally {
                                     try { isoDep.close() } catch (_: Exception) {}
                                 }
@@ -164,11 +164,11 @@ fun MiniAppScreen(
                         SwiftPayBaseDialog(
                             onDismissRequest = { viewModel.dismissConsent() },
                             icon = Icons.Rounded.Payment,
-                            title = "确认付款",
-                            description = "商户: ${state.data.description}\n金额: ${state.data.currency} ${state.data.amount}",
+                            title = "Confirm Payment",
+                            description = "Merchant: ${state.data.description}\nAmount: ${state.data.currency} ${state.data.amount}",
                             buttons = {
-                                SwiftPaySecondaryButton(text = "取消", onClick = { viewModel.dismissConsent() }, modifier = Modifier.weight(1f))
-                                SwiftPayPrimaryButton(text = "立即支付", onClick = { viewModel.approvePayment(state.data) }, modifier = Modifier.weight(1f))
+                                SwiftPaySecondaryButton(text = "Cancel", onClick = { viewModel.dismissConsent() }, modifier = Modifier.weight(1f))
+                                SwiftPayPrimaryButton(text = "Pay Now", onClick = { viewModel.approvePayment(state.data) }, modifier = Modifier.weight(1f))
                             }
                         )
                     }
@@ -176,12 +176,12 @@ fun MiniAppScreen(
                         SwiftPayBaseDialog(
                             onDismissRequest = { viewModel.dismissConsent() },
                             icon = Icons.Rounded.Security,
-                            title = "安全跳转",
-                            description = "您将被重定向到安全支付页面以完成交易。",
+                            title = "Secure Redirect",
+                            description = "You will be redirected to a secure payment page to complete the transaction.",
                             buttons = {
-                                SwiftPaySecondaryButton(text = "取消", onClick = { viewModel.dismissConsent() }, modifier = Modifier.weight(1f))
+                                SwiftPaySecondaryButton(text = "Cancel", onClick = { viewModel.dismissConsent() }, modifier = Modifier.weight(1f))
                                 SwiftPayPrimaryButton(
-                                    text = "继续",
+                                    text = "Continue",
                                     onClick = {
                                         uriHandler.openUri(state.url)
                                         viewModel.dismissConsent()

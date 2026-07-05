@@ -36,7 +36,7 @@ fun ApiDocsScreen() {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("SwiftPay 开发者中心", color = textColor, fontWeight = FontWeight.Black) },
+                title = { Text("SwiftPay Developer Center", color = textColor, fontWeight = FontWeight.Black) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = bgColor)
             )
         },
@@ -51,51 +51,51 @@ fun ApiDocsScreen() {
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             DocHeader(
-                title = "集成概览",
-                subtitle = "使用 SwiftPay 企业级 API 快速构建您的支付系统。",
+                title = "Integration Overview",
+                subtitle = "Build your payment system quickly using SwiftPay enterprise-grade APIs.",
                 textColor = textColor
             )
 
             DocSection(
-                title = "1. API 密钥",
+                title = "1. API Keys",
                 icon = Icons.Rounded.Key,
-                content = "使用您的 SwiftPay API 密钥来访问服务。请确保密钥安全，不要在客户端代码中泄露 Secret Key。",
+                content = "Use your SwiftPay API keys to access services. Ensure keys are kept secure and never expose the Secret Key in client-side code.",
                 code = "Public Key: pk_live_...\nSecret Key: sk_live_...",
                 cardColor = cardColor,
                 textColor = textColor
             )
 
             DocSection(
-                title = "2. 身份验证",
+                title = "2. Authentication",
                 icon = Icons.Rounded.Security,
-                content = "所有 API 请求均通过 HTTP Basic Auth 进行验证。请将您的 Secret Key 拼接一个冒号后进行 Base64 编码。",
+                content = "All API requests are authenticated via HTTP Basic Auth. Base64 encode your Secret Key followed by a colon.",
                 code = "Authorization: Basic Base64(YOUR_SECRET_KEY:)",
                 cardColor = cardColor,
                 textColor = textColor
             )
 
             DocSection(
-                title = "3. 收银台 (Checkout)",
+                title = "3. Checkout",
                 icon = Icons.Rounded.Description,
-                content = "创建一键式支付页面。支持多种支付方式，包括银行卡、电子钱包等。",
+                content = "Create one-click payment pages. Supports multiple methods including cards and digital wallets.",
                 code = "POST /v1/collect/checkout\n{\n  \"totalAmount\": {\n    \"value\": 100.00,\n    \"currency\": \"PHP\"\n  },\n  \"requestReferenceNumber\": \"REF-1001\"\n}",
                 cardColor = cardColor,
                 textColor = textColor
             )
 
             DocSection(
-                title = "4. 动态二维码 (QR Ph)",
+                title = "4. Dynamic QR (QR Ph)",
                 icon = Icons.Rounded.Code,
-                content = "生成符合国家标准的动态 QR Ph。用户扫码后金额自动填入，实时到账。",
+                content = "Generate standardized dynamic QR Ph codes. Scanned amounts are auto-filled for real-time settlement.",
                 code = "POST /v1/collect/qr/payments\n{\n  \"totalAmount\": {\n    \"value\": 50.00\n  }\n}",
                 cardColor = cardColor,
                 textColor = textColor
             )
 
             DocSection(
-                title = "5. 回调通知 (Webhooks)",
+                title = "5. Webhook Notifications",
                 icon = Icons.Rounded.Webhook,
-                content = "当支付状态发生变化时（如支付成功、过期），系统会实时向您的回调 URL 发送 POST 通知。",
+                content = "Receive real-time POST notifications to your callback URL when payment status changes.",
                 code = "{\n  \"status\": \"PAYMENT_SUCCESS\",\n  \"id\": \"PAY-9921\",\n  \"amount\": \"100.00\"\n}",
                 cardColor = cardColor,
                 textColor = textColor
@@ -107,10 +107,10 @@ fun ApiDocsScreen() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text("需要技术支持？", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Need technical support?", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "我们的技术团队全天候为您提供 SwiftPay 集成协助。请联系 support@swiftpay.ph 获取更多帮助。",
+                        "Our technical team is available 24/7 for SwiftPay integration assistance. Contact support@swiftpay.ph for more help.",
                         color = Color.White.copy(alpha = 0.9f),
                         fontSize = 13.sp,
                         lineHeight = 20.sp

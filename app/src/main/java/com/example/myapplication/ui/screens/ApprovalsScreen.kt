@@ -59,7 +59,7 @@ fun ApprovalsScreen() {
             TopAppBar(
                 title = { 
                     Text(
-                        "登录授权", 
+                        "Login Authorizations", 
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleLarge
                     ) 
@@ -91,7 +91,7 @@ fun ApprovalsScreen() {
                 ) {
                     item {
                         Text(
-                            "受信任设备正在请求访问您的账户",
+                            "Trusted devices are requesting access to your account",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -159,7 +159,7 @@ fun ApprovalCard(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "设备 ID: ${request.deviceId.take(8)}...",
+                        text = "Device ID: ${request.deviceId.take(8)}...",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -169,7 +169,7 @@ fun ApprovalCard(
             Spacer(modifier = Modifier.height(20.dp))
             
             Text(
-                text = "一个新设备正尝试以 ${request.email} 的身份登录。您是否识别此尝试？",
+                text = "A new device is trying to log in as ${request.email}. Do you recognize this attempt?",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -184,7 +184,7 @@ fun ApprovalCard(
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
                 ) {
-                    Text("拒绝", fontWeight = FontWeight.Bold)
+                    Text("Deny", fontWeight = FontWeight.Bold)
                 }
                 
                 Button(
@@ -193,7 +193,7 @@ fun ApprovalCard(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = FastPayBlue)
                 ) {
-                    Text("批准", fontWeight = FontWeight.Bold)
+                    Text("Approve", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -225,20 +225,17 @@ fun EmptyApprovalsState() {
         }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            "全部清除", 
+            "All Clear", 
             style = MaterialTheme.typography.headlineSmall, 
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            "没有来自其他设备的待处理登录请求。",
+            "There are no pending login requests from other devices.",
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
-
-
-

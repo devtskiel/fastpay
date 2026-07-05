@@ -80,7 +80,7 @@ fun HomeScreen(
                 onSend = {
                     android.widget.Toast.makeText(
                         context,
-                        "即时提现提示：您的余额必须至少达到 ₱100,000.00 才能获得即时结算资格。",
+                        "Instant Payout Tip: Your balance must reach at least ₱100,000.00 to qualify for instant settlement.",
                         android.widget.Toast.LENGTH_LONG
                     ).show()
                 },
@@ -168,7 +168,7 @@ fun HomeHeader(
             }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
                 Text(
-                    text = "总资产",
+                    text = "Total Assets",
                     style = MaterialTheme.typography.bodySmall,
                     color = FastPayTextSecondary,
                     fontWeight = FontWeight.Medium
@@ -205,9 +205,9 @@ fun PrimaryActionRow(
             .padding(horizontal = 24.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        PrimaryActionButton(icon = Icons.Rounded.AccountBalance, label = "充值", onClick = onCashIn)
-        PrimaryActionButton(icon = Icons.Rounded.FileUpload, label = "转账", onClick = onSend)
-        PrimaryActionButton(icon = Icons.Rounded.QrCodeScanner, label = "扫码支付", onClick = onScan)
+        PrimaryActionButton(icon = Icons.Rounded.AccountBalance, label = "Cash In", onClick = onCashIn)
+        PrimaryActionButton(icon = Icons.Rounded.FileUpload, label = "Send", onClick = onSend)
+        PrimaryActionButton(icon = Icons.Rounded.QrCodeScanner, label = "Scan to Pay", onClick = onScan)
     }
 }
 
@@ -238,14 +238,14 @@ fun PrimaryActionButton(icon: ImageVector, label: String, onClick: () -> Unit) {
 @Composable
 fun SecondaryToolGrid(onLaunch: (String?) -> Unit) {
     val tools = listOf(
-        Triple(Icons.Rounded.Description, "缴纳账单", null),
-        Triple(Icons.Rounded.PhonelinkRing, "购买话费", null),
-        Triple(Icons.Rounded.Token, "购买加密货币", null),
-        Triple(Icons.AutoMirrored.Rounded.CompareArrows, "现货交易", null),
-        Triple(Icons.Rounded.CardGiftcard, "奖励中心", null),
-        Triple(Icons.Rounded.AccountBalanceWallet, "触碰支付", "card-payment-page"),
-        Triple(Icons.Rounded.Terminal, "API 中心", "api-docs-page"),
-        Triple(Icons.Rounded.GridView, "更多", null)
+        Triple(Icons.Rounded.Description, "Pay Bills", null),
+        Triple(Icons.Rounded.PhonelinkRing, "Buy Load", null),
+        Triple(Icons.Rounded.Token, "Buy Crypto", null),
+        Triple(Icons.AutoMirrored.Rounded.CompareArrows, "Spot Trading", null),
+        Triple(Icons.Rounded.CardGiftcard, "Rewards Hub", null),
+        Triple(Icons.Rounded.AccountBalanceWallet, "Tap to Pay", "card-payment-page"),
+        Triple(Icons.Rounded.Terminal, "API Hub", "api-docs-page"),
+        Triple(Icons.Rounded.GridView, "More", null)
     )
 
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -310,14 +310,14 @@ fun PromotionalBanner() {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "会员忠诚计划\n现已上线！",
+                    text = "Loyalty Program\nNow Live!",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = FastPayTextPrimary,
                     lineHeight = 24.sp
                 )
                 Text(
-                    text = "由 ShareTreats 提供支持",
+                    text = "Powered by ShareTreats",
                     style = MaterialTheme.typography.labelSmall,
                     color = FastPayTextSecondary,
                     modifier = Modifier.padding(top = 4.dp)
@@ -332,7 +332,7 @@ fun PromotionalBanner() {
                     contentPadding = PaddingValues(horizontal = 24.dp),
                     modifier = Modifier.height(36.dp)
                 ) {
-                    Text("立即开始", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text("Get Started", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
             
@@ -356,7 +356,7 @@ fun TransactionHistorySection(onClick: () -> Unit) {
                 Box(modifier = Modifier.width(4.dp).height(20.dp).clip(CircleShape).background(Color(0xFF818CF8)))
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "交易历史",
+                    text = "Transaction History",
                     style = MaterialTheme.typography.titleMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
                     fontWeight = FontWeight.ExtraBold,
                     color = FastPayTextPrimary
@@ -368,10 +368,10 @@ fun TransactionHistorySection(onClick: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Sample History Item 1
-        TransactionListItem(label = "扫码支付", amount = -1.0, isOutflow = true)
+        TransactionListItem(label = "Scan to Pay", amount = -1.0, isOutflow = true)
         Spacer(modifier = Modifier.height(12.dp))
         // Sample History Item 2
-        TransactionListItem(label = "扫码支付", amount = -300.0, isOutflow = true)
+        TransactionListItem(label = "Scan to Pay", amount = -300.0, isOutflow = true)
         
         Spacer(modifier = Modifier.height(20.dp))
         
@@ -384,9 +384,9 @@ fun TransactionHistorySection(onClick: () -> Unit) {
         ) {
             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Coins.ph 支付", style = MaterialTheme.typography.labelSmall, color = FastPayTextSecondary)
+                    Text("Coins.ph Payment", style = MaterialTheme.typography.labelSmall, color = FastPayTextSecondary)
                     Text(
-                        "使用 Coins.ph QR\n实现快速便捷的支付",
+                        "Use Coins.ph QR\nfor fast and easy payments",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = FastPayTextPrimary,
@@ -441,7 +441,7 @@ fun RewardsHubSection() {
                 Box(modifier = Modifier.width(4.dp).height(20.dp).clip(CircleShape).background(Color(0xFF2DD4BF)))
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "奖励中心",
+                    text = "Rewards Hub",
                     style = MaterialTheme.typography.titleMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
                     fontWeight = FontWeight.ExtraBold,
                     color = FastPayTextPrimary
@@ -458,9 +458,9 @@ fun RewardsHubSection() {
             color = Color(0xFFF0FDFA)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text("积分奖励", style = MaterialTheme.typography.labelSmall, color = Color(0xFF0D9488), fontWeight = FontWeight.Bold)
+                Text("Point Rewards", style = MaterialTheme.typography.labelSmall, color = Color(0xFF0D9488), fontWeight = FontWeight.Bold)
                 Text(
-                    "完成任务即可在积分商店\n获得史诗级奖励。",
+                    "Complete tasks to get epic rewards\nin the points shop.",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = FastPayTextPrimary,

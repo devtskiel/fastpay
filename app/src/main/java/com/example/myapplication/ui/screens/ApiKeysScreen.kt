@@ -56,7 +56,7 @@ fun ApiKeysScreen() {
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text("SwiftPay API 密钥", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                    Text("SwiftPay API Keys", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = FastPayNavy
@@ -85,7 +85,7 @@ fun ApiKeysScreen() {
                 ) {
                     Icon(Icons.Rounded.Warning, null, tint = Color(0xFFF57C00), modifier = Modifier.size(20.dp))
                     Text(
-                        "请务必保密并妥善保管您的 SwiftPay 密钥",
+                        "Please keep your SwiftPay keys confidential and secure.",
                         color = Color(0xFFF57C00),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
@@ -102,12 +102,12 @@ fun ApiKeysScreen() {
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     CredentialRow(
-                        label = "密钥 (Secret Key)",
+                        label = "Secret Key",
                         value = secretFlow.value,
                         onCopy = {
                             secretFlow.value?.let {
-                                clipboardManager.setPrimaryClip(ClipData.newPlainText("密钥", it))
-                                Toast.makeText(context, "密钥已复制", Toast.LENGTH_SHORT).show()
+                                clipboardManager.setPrimaryClip(ClipData.newPlainText("Secret Key", it))
+                                Toast.makeText(context, "Secret Key copied", Toast.LENGTH_SHORT).show()
                             }
                         }
                     )
@@ -115,12 +115,12 @@ fun ApiKeysScreen() {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
 
                     CredentialRow(
-                        label = "公钥 (Public Key)",
+                        label = "Public Key",
                         value = publicFlow.value,
                         onCopy = {
                             publicFlow.value?.let {
-                                clipboardManager.setPrimaryClip(ClipData.newPlainText("公钥", it))
-                                Toast.makeText(context, "公钥已复制", Toast.LENGTH_SHORT).show()
+                                clipboardManager.setPrimaryClip(ClipData.newPlainText("Public Key", it))
+                                Toast.makeText(context, "Public Key copied", Toast.LENGTH_SHORT).show()
                             }
                         }
                     )
@@ -128,12 +128,12 @@ fun ApiKeysScreen() {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color.LightGray.copy(alpha = 0.3f))
 
                     CredentialRow(
-                        label = "商户 ID (MID)",
+                        label = "Merchant ID (MID)",
                         value = midFlow.value,
                         onCopy = {
                             midFlow.value?.let {
-                                clipboardManager.setPrimaryClip(ClipData.newPlainText("商户 ID", it))
-                                Toast.makeText(context, "商户 ID 已复制", Toast.LENGTH_SHORT).show()
+                                clipboardManager.setPrimaryClip(ClipData.newPlainText("MID", it))
+                                Toast.makeText(context, "MID copied", Toast.LENGTH_SHORT).show()
                             }
                         }
                     )
@@ -152,7 +152,7 @@ fun ApiKeysScreen() {
                         Icon(Icons.Rounded.Warning, null, tint = textColor, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "安全须知",
+                            "Security Notice",
                             fontWeight = FontWeight.Bold,
                             color = textColor,
                             fontSize = 12.sp
@@ -160,7 +160,7 @@ fun ApiKeysScreen() {
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "使用这些凭据来验证对 SwiftPay 网关 API 的调用。切勿向任何人分享您的密钥。",
+                        "Use these credentials to authenticate calls to the SwiftPay gateway API. Never share your keys with anyone.",
                         fontSize = 12.sp,
                         color = textColor.copy(alpha = 0.7f),
                         lineHeight = 16.sp
@@ -188,7 +188,7 @@ private fun CredentialRow(
             Text(label, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = textColor)
             Spacer(Modifier.height(4.dp))
             Text(
-                if (value.isNullOrEmpty()) "未配置" else value,
+                if (value.isNullOrEmpty()) "Not Configured" else value,
                 color = secondaryTextColor,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium
