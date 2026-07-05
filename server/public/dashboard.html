@@ -5,397 +5,193 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SwiftPay Merchant Portal</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --sidebar-width: 240px;
-            --primary-bg: #111111;
-            --active-nav: #F46119;
-            --bg-light: #F9FAFB;
-            --border-color: #EEEEEE;
-            --text-main: #333333;
-            --text-muted: #777777;
-            --surface: #FFFFFF;
+            --sidebar-width: 260px;
+            --primary: #0052CC;
+            --secondary: #0F172A;
             --success: #00C389;
-            --pending: #F59E0B;
-            --error: #EF4444;
+            --danger: #EF4444;
+            --background: #F4F7FE;
+            --surface: #FFFFFF;
+            --text-main: #2B3674;
+            --text-muted: #A3AED0;
+            --border: #E0E5F2;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg-light); color: var(--text-main); display: flex; min-height: 100vh; }
+        body { font-family: 'Inter', sans-serif; background: var(--background); color: var(--text-main); display: flex; min-height: 100vh; overflow-x: hidden; }
 
-        /* --- Auth Layer --- */
-        #auth-container { position: fixed; inset: 0; background: #0F172A; z-index: 5000; display: flex; align-items: center; justify-content: center; }
-        .auth-card { background: white; padding: 40px; border-radius: 24px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-        .logo-box { font-size: 24px; font-weight: 800; color: #111; margin-bottom: 30px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); }
-        .input-group input { width: 100%; padding: 12px 16px; border: 1px solid #DDD; border-radius: 10px; font-size: 15px; }
-        .btn-auth { width: 100%; padding: 14px; background: #0052CC; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; }
+        /* --- Auth (Bulletproof) --- */
+        #auth-container { position: fixed; inset: 0; background: var(--secondary); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .auth-card { background: white; padding: 48px; border-radius: 32px; width: 100%; max-width: 440px; text-align: center; box-shadow: 0 30px 60px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); }
+        .logo { font-size: 32px; font-weight: 800; color: var(--primary); margin-bottom: 40px; display: flex; align-items: center; justify-content: center; gap: 12px; }
 
-        /* --- Sidebar --- */
-        .sidebar { width: var(--sidebar-width); background: var(--primary-bg); height: 100vh; position: fixed; display: flex; flex-direction: column; color: white; padding-top: 20px; z-index: 100; transition: transform 0.3s; }
-        body.logged-out .sidebar { transform: translateX(-100%); }
-        .sidebar-logo { padding: 20px 24px; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-        .sidebar-logo i { color: white; }
+        .input-group { margin-bottom: 24px; text-align: left; }
+        .input-group label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--secondary); }
+        .input-group input { width: 100%; padding: 16px; border: 2px solid var(--border); border-radius: 14px; font-size: 15px; }
+        .input-group input:focus { border-color: var(--primary); }
 
-        .nav-section { margin-bottom: 24px; }
-        .nav-label { padding: 0 24px; font-size: 10px; font-weight: 700; color: #555; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 1px; }
-        .nav-item { padding: 12px 24px; display: flex; align-items: center; gap: 12px; color: #AAAAAA; text-decoration: none; font-size: 14px; font-weight: 500; cursor: pointer; border-left: 4px solid transparent; transition: 0.2s; }
-        .nav-item:hover { color: white; }
-        .nav-item.active { background: rgba(255,255,255,0.05); color: white; border-left-color: var(--active-nav); }
-        .nav-item i { font-size: 16px; width: 20px; }
+        .btn-login { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 14px; font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.2s; }
+        .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .sidebar-footer { margin-top: auto; padding: 20px 0; border-top: 1px solid #222; }
-        .test-mode-toggle { padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #888; }
-        .toggle-switch { position: relative; width: 36px; height: 20px; background: #444; border-radius: 20px; cursor: pointer; }
-        .toggle-switch.on { background: var(--active-nav); }
-        .toggle-knob { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: white; border-radius: 50%; transition: 0.2s; }
-        .toggle-switch.on .toggle-knob { left: 18px; }
+        /* --- Main UI --- */
+        .sidebar { width: var(--sidebar-width); background: white; height: 100vh; position: fixed; border-right: 1px solid var(--border); padding: 40px 24px; display: flex; flex-direction: column; z-index: 100; transform: translateX(-100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .main { margin-left: var(--sidebar-width); flex: 1; padding: 40px; min-height: 100vh; display: none; opacity: 0; transition: 0.5s; }
 
-        /* --- Main --- */
-        .main { margin-left: var(--sidebar-width); flex: 1; min-height: 100vh; display: none; background: var(--bg-light); }
-        body.logged-in .main { display: block; }
+        body.logged-in .sidebar { transform: translateX(0); }
+        body.logged-in .main { display: block; opacity: 1; }
+        body.logged-in #auth-container { display: none; }
 
-        .top-nav { height: 64px; background: white; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: flex-end; padding: 0 40px; position: sticky; top: 0; z-index: 90; }
-        .user-menu { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; font-weight: 600; }
-        .user-avatar { width: 32px; height: 32px; background: #EEE; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .nav-item { padding: 16px 20px; border-radius: 16px; color: var(--text-muted); text-decoration: none; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .nav-item.active { background: var(--primary); color: white; box-shadow: 0 10px 20px rgba(0, 82, 204, 0.2); }
 
-        .content { padding: 40px; max-width: 1200px; margin: 0 auto; }
-        .page { display: none; }
-        .page.active { display: block; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 40px; }
+        .stat-card { background: white; padding: 30px; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+        .stat-card h2 { font-size: 32px; font-weight: 800; margin-top: 10px; }
 
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .page-header h1 { font-size: 24px; font-weight: 700; }
-
-        /* --- Components --- */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
-        .stat-card { background: white; padding: 32px; border-radius: 12px; border: 1px solid var(--border-color); }
-        .stat-label { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
-        .stat-value { font-size: 32px; font-weight: 800; }
-        .stat-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-
-        .card { background: white; border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; }
-        .card-title { padding: 20px 24px; font-size: 16px; font-weight: 700; border-bottom: 1px solid var(--border-color); }
-
+        .card { background: white; padding: 32px; border-radius: 24px; border: 1px solid var(--border); }
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; background: #FAFAFA; padding: 12px 24px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-        td { padding: 16px 24px; border-bottom: 1px solid var(--border-color); font-size: 14px; }
-        .badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-        .badge-executed { background: #E6F7EF; color: #008D63; }
-        .badge-pending { background: #FFF7ED; color: #C2410C; }
+        th { text-align: left; color: var(--text-muted); font-size: 12px; font-weight: 700; padding-bottom: 20px; }
+        td { padding: 18px 0; border-bottom: 1px solid var(--border); font-weight: 600; }
 
-        .empty-state { text-align: center; padding: 80px 40px; }
-        .empty-icon { font-size: 48px; color: #EEE; margin-bottom: 20px; }
+        .alert { padding: 14px; border-radius: 12px; font-size: 13px; font-weight: 700; margin-bottom: 24px; display: none; }
+        .alert-error { background: #FEE2E2; color: var(--danger); border: 1px solid var(--danger); }
 
-        .tabs { display: flex; gap: 32px; border-bottom: 1px solid var(--border-color); margin-bottom: 24px; }
-        .tab { padding: 12px 0; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; position: relative; }
-        .tab.active { color: var(--text-main); }
-        .tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--active-nav); }
-
-        .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-black { background: #111; color: white; }
-        .btn-outline { background: white; border: 1px solid #DDD; }
-
-        /* --- Settings Layout --- */
-        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .settings-option { background: white; padding: 24px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 20px; cursor: pointer; transition: 0.2s; }
-        .settings-option:hover { border-color: var(--active-nav); }
-        .opt-icon { width: 48px; height: 48px; border-radius: 50%; background: #FFF7ED; color: var(--active-nav); display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        .opt-info h4 { font-size: 15px; margin-bottom: 4px; }
-        .opt-info p { font-size: 12px; color: var(--text-muted); }
-
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
-        .modal.active { display: flex; }
-        .modal-content { background: white; border-radius: 16px; width: 100%; max-width: 600px; padding: 32px; }
-
+        #debug-console { margin-top: 20px; padding: 12px; background: #F8FAFC; border-radius: 10px; font-family: monospace; font-size: 10px; color: #64748B; text-align: left; max-height: 80px; overflow-y: auto; }
         .hidden { display: none !important; }
     </style>
 </head>
 <body class="logged-out">
 
-    <!-- Auth -->
     <div id="auth-container">
         <div class="auth-card">
-            <div class="logo-box"><i class="fas fa-bolt"></i> SwiftPay</div>
-            <div id="auth-alert" class="alert alert-danger" style="display:none; color:red; margin-bottom:20px; font-size:13px;"></div>
-            <div class="input-group"><label>Email</label><input type="email" id="login-email" value="admin@fastpay.com"></div>
-            <div class="input-group"><label>Password</label><input type="password" id="login-pass" value="SwiftPay#Admin#2024"></div>
-            <button class="btn-auth" onclick="login()">Login</button>
+            <div class="logo"><i class="fas fa-bolt"></i> SwiftPay</div>
+            <h2 style="margin-bottom: 8px;">Merchant Portal</h2>
+            <p style="color: var(--text-muted); margin-bottom: 32px;">Production Access</p>
+
+            <div id="auth-alert" class="alert alert-error"></div>
+
+            <div class="input-group">
+                <label>Email Address</label>
+                <input type="email" id="login-email" value="admin@fastpay.com">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="login-pass" value="SwiftPay#Admin#2024">
+            </div>
+            <button id="login-btn" class="btn-login" onclick="login()">Sign In</button>
+
+            <div id="debug-console">System Ready...</div>
         </div>
     </div>
 
-    <!-- Sidebar -->
     <div class="sidebar">
-        <div class="sidebar-logo"><i class="fas fa-bolt"></i> SwiftPay</div>
-
-        <div class="nav-section">
-            <div class="nav-item active" onclick="showPage('home', this)"><i class="fas fa-home"></i> Home</div>
-            <div class="nav-item" onclick="showPage('approvals', this)"><i class="fas fa-check-square"></i> Approvals</div>
-        </div>
-
-        <div class="nav-section">
-            <div class="nav-label">Transactions</div>
-            <div class="nav-item" onclick="showPage('payments', this)"><i class="fas fa-exchange-alt"></i> Payments</div>
-            <div class="nav-item" onclick="showPage('pay-links', this)"><i class="fas fa-link"></i> Payment Links</div>
-        </div>
-
-        <div class="nav-section">
-            <div class="nav-label">Insights</div>
-            <div class="nav-item" onclick="showPage('reports', this)"><i class="fas fa-chart-bar"></i> Reports</div>
-        </div>
-
-        <div class="sidebar-footer">
-            <div class="test-mode-toggle">
-                <span>Test mode</span>
-                <div class="toggle-switch" id="test-toggle" onclick="toggleTestMode()">
-                    <div class="toggle-knob"></div>
-                </div>
-            </div>
-            <div class="nav-item" onclick="showPage('settings', this)"><i class="fas fa-cog"></i> Settings</div>
-            <div class="nav-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
-        </div>
+        <div class="logo"><i class="fas fa-bolt"></i> SwiftPay</div>
+        <div class="nav-item active"><i class="fas fa-home"></i> Dashboard</div>
+        <div class="nav-item"><i class="fas fa-exchange-alt"></i> Payments</div>
+        <div class="nav-item"><i class="fas fa-users"></i> Team</div>
+        <div class="nav-item" style="margin-top:auto" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
     </div>
 
-    <!-- Main -->
     <div class="main">
-        <div class="top-nav">
-            <div class="user-menu">
-                <span id="biz-name-display">Merchant Name</span>
-                <div class="user-avatar"><i class="fas fa-user"></i></div>
-                <i class="fas fa-chevron-down" style="font-size:10px; color:#999;"></i>
-            </div>
+        <div class="header"><h1>Business Overview</h1></div>
+        <div class="stat-grid">
+            <div class="stat-card"><span>Wallet Balance</span><h2 id="bal">₱ --.--</h2></div>
+            <div class="stat-card"><span>Total Collections</span><h2 id="total">₱ --.--</h2></div>
+            <div class="stat-card"><span>Live Orders</span><h2 id="orders">0</h2></div>
         </div>
-
-        <div class="content">
-
-            <!-- Page: Home -->
-            <div id="page-home" class="page active">
-                <div class="page-header"><h1 id="home-biz-name">Business Name</h1></div>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">Payments</div>
-                        <div class="stat-value" id="stat-payments">₱0.00</div>
-                        <div class="stat-sub">0 Transactions</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Disbursements</div>
-                        <div class="stat-value" id="stat-disbursements">₱0.00</div>
-                        <div class="stat-sub">0 Transactions</div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-title">Transactions</div>
-                    <table id="home-tx-table">
-                        <thead><tr><th>Status</th><th>Payments</th><th>Disbursements</th></tr></thead>
-                        <tbody>
-                            <tr><td><span class="badge badge-executed">Executed</span></td><td>₱0.00</td><td>₱0.00</td></tr>
-                            <tr><td><span class="badge badge-pending">Pending</span></td><td>₱0.00</td><td>₱0.00</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Page: Approvals -->
-            <div id="page-approvals" class="page">
-                <div class="page-header"><h1>Approvals</h1></div>
-                <div class="tabs"><div class="tab active">Pending</div><div class="tab">History</div></div>
-                <div class="card empty-state">
-                    <i class="fas fa-file-invoice empty-icon"></i>
-                    <h3>No results found</h3>
-                    <p style="color:#777; margin-top:8px;">Try adjusting your search or use different criteria.</p>
-                </div>
-            </div>
-
-            <!-- Page: Payments -->
-            <div id="page-payments" class="page">
-                <div class="page-header"><h1>Payments</h1></div>
-                <div style="display:flex; gap:16px; margin-bottom:24px;">
-                    <button class="btn btn-outline">Created on: Last 7 days <i class="fas fa-chevron-down"></i></button>
-                    <button class="btn btn-outline">Status: All <i class="fas fa-chevron-down"></i></button>
-                    <button class="btn btn-outline">More <i class="fas fa-filter"></i></button>
-                </div>
-                <div class="card empty-state">
-                    <i class="fas fa-search empty-icon"></i>
-                    <h3>No results found</h3>
-                    <button class="btn btn-outline" style="margin-top:20px;">Clear filters</button>
-                </div>
-            </div>
-
-            <!-- Page: Payment Links -->
-            <div id="page-pay-links" class="page">
-                <div class="page-header"><h1>Payment links</h1><button class="btn btn-black" onclick="openModal('modal-new-link')"><i class="fas fa-plus"></i> New</button></div>
-                <div class="card">
-                    <table>
-                        <thead><tr><th>Link</th><th>Created On</th><th>Status</th><th>Actions</th></tr></thead>
-                        <tbody id="links-tbody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Page: Reports -->
-            <div id="page-reports" class="page">
-                <div class="page-header"><h1>Reports</h1></div>
-                <div class="card">
-                    <table>
-                        <thead><tr><th>ID</th><th>Name</th><th>Date</th></tr></thead>
-                        <tbody id="reports-tbody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Page: Settings -->
-            <div id="page-settings" class="page">
-                <div class="page-header"><h1>Settings</h1></div>
-                <div class="settings-grid">
-                    <div class="settings-option" onclick="showSubPage('profile')">
-                        <div class="opt-icon"><i class="fas fa-store"></i></div>
-                        <div class="opt-info"><h4>Store profile</h4><p>Shop name, logo, platform settings.</p></div>
-                    </div>
-                    <div class="settings-option" onclick="showSubPage('banking')">
-                        <div class="opt-icon"><i class="fas fa-university"></i></div>
-                        <div class="opt-info"><h4>Banking</h4><p>Bank account details and payout settings.</p></div>
-                    </div>
-                    <div class="settings-option" onclick="showSubPage('api')">
-                        <div class="opt-icon"><i class="fas fa-key"></i></div>
-                        <div class="opt-info"><h4>API & Integration</h4><p>API keys, webhooks, and settings.</p></div>
-                    </div>
-                    <div class="settings-option" onclick="showSubPage('team')">
-                        <div class="opt-icon"><i class="fas fa-users"></i></div>
-                        <div class="opt-info"><h4>Team</h4><p>Team members, roles, and permissions.</p></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Settings Sub-Pages -->
-            <div id="page-settings-profile" class="page">
-                <div style="margin-bottom:24px; color:#888; font-size:13px;"><span onclick="showPage('settings')">Settings</span> > Store profile</div>
-                <div class="page-header"><h1>Store profile</h1></div>
-                <div class="card" style="padding:32px;">
-                    <div class="input-group"><label>Shop name</label><input type="text" id="prof-biz-name"></div>
-                    <div class="input-group"><label>Shop URL</label><input type="text" id="prof-biz-url"></div>
-                    <button class="btn btn-black" onclick="updateProfile()">Save</button>
-                </div>
-            </div>
-
-            <div id="page-settings-api" class="page">
-                <div style="margin-bottom:24px; color:#888; font-size:13px;"><span onclick="showPage('settings')">Settings</span> > API & Integration</div>
-                <div class="page-header"><h1>API & Integration</h1></div>
-                <div class="card" style="padding:32px;">
-                    <div class="input-group"><label>Access key</label><input type="text" id="set-pub-key" readonly></div>
-                    <div class="input-group"><label>Secret key</label><input type="password" value="••••••••••••••••" readonly></div>
-                    <button class="btn btn-black" onclick="openModal('modal-keys')">Manage Keys</button>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- Modals -->
-    <div id="modal-keys" class="modal" onclick="closeModal('modal-keys')">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h2>Update API Keys</h2><br>
-            <div class="input-group"><label>Production Public Key</label><input type="text" id="setup-pub"></div>
-            <div class="input-group"><label>Production Secret Key</label><input type="password" id="setup-sec"></div>
-            <button class="btn btn-black" style="width:100%" onclick="saveKeys()">Update Gateway</button>
-        </div>
-    </div>
-
-    <div id="modal-new-link" class="modal" onclick="closeModal('modal-new-link')">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <h2>Create Payment Link</h2><br>
-            <div class="input-group"><label>Description</label><input type="text" id="l-desc"></div>
-            <div class="input-group"><label>Amount (PHP)</label><input type="number" id="l-amt"></div>
-            <button class="btn btn-black" style="width:100%" onclick="saveLink()">Generate Link</button>
+        <div class="card">
+            <h3>Recent Transactions</h3><br>
+            <table>
+                <thead><tr><th>Transaction ID</th><th>Amount</th><th>Status</th></tr></thead>
+                <tbody id="txs"></tbody>
+            </table>
         </div>
     </div>
 
     <script>
-        let token = localStorage.getItem('sp_token');
-        let user = JSON.parse(localStorage.getItem('sp_user') || '{}');
-        let isTestMode = false;
+        const debug = (msg) => { document.getElementById('debug-console').innerHTML += `<div>> ${msg}</div>`; };
+        const showAlert = (msg) => { const a = document.getElementById('auth-alert'); a.innerText = msg; a.style.display = 'block'; };
 
-        if (token) {
-            document.body.className = 'logged-in';
-            updateHeader();
-            refreshData();
+        // 1. Initial State Check
+        async function init() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                debug(`DATABASE: ${data.database.toUpperCase()}`);
+
+                const savedToken = localStorage.getItem('sp_token');
+                if (savedToken) {
+                    debug('TOKEN FOUND: Restoring session...');
+                    document.body.className = 'logged-in';
+                    loadDashboard();
+                }
+            } catch(e) { debug('ERROR: Could not reach server'); }
         }
+        init();
 
-        function updateHeader() {
-            document.getElementById('biz-name-display').innerText = user.businessName || user.email;
-            document.getElementById('home-biz-name').innerText = user.businessName || 'Business Name';
-        }
-
+        // 2. Login Logic
         async function login() {
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-pass').value;
-            const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
-            const data = await res.json();
-            if (data.token) {
-                localStorage.setItem('sp_token', data.token);
-                localStorage.setItem('sp_user', JSON.stringify(data.user));
-                location.reload();
-            } else alert(data.error || 'Login failed');
-        }
+            const btn = document.getElementById('login-btn');
 
-        function logout() { localStorage.clear(); location.reload(); }
+            btn.disabled = true;
+            btn.innerText = 'Verifying...';
+            debug(`AUTH ATTEMPT: ${email}`);
 
-        function showPage(id, el) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById('page-' + id).classList.add('active');
-            if(el) {
-                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                el.classList.add('active');
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+
+                if (data.token) {
+                    debug('SUCCESS: Storing keys...');
+                    localStorage.setItem('sp_token', data.token);
+                    localStorage.setItem('sp_user', JSON.stringify(data.user));
+
+                    debug('TRANSITION: Loading dashboard...');
+                    document.body.className = 'logged-in';
+                    loadDashboard();
+                } else {
+                    debug(`FAILED: ${data.error}`);
+                    showAlert(data.error || 'Invalid login');
+                    btn.disabled = false;
+                    btn.innerText = 'Sign In';
+                }
+            } catch (e) {
+                debug('CRITICAL: Server timeout');
+                showAlert('Server unreachable. Re-check Render logs.');
+                btn.disabled = false;
+                btn.innerText = 'Sign In';
             }
         }
 
-        function showSubPage(sub) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById('page-settings-' + sub).classList.add('active');
+        // 3. Load Dashboard Data
+        async function loadDashboard() {
+            const token = localStorage.getItem('sp_token');
+            try {
+                const res = await fetch('/api/swiftpay/balance', { headers: { 'Authorization': `Bearer ${token}` } });
+                const bal = await res.json();
+                document.getElementById('bal').innerText = `₱ ${(bal.balance || 0).toLocaleString()}`;
+
+                const txRes = await fetch('/api/swiftpay/transactions', { headers: { 'Authorization': `Bearer ${token}` } });
+                const txs = await txRes.json();
+                document.getElementById('txs').innerHTML = txs.slice(0, 8).map(t => `
+                    <tr><td>${t.id}</td><td>₱ ${t.amount.toFixed(2)}</td><td><span style="color:#00C389">${t.status}</span></td></tr>
+                `).join('');
+                document.getElementById('total').innerText = `₱ ${txs.filter(x=>x.status==='SUCCESS').reduce((a,b)=>a+b.amount,0).toLocaleString()}`;
+                document.getElementById('orders').innerText = txs.length;
+            } catch(e) { debug('ERROR: Could not sync SwiftPay data'); }
         }
 
-        function toggleTestMode() {
-            isTestMode = !isTestMode;
-            document.getElementById('test-toggle').className = isTestMode ? 'toggle-switch on' : 'toggle-switch';
-            refreshData();
-        }
-
-        function openModal(id) { document.getElementById(id).classList.add('active'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-        async function request(path, method = 'GET', body = null) {
-            const res = await fetch('/api/swiftpay' + path, {
-                method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                body: body ? JSON.stringify(body) : null
-            });
-            if (res.status === 401) logout();
-            return await res.json();
-        }
-
-        async function refreshData() {
-            if(!token) return;
-            const bal = await request('/balance');
-            document.getElementById('bal-h2').innerText = "₱" + (bal.balance || 0).toLocaleString();
-            document.getElementById('stat-payments').innerText = "₱" + (bal.balance || 0).toLocaleString();
-
-            const txs = await request('/transactions');
-            // Simplified rendering logic for demo
-        }
-
-        async function saveKeys() {
-            const publicKey = document.getElementById('setup-pub').value;
-            const secretKey = document.getElementById('setup-sec').value;
-            const data = await request('/keys', 'POST', { publicKey, secretKey });
-            if (data.status === 'success') location.reload();
-        }
-
-        async function saveLink() {
-            await request('/payment-links', 'POST', { amount: parseFloat(document.getElementById('l-amt').value), description: document.getElementById('l-desc').value });
-            closeModal('modal-new-link');
-            refreshData();
-        }
+        function logout() { localStorage.clear(); location.reload(); }
     </script>
 </body>
 </html>
