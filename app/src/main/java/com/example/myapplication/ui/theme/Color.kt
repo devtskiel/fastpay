@@ -2,62 +2,40 @@ package com.example.myapplication.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Fast Pay Premium Palette (Navy Blue & Tech Blue)
-val FastPayNavy = Color(0xFF002B5B) // Deep Professional Navy
-val FastPayBlue = Color(0xFF0052CC) // Vibrant Tech Blue
-val FastPayAccent = Color(0xFF00BFFF) // Sky Blue Accent
-val FastPayDarkNavy = Color(0xFF001A36)
+// SwiftPay Enterprise Palette
+val SwiftPayPrimary = Color(0xFFF46119) // Primary Action Orange
+val SwiftPayPrimaryHover = Color(0xFFD94E00)
+val SwiftPayBackground = Color(0xFF0B0C0E) // Deep Fintech Background
+val SwiftPaySurface = Color(0xFF14161A) // Surface Elevation
+val SwiftPayCard = Color(0xFF1C1F26) // Card/Component Background
+val SwiftPayBorder = Color(0xFF2D3139) // Subtle Border
 
-// Enhanced Color Palette
-val FastPayPurple = Color(0xFF6366F1) // Indigo Purple
-val FastPayCyan = Color(0xFF06B6D4) // Cyan Accent
-val FastPayGreen = Color(0xFF10B981) // Emerald Green
-val FastPayOrange = Color(0xFFF97316) // Vibrant Orange
-val FastPayRed = Color(0xFFEF4444) // Modern Red
-val FastPayPink = Color(0xFFF43F5E) // Hot Pink
+val SwiftPayTextPrimary = Color(0xFFFFFFFF)
+val SwiftPayTextSecondary = Color(0xFF94A3B8)
+val SwiftPayTextDim = Color(0xFF64748B)
 
-val FastPayBlack = Color(0xFF050505)
-val FastPayDarkGray = Color(0xFF121212)
-val FastPaySurface = Color(0xFFF4F7FA) // Light grayish blue surface
-val FastPayGray = Color(0xFF8E8E93)
-val FastPayTextField = Color(0xFFF2F4F7)
-val FastPayLightGray = Color(0xFFEBEEF0)
+val SwiftPaySuccess = Color(0xFF10B981)
+val SwiftPayError = Color(0xFFEF4444)
+val SwiftPayWarning = Color(0xFFF59E0B)
 
-// UI Design Refresh Colors (Coins.ph Inspired)
-val FastPayBackground = Color(0xFFF8FAFC)
-val FastPayMeshBlue = Color(0xFFD0E8FF)
-val FastPayMeshTeal = Color(0xFFD1FAE5)
-val FastPayTextPrimary = Color(0xFF0F172A)
-val FastPayTextSecondary = Color(0xFF64748B)
-val FastPayActionIcon = Color(0xFF0052CC)
-
-// Brand Gradients
-val FastPayGradient = listOf(FastPayNavy, FastPayBlue)
-val FastPayAccentGradient = listOf(FastPayBlue, FastPayAccent)
-val FastPayPremiumGradient = listOf(FastPayPurple, FastPayCyan)
-val FastPayGreenGradient = listOf(FastPayGreen, FastPayCyan)
-val FastPayOrangeGradient = listOf(FastPayOrange, FastPayRed)
-val FastPaySoftGradient = listOf(Color(0xFFE0F2FE), Color(0xFFF0FDFA))
-val FastPayMeshGradient = listOf(FastPayMeshBlue, FastPayMeshTeal, Color.White)
-
-// Light Theme mapping
-val primaryLight = FastPayNavy
+// Light Theme mapping (Refined for Fintech standards)
+val primaryLight = SwiftPayPrimary
 val onPrimaryLight = Color.White
-val primaryContainerLight = Color(0xFFD6E4FF)
-val onPrimaryContainerLight = FastPayNavy
-val backgroundLight = Color.White
-val onBackgroundLight = FastPayBlack
+val primaryContainerLight = Color(0xFFFFE7D9)
+val onPrimaryContainerLight = SwiftPayPrimaryHover
+val backgroundLight = Color(0xFFF8FAFC)
+val onBackgroundLight = Color(0xFF0F172A)
 val surfaceLight = Color.White
-val onSurfaceLight = FastPayBlack
+val onSurfaceLight = Color(0xFF0F172A)
+val outlineLight = Color(0xFFE2E8F0)
 
-// Dark Theme mapping
-val primaryDark = Color(0xFF81D4FA)
-val onPrimaryDark = Color(0xFF00344F)
-val primaryContainerDark = Color(0xFF004C6D)
-val onPrimaryContainerDark = Color(0xFFB3E5FC)
-val backgroundDark = FastPayBlack
-val onBackgroundDark = Color.White
-val surfaceDark = FastPayDarkGray
-val onSurfaceDark = Color.White
-
-// Legacy aliases for compatibility (Removed)
+// Dark Theme mapping (Enterprise Dark Mode)
+val primaryDark = SwiftPayPrimary
+val onPrimaryDark = Color.White
+val primaryContainerDark = Color(0xFF4A1E00)
+val onPrimaryContainerDark = Color(0xFFFFDBCF)
+val backgroundDark = SwiftPayBackground
+val onBackgroundDark = SwiftPayTextPrimary
+val surfaceDark = SwiftPaySurface
+val onSurfaceDark = SwiftPayTextPrimary
+val outlineDark = SwiftPayBorder

@@ -39,7 +39,9 @@ class SwiftPaySDKBridge(
     private val onBanksRequest: () -> Unit = {},
     private val onDisburseRequest: (Double, String, String, String, String?) -> Unit = { _, _, _, _, _ -> },
     private val onGenerateVca: (String) -> Unit = {},
-    private val onVcaTransactionsRequest: () -> Unit = {}
+    private val onVcaTransactionsRequest: () -> Unit = {},
+    private val onCreateOrder: (Double, String?, String?) -> Unit = { _, _, _ -> },
+    private val onBootstrapQrph: (Double) -> Unit = {}
 ) {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -134,6 +136,17 @@ class SwiftPaySDKBridge(
                 onGenerateVca(accountName)
             }
             "get_vca_transactions" -> onVcaTransactionsRequest()
+            "create_order" -> {
+                val obj = request.data?.jsonObject
+                val amount = obj?.get("amount")?.jsonPrimitive?.doubleOrNull ?: 0.0
+                val name = obj?.get("customerName")?.jsonPrimitive?.content
+                val email = obj?.get("customerEmail")?.jsonPrimitive?.content
+                onCreateOrder(amount, name, email)
+            }
+            "bootstrap_qrph" -> {
+                val amount = request.data?.jsonObject?.get("amount")?.jsonPrimitive?.doubleOrNull ?: 0.0
+                onBootstrapQrph(amount)
+            }
             else -> sendError("Unknown action: ${request.action}")
         }
     }

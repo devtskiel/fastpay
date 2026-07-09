@@ -32,11 +32,11 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="fastpay-app" />
+                <data android:scheme="maya-showcase" />
             </intent-filter>
         </activity>
 
-        <!-- Deep link handler for payment redirects (e.g. fastpay-app://payment/success) -->
+        <!-- Deep link handler for payment redirects (e.g. maya-showcase://payment/success) -->
         <activity
             android:name=".ui.DeepLinkHandlerActivity"
             android:exported="true"
@@ -45,10 +45,10 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- Standard scheme: fastpay-app://payment/success -->
-                <data android:scheme="fastpay-app" android:host="payment" android:pathPrefix="/success" />
-                <data android:scheme="fastpay-app" android:host="payment" android:pathPrefix="/failure" />
-                <data android:scheme="fastpay-app" android:host="payment" android:pathPrefix="/cancel" />
+                <!-- Standard scheme: maya-showcase://payment/success -->
+                <data android:scheme="maya-showcase" android:host="payment" android:pathPrefix="/success" />
+                <data android:scheme="maya-showcase" android:host="payment" android:pathPrefix="/failure" />
+                <data android:scheme="maya-showcase" android:host="payment" android:pathPrefix="/cancel" />
             </intent-filter>
         </activity>
     </application>

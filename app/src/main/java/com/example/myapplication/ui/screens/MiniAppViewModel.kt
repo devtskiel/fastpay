@@ -137,14 +137,19 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             uiState = MiniAppUiState.Processing("Processing disbursement...")
             val result = getService().disburse(amount, accountNo, firstName, lastName, bankCode)
-            result.onSuccess { response ->
-                recordLocalTransaction(
-                    id = response.id ?: response.disbursementId ?: "D${System.currentTimeMillis()}",
-                    amount = -amount,
-                    status = response.status ?: "SUCCESS"
-                )
-                uiState = MiniAppUiState.Idle
-                bridge?.sendResponse(response)
+            result.onSuccess { success ->
+                if (success) {
+                    recordLocalTransaction(
+                        id = "D${System.currentTimeMillis()}",
+                        amount = -amount,
+                        status = "SUCCESS"
+                    )
+                    uiState = MiniAppUiState.Idle
+                    bridge?.sendResponse(mapOf("status" to "scheduled"))
+                } else {
+                    uiState = MiniAppUiState.Error("Disbursement failed")
+                    bridge?.sendError("Disbursement failed")
+                }
             }.onFailure { error ->
                 uiState = MiniAppUiState.Error(error.message ?: "Disbursement failed")
                 bridge?.sendError(error.message ?: "Disbursement failed")
@@ -162,6 +167,46 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
             }.onFailure { error ->
                 uiState = MiniAppUiState.Error(error.message ?: "VCA generation failed")
                 bridge?.sendError(error.message ?: "VCA generation failed")
+            }
+        }
+    }
+
+    fun onCreateOrderRequest(amount: Double, customerName: String?, email: String?) {
+        viewModelScope.launch {
+            uiState = MiniAppUiState.Processing("Initializing order...")
+            val refNo = "ORD${System.currentTimeMillis()}"
+            val result = getService().createOrder(amount, refNo, customerName, email)
+            result.onSuccess { response ->
+                if (response.customerRedirectUrl != null) {
+                    recordLocalTransaction(id = response.paymentId ?: refNo, amount = amount, status = "PENDING")
+                    uiState = MiniAppUiState.PaymentRedirect(response.customerRedirectUrl)
+                    bridge?.sendResponse(response)
+                } else {
+                    bridge?.sendError("No redirect URL received")
+                }
+            }.onFailure { error ->
+                uiState = MiniAppUiState.Error(error.message ?: "Order creation failed")
+                bridge?.sendError(error.message ?: "Order creation failed")
+            }
+        }
+    }
+
+    fun onBootstrapQrphRequest(amount: Double) {
+        viewModelScope.launch {
+            uiState = MiniAppUiState.Processing("Generating QR PH...")
+            val refNo = "QRPH${System.currentTimeMillis()}"
+            val result = getService().bootstrapQrph(amount, refNo)
+            result.onSuccess { response ->
+                if (response.qrCode != null) {
+                    recordLocalTransaction(id = response.paymentId ?: refNo, amount = amount, status = "PENDING")
+                    uiState = MiniAppUiState.DynamicQrReady(response.qrCode, amount)
+                    bridge?.sendResponse(response)
+                } else {
+                    bridge?.sendError("No QR code received")
+                }
+            }.onFailure { error ->
+                uiState = MiniAppUiState.Error(error.message ?: "QR PH generation failed")
+                bridge?.sendError(error.message ?: "QR PH generation failed")
             }
         }
     }

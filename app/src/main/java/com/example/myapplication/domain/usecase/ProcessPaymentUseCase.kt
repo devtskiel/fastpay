@@ -14,13 +14,44 @@ class ProcessPaymentUseCase(private val paymentRepository: PaymentRepository) {
      */
     suspend fun executeCheckout(paymentData: PaymentData): Result<String> {
         return try {
-            // Validate amount
             if (paymentData.amount <= 0) {
                 return Result.failure(Exception("Invalid amount"))
             }
 
             val result = paymentRepository.createCheckout(paymentData)
             result.map { it.redirectUrl ?: "UNKNOWN" }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Process an order with SwiftPay v2.8 (Full Page Redirect)
+     */
+    suspend fun executeOrder(
+        amount: Double,
+        customerName: String? = null,
+        email: String? = null
+    ): Result<String> {
+        return try {
+            if (amount <= 0) return Result.failure(Exception("Invalid amount"))
+            val refNo = "ORD${System.currentTimeMillis()}"
+            val result = paymentRepository.createOrder(amount, refNo, customerName, email)
+            result.map { it.customerRedirectUrl ?: throw Exception("No redirect URL") }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Generate QRPH using SwiftPay v2.8 bootstrap
+     */
+    suspend fun generateQrph(amount: Double): Result<String> {
+        return try {
+            if (amount <= 0) return Result.failure(Exception("Invalid amount"))
+            val refNo = "QRPH${System.currentTimeMillis()}"
+            val result = paymentRepository.bootstrapQrph(amount, refNo)
+            result.map { it.qrCode ?: throw Exception("No QR code generated") }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -46,6 +77,17 @@ class ProcessPaymentUseCase(private val paymentRepository: PaymentRepository) {
             Result.failure(e)
         }
     }
+
+    /**
+     * Execute a disbursement (Payout)
+     */
+    suspend fun executeDisbursement(
+        amount: Double,
+        accountNumber: String,
+        firstName: String,
+        lastName: String,
+        bankCode: String? = null
+    ) = paymentRepository.disburse(amount, accountNumber, firstName, lastName, bankCode)
 }
 
 /**
@@ -58,9 +100,3 @@ data class CardDetailsInput(
     val cvv: String,
     val cardHolderName: String
 )
-
-
-
-
-
-

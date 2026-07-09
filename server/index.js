@@ -7,189 +7,141 @@ const axios = require('axios')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const path = require('path')
-const qs = require('qs')
 
 const app = express()
 app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors())
 app.use(bodyParser.json())
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fastpay-super-secret-2024'
+const JWT_SECRET = process.env.JWT_SECRET || 'fastpay-enterprise-core-2024'
 
-// --- Persistence Layer ---
+// --- Database Layer ---
 const rawDbUrl = process.env.DATABASE_URL
-const usePg = !!rawDbUrl
-let pgPool = null
+const { Pool } = require('pg')
+const pgPool = new Pool({
+    connectionString: rawDbUrl ? rawDbUrl.replace('postgresql://', 'postgres://') : undefined,
+    ssl: { rejectUnauthorized: false }
+})
 
-if (usePg) {
-  const { Pool } = require('pg')
-  const connectionString = rawDbUrl.replace('postgresql://', 'postgres://')
-  pgPool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } })
-}
-
-const cleanKey = (key) => {
-    if (!key) return ''
-    return key.split('/')[0].split(' ')[0].trim()
-}
+const cleanKey = (k) => k ? k.split('/')[0].split(' ')[0].trim() : ''
 
 async function startServer() {
-    if (usePg) {
-        try {
-            await pgPool.query(`CREATE TABLE IF NOT EXISTS users (
-                id TEXT PRIMARY KEY,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                business_name TEXT,
-                shop_url TEXT,
-                source_account_number TEXT,
-                sp_public_key TEXT,
-                sp_secret_key TEXT,
-                created_at TIMESTAMPTZ DEFAULT NOW()
-            )`)
-
-            const migrations = [
-                'ALTER TABLE users ADD COLUMN IF NOT EXISTS business_name TEXT',
-                'ALTER TABLE users ADD COLUMN IF NOT EXISTS shop_url TEXT',
-                'ALTER TABLE users ADD COLUMN IF NOT EXISTS source_account_number TEXT',
-                'ALTER TABLE users ADD COLUMN IF NOT EXISTS sp_public_key TEXT',
-                'ALTER TABLE users ADD COLUMN IF NOT EXISTS sp_secret_key TEXT'
-            ]
-            for (const sql of migrations) await pgPool.query(sql)
-
-            const adminEmail = 'admin@fastpay.com'
-            const adminPass = 'SwiftPay#Admin#2024'
-            const hash = await bcrypt.hash(adminPass, 10)
-            const { rows } = await pgPool.query('SELECT id FROM users WHERE email = $1', [adminEmail])
-
-            if (rows.length === 0) {
-                await pgPool.query(
-                    'INSERT INTO users(id, email, password_hash, business_name, sp_public_key, sp_secret_key) VALUES($1, $2, $3, $4, $5, $6)',
-                    ['ADMIN_01', adminEmail, hash, 'Click Store', cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY)]
-                )
-            } else {
-                await pgPool.query('UPDATE users SET password_hash = $1, sp_public_key = $2, sp_secret_key = $3 WHERE email = $4', [hash, cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY), adminEmail])
-            }
-        } catch (e) { console.error('❌ DB ERROR:', e.message) }
-    }
-    app.listen(process.env.PORT || 3000, '0.0.0.0', () => console.log('🚀 Server Live'))
-}
-
-// --- Netbank B2B Token Helper ---
-const getNetbankToken = async (pub, sec) => {
     try {
-        console.log('📡 Requesting B2B Token from Netbank Virtual...')
-        const auth = Buffer.from(`${pub}:${sec}`).toString('base64')
-        const response = await axios.post('https://api.netbank.ph/v1/access-token/b2b',
-            qs.stringify({ 'grant_type': 'client_credentials' }),
-            {
-                headers: {
-                    'Authorization': `Basic ${auth}`,
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
-            }
-        )
-        return response.data.access_token
-    } catch (e) {
-        console.error('🔥 AUTH SERVER ERROR:', e.response?.data || e.message)
-        throw new Error('Netbank Authentication Failed. Please check your API keys.')
-    }
+        await pgPool.query(`CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            business_name TEXT,
+            shop_url TEXT,
+            source_account_number TEXT,
+            sp_public_key TEXT,
+            sp_secret_key TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )`)
+
+        const adminEmail = 'admin@fastpay.com'
+        const hash = await bcrypt.hash('SwiftPay#Admin#2024', 10)
+        const { rows } = await pgPool.query('SELECT id FROM users WHERE email = $1', [adminEmail])
+
+        if (rows.length === 0) {
+            await pgPool.query(
+                'INSERT INTO users(id, email, password_hash, business_name, sp_public_key, sp_secret_key) VALUES($1, $2, $3, $4, $5, $6)',
+                ['ADMIN_01', adminEmail, hash, 'SwiftPay Store', cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY)]
+            )
+        }
+    } catch (e) { console.error('❌ DB ERROR:', e.message) }
+
+    app.listen(process.env.PORT || 3000, '0.0.0.0', () => console.log('🚀 Gateway Live'))
 }
 
-const getSwiftPayClient = async (userId) => {
-    const r = await pgPool.query('SELECT sp_public_key, sp_secret_key, business_name, source_account_number FROM users WHERE id = $1', [userId])
+const getClient = async (uid) => {
+    const r = await pgPool.query('SELECT sp_public_key, sp_secret_key, business_name FROM users WHERE id = $1', [uid])
     const u = r.rows[0]
-    if (!u?.sp_secret_key) throw new Error('API keys are missing in Settings.')
-    return {
-        pub: cleanKey(u.sp_public_key),
-        sec: cleanKey(u.sp_secret_key),
-        biz: u.business_name || 'SwiftPay Merchant',
-        sourceAccount: u.source_account_number
-    }
+    if (!u?.sp_secret_key) throw new Error('API keys missing')
+    return { pub: cleanKey(u.sp_public_key), sec: cleanKey(u.sp_secret_key), biz: u.business_name }
 }
 
-// --- Auth Endpoints ---
+const requireAuth = (req, res, next) => {
+    const h = req.headers.authorization
+    if (!h?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+    try {
+        req.user = jwt.verify(h.split(' ')[1], JWT_SECRET)
+        next()
+    } catch (e) { res.status(401).json({ error: 'Expired' }) }
+}
+
+// --- API Routes ---
+
 app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body
     try {
         const r = await pgPool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()])
         const user = r.rows[0]
-        if (!user || !(await bcrypt.compare(password, user.password_hash))) return res.status(401).json({ error: 'Invalid credentials' })
+        if (!user || !(await bcrypt.compare(password, user.password_hash))) return res.status(401).json({ error: 'Invalid keys' })
         const token = jwt.sign({ id: user.id, email: user.email, businessName: user.business_name }, JWT_SECRET, { expiresIn: '24h' })
-        res.json({ token, user: { id: user.id, email: user.email, businessName: user.business_name || 'Merchant', hasKeys: !!user.sp_secret_key } })
-    } catch (e) { res.status(500).json({ error: 'Server Error' }) }
+        res.json({ token, user: { businessName: user.business_name || 'Merchant' } })
+    } catch (e) { res.status(500).json({ error: 'System Error' }) }
 })
 
-const requireAuth = (req, res, next) => {
-    const authHeader = req.headers.authorization
-    if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-    try {
-        req.user = jwt.verify(authHeader.split(' ')[1], JWT_SECRET)
-        next()
-    } catch (e) { res.status(401).json({ error: 'Session Expired' }) }
-}
-
-// --- Functional Endpoints ---
 app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
     try {
-        const u = await getSwiftPayClient(req.user.id)
+        const u = await getClient(req.user.id)
         const auth = Buffer.from(`${u.pub}:${u.sec}`).toString('base64')
-        const resp = await axios.get('https://api.netbank.ph/v1/account/balance', {
-            headers: { 'Authorization': `Basic ${auth}` }
-        })
+        const resp = await axios.get('https://api.netbank.ph/v1/account/balance', { headers: { 'Authorization': `Basic ${auth}` } })
         res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: e.message }) }
+    } catch (e) { res.status(500).json({ error: 'Balance Error' }) }
 })
 
 app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
     try {
-        const u = await getSwiftPayClient(req.user.id)
+        const u = await getClient(req.user.id)
         const auth = Buffer.from(`${u.pub}:${u.sec}`).toString('base64')
-        const resp = await axios.get('https://api.netbank.ph/v1/collect/payments', {
-            headers: { 'Authorization': `Basic ${auth}` }
-        })
+        const resp = await axios.get('https://api.netbank.ph/v1/collect/payments', { headers: { 'Authorization': `Basic ${auth}` } })
         res.json((resp.data.data || []).map(t => ({ id: t.id, amount: parseFloat(t.amount), status: t.status, date: t.createdAt })))
     } catch (e) { res.json([]) }
 })
 
-app.post('/api/swiftpay/qr', requireAuth, async (req, res) => {
+app.get('/api/swiftpay/banks', requireAuth, async (req, res) => {
     try {
-        const u = await getSwiftPayClient(req.user.id)
-        if (!u.sourceAccount) return res.status(400).json({ error: 'Please set Source Account in Settings > Store Profile' })
-
-        const accessToken = await getNetbankToken(u.pub, u.sec)
-
-        const payload = {
-            destination_account: u.sourceAccount,
-            amount: { currency: 'PHP', value: parseFloat(req.body.amount || 0).toFixed(2) },
-            merchant_name: u.biz.substring(0, 25),
-            merchant_city: 'Manila',
-            reference_no: 'FP_' + Date.now(),
-            generate_additional_fields: false
-        }
-
-        const resp = await axios.post('https://api.netbank.ph/v1/qrph/generate', payload, {
-            headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' }
-        })
+        const resp = await axios.get('https://api.pay.live.swiftpay.ph/api/institutions')
         res.json(resp.data)
-    } catch (e) {
-        res.status(500).json({ error: e.message || 'QR Generation Failed' })
-    }
+    } catch (e) { res.json([]) }
+})
+
+app.post('/api/swiftpay/disburse', requireAuth, async (req, res) => {
+    try {
+        const u = await getClient(req.user.id)
+        const auth = Buffer.from(`${u.pub}:${u.sec}`).toString('base64')
+        const { amount, accountNumber, firstName, lastName, institutionCode } = req.body
+        const payload = {
+            merchantReferenceNo: 'P' + Date.now(),
+            channel: 'INSTAPAY',
+            institutionCode,
+            creditInformation: { amount: parseFloat(amount).toFixed(2), remarks: 'Payout' },
+            recipientInformation: { accountNumber, firstName, lastName }
+        }
+        await axios.post('https://api.pay.live.swiftpay.ph/api/disbursements/send', payload, { headers: { 'Authorization': `Basic ${auth}` } })
+        res.json({ status: 'success' })
+    } catch (e) { res.status(500).json({ error: 'Payout Failed' }) }
+})
+
+app.get('/api/swiftpay/disbursements', requireAuth, async (req, res) => {
+    try {
+        const u = await getClient(req.user.id)
+        const auth = Buffer.from(`${u.pub}:${u.sec}`).toString('base64')
+        const resp = await axios.get('https://api.pay.live.swiftpay.ph/api/disbursements', { headers: { 'Authorization': `Basic ${auth}` } })
+        res.json(resp.data)
+    } catch (e) { res.json([]) }
 })
 
 app.get('/api/swiftpay/settings', requireAuth, async (req, res) => {
-    const r = await pgPool.query('SELECT business_name, shop_url, source_account_number, sp_public_key FROM users WHERE id = $1', [req.user.id])
+    const r = await pgPool.query('SELECT business_name, shop_url, source_account_number FROM users WHERE id = $1', [req.user.id])
     res.json(r.rows[0])
 })
 
 app.post('/api/swiftpay/profile', requireAuth, async (req, res) => {
     const { businessName, shopUrl, sourceAccountNumber } = req.body
     await pgPool.query('UPDATE users SET business_name = $1, shop_url = $2, source_account_number = $3 WHERE id = $4', [businessName, shopUrl, sourceAccountNumber, req.user.id])
-    res.json({ status: 'success' })
-})
-
-app.post('/api/swiftpay/keys', requireAuth, async (req, res) => {
-    const { publicKey, secretKey } = req.body
-    await pgPool.query('UPDATE users SET sp_public_key = $1, sp_secret_key = $2 WHERE id = $3', [publicKey, secretKey, req.user.id])
     res.json({ status: 'success' })
 })
 

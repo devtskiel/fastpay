@@ -11,10 +11,47 @@ import kotlinx.coroutines.flow.flow
 class PaymentRepository(private val swiftPayService: SwiftPayService) {
 
     /**
-     * Create a checkout
+     * Create a checkout (Netbank v1)
      */
     suspend fun createCheckout(paymentData: com.example.myapplication.bridge.PaymentData) =
         swiftPayService.createCheckout(paymentData)
+
+    /**
+     * Create an order (SwiftPay v2.8)
+     */
+    suspend fun createOrder(
+        amount: Double,
+        referenceNo: String,
+        customerName: String? = null,
+        email: String? = null
+    ) = swiftPayService.createOrder(amount, referenceNo, customerName, email)
+
+    /**
+     * Bootstrap QRPH (SwiftPay v2.8)
+     */
+    suspend fun bootstrapQrph(amount: Double, referenceNo: String) =
+        swiftPayService.bootstrapQrph(amount, referenceNo)
+
+    /**
+     * Get institutions
+     */
+    suspend fun getInstitutions() = swiftPayService.getInstitutions()
+
+    /**
+     * Get disbursement banks
+     */
+    suspend fun getBanks() = swiftPayService.getBanks()
+
+    /**
+     * Execute disbursement
+     */
+    suspend fun disburse(
+        amount: Double,
+        accountNumber: String,
+        firstName: String,
+        lastName: String,
+        bankCode: String? = null
+    ) = swiftPayService.disburse(amount, accountNumber, firstName, lastName, bankCode)
 
     /**
      * Get checkout status

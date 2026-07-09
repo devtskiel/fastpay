@@ -54,6 +54,8 @@ fun SwiftPayWebView(
     onDisburseRequest: (Double, String, String, String, String?) -> Unit = { _, _, _, _, _ -> },
     onGenerateVca: (String) -> Unit = {},
     onVcaTransactionsRequest: () -> Unit = {},
+    onCreateOrder: (Double, String?, String?) -> Unit = { _, _, _ -> },
+    onBootstrapQrph: (Double) -> Unit = {},
     onBridgeReady: (SwiftPaySDKBridge) -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -159,7 +161,9 @@ fun SwiftPayWebView(
                             onBanksRequest = onBanksRequest,
                             onDisburseRequest = onDisburseRequest,
                             onGenerateVca = onGenerateVca,
-                            onVcaTransactionsRequest = onVcaTransactionsRequest
+                            onVcaTransactionsRequest = onVcaTransactionsRequest,
+                            onCreateOrder = onCreateOrder,
+                            onBootstrapQrph = onBootstrapQrph
                         )
                         
                         addJavascriptInterface(bridge, "SwiftPaySDK")

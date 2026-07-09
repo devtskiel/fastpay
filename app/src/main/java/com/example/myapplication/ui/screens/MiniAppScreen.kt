@@ -91,7 +91,7 @@ fun MiniAppScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = SwiftPayBackground
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
             SwiftPayWebView(
@@ -119,6 +119,8 @@ fun MiniAppScreen(
                 },
                 onGenerateVca = { name: String -> viewModel.onGenerateVcaRequest(name) },
                 onVcaTransactionsRequest = { viewModel.onVcaTransactionsRequest() },
+                onCreateOrder = { amount, name, email -> viewModel.onCreateOrderRequest(amount, name, email) },
+                onBootstrapQrph = { amount -> viewModel.onBootstrapQrphRequest(amount) },
                 onBridgeReady = { viewModel.bridge = it }
             )
 
