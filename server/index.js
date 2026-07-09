@@ -59,6 +59,14 @@ async function startServer() {
                 'INSERT INTO users(id, email, password_hash, business_name, sp_public_key, sp_secret_key) VALUES($1, $2, $3, $4, $5, $6)',
                 ['ADMIN_01', adminEmail, hash, 'SwiftPay Store', cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY)]
             )
+        } else {
+            // Update keys if env vars are present to ensure sync
+            if (process.env.SWIFTPAY_PUBLIC_KEY || process.env.SWIFTPAY_SECRET_KEY) {
+                await pgPool.query(
+                    'UPDATE users SET sp_public_key = $1, sp_secret_key = $2 WHERE email = $3',
+                    [cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY), adminEmail]
+                )
+            }
         }
     } catch (e) { console.error('❌ DB ERROR:', e.message) }
 
