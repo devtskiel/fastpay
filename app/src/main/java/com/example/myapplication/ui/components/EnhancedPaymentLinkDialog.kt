@@ -153,15 +153,10 @@ fun EnhancedPaymentLinkDialog(
                 }
 
                 // URL display
-                CopyableTextField(
+                SwiftPayCopyBox(
                     value = url,
                     label = localization.copyLink,
-                    modifier = Modifier.fillMaxWidth(),
-                    onCopySuccess = {
-                        analyticsTracker.trackEvent(
-                            PaymentLinkAnalyticsEvent.LinkCopied(linkId = linkId)
-                        )
-                    }
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(Modifier.height(24.dp))

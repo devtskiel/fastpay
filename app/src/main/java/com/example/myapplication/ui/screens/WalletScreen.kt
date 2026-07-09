@@ -77,7 +77,7 @@ fun WalletScreen(
                                 val settings = SettingsManager(context)
                                 val service = settings.createSwiftPayService()
                                 val remote = service.getInternalTransactions().getOrNull() ?: emptyList()
-                                transactions = remote.map { InternalTransaction(it.id ?: "", it.amount?.toDoubleOrNull() ?: 0.0, it.status ?: "", it.timestamp ?: "") }
+                                transactions = remote
                             } finally { isLoading = false }
                         }
                     }

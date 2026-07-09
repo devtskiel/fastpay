@@ -38,9 +38,9 @@ class PaymentRepository(private val swiftPayService: SwiftPayService) {
     suspend fun getInstitutions() = swiftPayService.getInstitutions()
 
     /**
-     * Get disbursement banks
+     * Get disbursement banks (legacy or standard)
      */
-    suspend fun getBanks() = swiftPayService.getBanks()
+    suspend fun getBanks() = swiftPayService.getInstitutions()
 
     /**
      * Execute disbursement

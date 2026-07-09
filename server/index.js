@@ -14,6 +14,7 @@ app.use(cors())
 app.use(bodyParser.json())
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fastpay-enterprise-core-2024'
+const APP_SERVER_KEY = process.env.APP_SERVER_KEY || 'my-secret-key'
 
 // --- Database Layer ---
 const rawDbUrl = process.env.DATABASE_URL
@@ -37,6 +38,16 @@ async function startServer() {
             sp_public_key TEXT,
             sp_secret_key TEXT,
             created_at TIMESTAMPTZ DEFAULT NOW()
+        )`)
+
+        await pgPool.query(`CREATE TABLE IF NOT EXISTS approvals (
+            request_id TEXT PRIMARY KEY,
+            email TEXT NOT NULL,
+            device_id TEXT NOT NULL,
+            device_name TEXT NOT NULL,
+            status TEXT DEFAULT 'PENDING',
+            created_at BIGINT,
+            expires_at BIGINT
         )`)
 
         const adminEmail = 'admin@fastpay.com'
@@ -70,6 +81,12 @@ const requireAuth = (req, res, next) => {
     } catch (e) { res.status(401).json({ error: 'Expired' }) }
 }
 
+const requireApiKey = (req, res, next) => {
+    const key = req.headers['x-api-key']
+    if (key !== APP_SERVER_KEY) return res.status(401).json({ error: 'Forbidden' })
+    next()
+}
+
 // --- API Routes ---
 
 app.post('/api/auth/login', async (req, res) => {
@@ -83,7 +100,48 @@ app.post('/api/auth/login', async (req, res) => {
     } catch (e) { res.status(500).json({ error: 'System Error' }) }
 })
 
-app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
+app.get('/health', (req, res) => res.json({ status: 'UP', timestamp: new Date().toISOString() }))
+
+// --- Approvals (Legacy/Multi-device) ---
+app.post('/approvals', requireApiKey, async (req, res) => {
+    const { email, deviceId, deviceName } = req.body
+    const requestId = 'REQ' + Math.random().toString(36).substr(2, 9).toUpperCase()
+    const now = Date.now()
+    const expires = now + 300000 // 5 mins
+    await pgPool.query(
+        'INSERT INTO approvals(request_id, email, device_id, device_name, status, created_at, expires_at) VALUES($1, $2, $3, $4, $5, $6, $7)',
+        [requestId, email, deviceId, deviceName, 'PENDING', now, expires]
+    )
+    res.json({ requestId, email, deviceId, deviceName, status: 'PENDING', createdAt: now, expiresAt: expires })
+})
+
+app.get('/approvals/:id', requireApiKey, async (req, res) => {
+    const { rows } = await pgPool.query('SELECT * FROM approvals WHERE request_id = $1', [req.params.id])
+    if (rows[0]) {
+        const r = rows[0]
+        res.json({ requestId: r.request_id, email: r.email, deviceId: r.device_id, deviceName: r.device_name, status: r.status, createdAt: parseInt(r.created_at), expiresAt: parseInt(r.expires_at) })
+    } else res.status(404).json({ error: 'Not Found' })
+})
+
+app.get('/approvals', requireApiKey, async (req, res) => {
+    const { email } = req.query
+    const { rows } = await pgPool.query('SELECT * FROM approvals WHERE email = $1 AND status = $2', [email, 'PENDING'])
+    res.json(rows.map(r => ({ requestId: r.request_id, email: r.email, deviceId: r.device_id, deviceName: r.device_name, status: r.status, createdAt: parseInt(r.created_at), expiresAt: parseInt(r.expires_at) })))
+})
+
+app.post('/approvals/:id/approve', requireApiKey, async (req, res) => {
+    await pgPool.query('UPDATE approvals SET status = $1 WHERE request_id = $2', ['APPROVED', req.params.id])
+    const { rows } = await pgPool.query('SELECT * FROM approvals WHERE request_id = $1', [req.params.id])
+    res.json(rows[0])
+})
+
+app.post('/approvals/:id/deny', requireApiKey, async (req, res) => {
+    await pgPool.query('UPDATE approvals SET status = $1 WHERE request_id = $2', ['DENIED', req.params.id])
+    const { rows } = await pgPool.query('SELECT * FROM approvals WHERE request_id = $1', [req.params.id])
+    res.json(rows[0])
+})
+
+// --- SwiftPay Gateway ---
     try {
         const u = await getClient(req.user.id)
         const auth = Buffer.from(`${u.pub}:${u.sec}`).toString('base64')

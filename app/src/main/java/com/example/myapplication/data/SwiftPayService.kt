@@ -13,7 +13,6 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import java.net.UnknownHostException
 
 class SwiftPayService(
     customSecretKey: String? = null,
@@ -26,16 +25,12 @@ class SwiftPayService(
     private val secretKey = customSecretKey?.takeUnless { it.isBlank() } ?: BuildConfig.SWIFTPAY_SECRET_KEY
     private val publicKey = customPublicKey?.takeUnless { it.isBlank() } ?: BuildConfig.SWIFTPAY_PUBLIC_KEY
     
-    // Explicit environment selection
     private val isSandbox = false
     
     private val hasSecretKey = !secretKey.isNullOrBlank() && secretKey != SwiftPayCredentials.MISSING_KEY
     private val hasPublicKey = !publicKey.isNullOrBlank() && publicKey != SwiftPayCredentials.MISSING_KEY
     
-    // Base URLs for SwiftPay (Netbank infrastructure)
     private val pgBaseUrl = if (isSandbox) "https://api-sandbox.netbank.ph/" else "https://api.netbank.ph/"
-    
-    // SwiftPay v2.8 (Direct Integration) Base URLs
     private val payBaseUrl = if (isSandbox) "https://api.pay.sandbox.live.swiftpay.ph/api/" else "https://api.pay.live.swiftpay.ph/api/"
 
     private var activeMid: String? = customMid ?: BuildConfig.SWIFTPAY_QR_MID
@@ -58,18 +53,12 @@ class SwiftPayService(
             if (original.header("x-swiftpay-mid") == null) {
                 activeMid?.let { request.header("x-swiftpay-mid", it) }
             }
-            
             if (original.header("Terminal-Id") == null) {
                 terminalId?.let { request.header("Terminal-Id", it) }
             }
-            
             chain.proceed(request.build())
         }
-        .addInterceptor(
-            HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            },
-        )
+        .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
         .build()
 
     private val retrofit = Retrofit.Builder()
@@ -94,15 +83,13 @@ class SwiftPayService(
             val errorBody = response.errorBody()?.string() ?: return "Unknown error (${response.code()})"
             val error = try { json.decodeFromString<SwiftPayError>(errorBody) } catch (e: Exception) { null }
             error?.message ?: error?.code ?: "Error ${response.code()}"
-        } catch (e: Exception) {
-            "Error ${response.code()}"
-        }
+        } catch (e: Exception) { "Error ${response.code()}" }
     }
 
     private fun missingSecretKey() = Result.failure<Nothing>(Exception("Configuration Error: SwiftPay Secret Key is missing."))
     private fun missingPublicKey() = Result.failure<Nothing>(Exception("Configuration Error: SwiftPay Public Key is missing."))
 
-    // --- Collection Methods ---
+    // --- Collection Methods (v2.8) ---
 
     suspend fun createOrder(
         amount: Double,
@@ -137,18 +124,33 @@ class SwiftPayService(
         } catch (e: Exception) { Result.failure(e) }
     }
 
-    suspend fun getWalletBalance(): Double {
-        if (!hasSecretKey) return 0.0
+    suspend fun createPaymentLink(amount: Double = 0.0, description: String = ""): Result<PaymentLinkResponse> {
         return try {
-            val response = api.getWalletBalance(authHeader, "BAL${System.currentTimeMillis()}")
-            if (response.isSuccessful) {
-                val b = response.body()
-                b?.balance ?: 0.0
-            } else 0.0
-        } catch (e: Exception) { 0.0 }
+            if (!hasPublicKey) return missingPublicKey()
+            val request = PaymentLinkRequest(
+                description = description.ifBlank { "SwiftPay Payment" },
+                totalAmount = if (amount > 0) TotalAmount(value = amount, currency = "PHP") else null,
+                requestReferenceNumber = "PLINK${System.currentTimeMillis()}"
+            )
+            val response = api.createPaymentLink(publicKeyAuth, request)
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
     }
 
-    // --- Disbursement Methods ---
+    suspend fun createDynamicQr(amount: Double): Result<DynamicQrResponse> {
+        return try {
+            if (!hasPublicKey) return missingPublicKey()
+            val qrRequest = DynamicQrRequest(
+                totalAmount = TotalAmount(value = amount, currency = "PHP"),
+                requestReferenceNumber = "QR${System.currentTimeMillis()}",
+                type = "DYNAMIC"
+            )
+            val response = api.createDynamicQr(publicKeyAuth, qrRequest)
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    // --- Payout Methods (v2.0) ---
 
     suspend fun disburse(
         amount: Double,
@@ -177,39 +179,25 @@ class SwiftPayService(
         } catch (e: Exception) { Result.failure(e) }
     }
 
-    // --- Transaction History ---
-
-    suspend fun getInternalTransactions(): Result<List<InternalTransaction>> {
-        if (!hasSecretKey) return missingSecretKey()
-        return try {
-            val response = api.getPaymentsList(authHeader)
-            if (response.isSuccessful && response.body() != null) {
-                val apiTransactions = response.body()?.data ?: response.body()?.payments ?: emptyList<SwiftPayTransaction>()
-                val transactions = apiTransactions.map {
-                    InternalTransaction(
-                        transactionId = it.id ?: "TRANS_${System.currentTimeMillis()}",
-                        amount = it.amount?.toDoubleOrNull() ?: 0.0,
-                        status = it.status ?: "UNKNOWN",
-                        date = it.timestamp ?: ""
-                    )
-                }
-                Result.success(transactions)
-            } else Result.success(emptyList())
-        } catch (e: Exception) { Result.failure(e) }
-    }
-
-    // --- Legacy / Infrastructure Support ---
+    // --- Vault & Standard Operations ---
 
     suspend fun createCheckout(paymentData: PaymentData): Result<CheckoutResponse> {
         return try {
             if (!hasPublicKey) return missingPublicKey()
             val request = CheckoutRequest(
                 totalAmount = TotalAmount(value = paymentData.amount, currency = "PHP"),
-                redirectUrl = RedirectUrl(success = BuildConfig.VAULT_SUCCESS_REDIRECT_URL, failure = BuildConfig.VAULT_FAILURE_REDIRECT_URL, cancel = BuildConfig.VAULT_CANCEL_REDIRECT_URL),
                 requestReferenceNumber = "REF${System.currentTimeMillis()}"
             )
             val response = api.createCheckout(publicKeyAuth, request)
-            if (response.isSuccessful && response.body()?.redirectUrl != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun getCheckoutStatus(checkoutId: String): Result<CheckoutStatusResponse> {
+        return try {
+            if (!hasSecretKey) return missingSecretKey()
+            val response = api.getCheckoutStatus(authHeader, checkoutId)
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
         } catch (e: Exception) { Result.failure(e) }
     }
 
@@ -221,12 +209,117 @@ class SwiftPayService(
         } catch (e: Exception) { Result.failure(e) }
     }
 
-    suspend fun generateVca(accountName: String): Result<VcaResponse> {
+    suspend fun processVaultPayment(
+        amount: Double,
+        cardDetails: CardDetails,
+        externalRefNo: String? = null
+    ): Result<VaultPaymentResponse> {
         return try {
-            if (!hasSecretKey) return missingSecretKey()
+            if (!hasSecretKey || !hasPublicKey) return missingPublicKey()
+            val tokenResponse = api.createPaymentToken(publicKeyAuth, PaymentTokenRequest(card = cardDetails))
+            if (!tokenResponse.isSuccessful || tokenResponse.body()?.paymentTokenId == null) return Result.failure(Exception(parseError(tokenResponse)))
+            val tokenId = tokenResponse.body()!!.paymentTokenId!!
+            val request = VaultPaymentRequest(
+                totalAmount = TotalAmount(value = amount, currency = "PHP"),
+                paymentTokenId = tokenId,
+                requestReferenceNumber = externalRefNo ?: "VAULT${System.currentTimeMillis()}"
+            )
+            val response = api.createVaultPayment(authHeader, cardMid, terminalId, request.requestReferenceNumber, request)
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    // --- Infrastructure & Utilities ---
+
+    suspend fun getWalletBalance(): Double {
+        if (!hasSecretKey) return 0.0
+        return try {
+            val response = api.getWalletBalance(authHeader, "BAL${System.currentTimeMillis()}")
+            if (response.isSuccessful) response.body()?.balance ?: 0.0 else 0.0
+        } catch (e: Exception) { 0.0 }
+    }
+
+    suspend fun getInternalTransactions(): Result<List<InternalTransaction>> {
+        if (!hasSecretKey) return missingSecretKey()
+        return try {
+            val response = api.getPaymentsList(authHeader)
+            if (response.isSuccessful && response.body() != null) {
+                val apiTransactions = response.body()!!.data ?: response.body()!!.payments ?: emptyList()
+                val transactions = apiTransactions.map {
+                    InternalTransaction(it.id ?: "TRANS", it.amount?.toDoubleOrNull() ?: 0.0, it.status ?: "UNKNOWN", it.timestamp ?: "")
+                }
+                Result.success(transactions)
+            } else Result.success(emptyList())
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun getWebhooks(): Result<List<WebhookRequest>> {
+        if (!hasSecretKey) return missingSecretKey()
+        return try {
+            val response = api.getWebhooks(authHeader)
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun registerWebhook(name: String, url: String): Result<WebhookRequest> {
+        if (!hasSecretKey) return missingSecretKey()
+        return try {
+            val response = api.registerWebhook(authHeader, WebhookRequest(name, url))
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun deleteWebhook(id: String): Result<Boolean> {
+        if (!hasSecretKey) return missingSecretKey()
+        return try {
+            val response = api.deleteWebhook(authHeader, id)
+            if (response.isSuccessful) Result.success(true) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun createInvoice(amount: Double, description: String): Result<InvoiceResponse> {
+        if (!hasSecretKey) return missingSecretKey()
+        return try {
+            val request = InvoiceRequest(invoiceNumber = "INV${System.currentTimeMillis()}", totalAmount = TotalAmount(value = amount, currency = "PHP"))
+            val response = api.createInvoice(authHeader, request)
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun generateVca(accountName: String): Result<VcaResponse> {
+        if (!hasSecretKey) return missingSecretKey()
+        return try {
             val request = VcaRequest(accountName = accountName, merchantReferenceNumber = "VCA${System.currentTimeMillis()}")
             val response = api.generateVca(authHeader, request)
             if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun getVcaTransactions(): Result<List<InternalTransaction>> {
+        if (!hasSecretKey) return missingSecretKey()
+        return try {
+            val response = api.getVcaTransactions(authHeader)
+            if (response.isSuccessful && response.body() != null) {
+                val apiTransactions = response.body()!!.data ?: response.body()!!.payments ?: emptyList()
+                val transactions = apiTransactions.map {
+                    InternalTransaction(it.id ?: "VCA", it.amount?.toDoubleOrNull() ?: 0.0, it.status ?: "SUCCESS", it.timestamp ?: "")
+                }
+                Result.success(transactions)
+            } else Result.success(emptyList())
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun requestEmailOtp(email: String, refNo: String): Result<Unit> {
+        return try {
+            val response = api.requestEmailOtp(pgBaseUrl + "v1/identity/otp", authHeader, refNo, OtpRequest(email))
+            if (response.isSuccessful) Result.success(Unit) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun verifyEmailOtp(email: String, code: String, refNo: String): Result<Unit> {
+        return try {
+            val response = api.verifyEmailOtp(pgBaseUrl + "v1/identity/otp/verify", authHeader, refNo, OtpVerifyRequest(email, code))
+            if (response.isSuccessful) Result.success(Unit) else Result.failure(Exception(parseError(response)))
         } catch (e: Exception) { Result.failure(e) }
     }
 

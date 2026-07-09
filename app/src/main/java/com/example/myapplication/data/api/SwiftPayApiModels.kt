@@ -225,6 +225,11 @@ data class BankResponse(
 )
 
 @Serializable
+data class BankListResponse(
+    val data: List<BankResponse>
+)
+
+@Serializable
 data class SwiftPayTransactionResponse(
     val data: List<SwiftPayTransaction>? = null,
     val payments: List<SwiftPayTransaction>? = null,
@@ -245,6 +250,8 @@ data class SwiftPayTransaction(
 @Serializable
 data class BalanceResponse(
     val balance: Double? = null,
+    val availableBalance: Double? = null,
+    val totalBalance: Double? = null,
     val currency: String? = null,
 )
 
@@ -352,4 +359,102 @@ data class VcaResponse(
     val accountNumber: String? = null,
     val bankName: String? = null,
     val status: String? = null
+)
+
+@Serializable
+data class InvoiceRequest(
+    val invoiceNumber: String,
+    val type: String = "SINGLE",
+    val totalAmount: TotalAmount? = null,
+    val redirectUrl: RedirectUrl? = null,
+    val requestReferenceNumber: String? = null,
+    val metadata: Map<String, String>? = null,
+)
+
+@Serializable
+data class InvoiceResponse(
+    val invoiceId: String? = null,
+    val invoiceUrl: String? = null,
+)
+
+@Serializable
+data class MerchantProfileResponse(
+    val id: String? = null,
+    val merchantId: String? = null,
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val businessName: String? = null,
+    val email: String? = null,
+    val phone: String? = null,
+    val kycStatus: String? = null,
+    val accountStatus: String? = null,
+    val createdAt: String? = null,
+    val address: Address? = null,
+    val businessType: String? = null,
+    val monthlyVolume: Double? = null,
+    val masterMid: String? = null,
+    val mids: List<String>? = null
+)
+
+@Serializable
+data class PaymentLinkRequest(
+    val description: String? = null,
+    val totalAmount: TotalAmount? = null,
+    val requestReferenceNumber: String? = null,
+    val redirectUrl: RedirectUrl? = null,
+    val metadata: Map<String, String>? = null,
+    val expiresAt: String? = null
+)
+
+@Serializable
+data class PaymentLinkResponse(
+    val id: String? = null,
+    val paymentLinkUrl: String? = null,
+    val shortCode: String? = null,
+    val status: String? = null,
+    val description: String? = null,
+    val totalAmount: TotalAmount? = null,
+    @SerialName("createdAt")
+    val createdAt: String? = null,
+    @SerialName("expiresAt")
+    val expiresAt: String? = null,
+)
+
+@Serializable
+data class BalanceInquiryRequest(
+    val merchant: MerchantInfo = MerchantInfo()
+)
+
+@Serializable
+data class MerchantInfo(
+    val acquiringTerminal: TerminalInfo = TerminalInfo()
+)
+
+@Serializable
+data class TerminalInfo(
+    val type: String = "POS"
+)
+
+@Serializable
+data class OtpRequest(
+    val email: String,
+    val type: String = "LOGIN"
+)
+
+@Serializable
+data class OtpVerifyRequest(
+    val email: String,
+    val code: String
+)
+
+@Serializable
+data class CustomizationRequest(
+    val logoUrl: String? = null,
+    val iconUrl: String? = null,
+    val appleTouchIconUrl: String? = null,
+    val customTitle: String? = null,
+    val colorScheme: String? = null,
+    val showMerchantName: Boolean? = null,
+    val skipResultPage: Boolean? = null,
+    val redirectTimer: Int? = null
 )

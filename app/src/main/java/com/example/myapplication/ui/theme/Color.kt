@@ -39,3 +39,24 @@ val onBackgroundDark = SwiftPayTextPrimary
 val surfaceDark = SwiftPaySurface
 val onSurfaceDark = SwiftPayTextPrimary
 val outlineDark = SwiftPayBorder
+
+// Legacy Aliases for compatibility
+val FastPayNavy = SwiftPayPrimary
+val FastPayBlue = SwiftPayPrimary
+val FastPayAccent = SwiftPayPrimary
+val FastPayBlack = SwiftPayBackground
+val FastPayDarkGray = SwiftPaySurface
+val FastPayDarkNavy = SwiftPayBackground
+val FastPaySurface = SwiftPaySurface
+val FastPayTextPrimary = SwiftPayTextPrimary
+val FastPayTextSecondary = SwiftPayTextSecondary
+val FastPayTextDim = SwiftPayTextDim
+val FastPaySuccess = SwiftPaySuccess
+val FastPayError = SwiftPayError
+val FastPayWarning = SwiftPayWarning
+val FastPayTextField = SwiftPayCard
+val FastPayLightGray = SwiftPayBorder
+val FastPayMeshBlue = SwiftPayPrimary.copy(alpha = 0.2f)
+val FastPayMeshTeal = SwiftPaySuccess.copy(alpha = 0.2f)
+val FastPayGradient = listOf(SwiftPayPrimary, SwiftPayPrimary)
+val FastPayActionIcon = SwiftPayPrimary

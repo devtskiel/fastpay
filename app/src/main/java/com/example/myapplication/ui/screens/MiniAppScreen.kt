@@ -114,7 +114,7 @@ fun MiniAppScreen(
                 onAddMember = { name, email, role -> viewModel.onAddMemberRequest(name, email, role) },
                 onDeleteMember = { id -> viewModel.onDeleteMemberRequest(id) },
                 onBanksRequest = { viewModel.onBanksRequest() },
-                onDisburseRequest = { amount: Double, account: String, first: String, last: String, bank: String? ->
+                onDisburseRequest = { amount, account, first, last, bank ->
                     viewModel.onDisburseRequest(amount, account, first, last, bank) 
                 },
                 onGenerateVca = { name: String -> viewModel.onGenerateVcaRequest(name) },

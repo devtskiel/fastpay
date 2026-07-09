@@ -42,7 +42,7 @@ import com.example.myapplication.ui.screens.WalletScreen
 import com.example.myapplication.ui.screens.ApiKeysScreen
 import com.example.myapplication.ui.screens.ApiDocsScreen
 import com.example.myapplication.ui.theme.FastPayTheme
-import com.example.myapplication.ui.theme.FastPayBlue
+import com.example.myapplication.ui.theme.SwiftPayPrimary
 import com.example.myapplication.data.SettingsManager
 import com.example.myapplication.data.SessionManager
 import com.example.myapplication.data.createSwiftPayService
@@ -230,7 +230,7 @@ fun SwiftPayApp() {
             NavigationSuiteScaffold(
                 containerColor = MaterialTheme.colorScheme.background,
                 navigationSuiteItems = {
-                    val activeColor = FastPayBlue
+                    val activeColor = SwiftPayPrimary
                     val inactiveColor = Color.Gray.copy(alpha = 0.6f)
                     
                     item(
