@@ -3,7 +3,7 @@ package com.example.myapplication.data
 import android.util.Base64
 import android.util.Log
 import com.example.myapplication.BuildConfig
-import com.example.myapplication.bridge.PaymentData
+import com.example.myapplication.data.model.PaymentData
 import com.example.myapplication.data.api.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow

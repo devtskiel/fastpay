@@ -13,7 +13,7 @@ class PaymentRepository(private val swiftPayService: SwiftPayService) {
     /**
      * Create a checkout (Netbank v1)
      */
-    suspend fun createCheckout(paymentData: com.example.myapplication.bridge.PaymentData) =
+    suspend fun createCheckout(paymentData: com.example.myapplication.data.model.PaymentData) =
         swiftPayService.createCheckout(paymentData)
 
     /**

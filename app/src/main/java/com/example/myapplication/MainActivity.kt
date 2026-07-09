@@ -36,7 +36,6 @@ import androidx.navigation3.ui.NavDisplay
 import com.example.myapplication.navigation.Route
 import com.example.myapplication.ui.screens.HomeScreen
 import com.example.myapplication.ui.screens.LoginScreen
-import com.example.myapplication.ui.screens.MiniAppScreen
 import com.example.myapplication.ui.screens.ProfileScreen
 import com.example.myapplication.ui.screens.WalletScreen
 import com.example.myapplication.ui.screens.ApiKeysScreen
@@ -291,13 +290,31 @@ fun SwiftPayApp() {
                     when (key) {
                         Route.Home -> NavEntry(key) {
                             HomeScreen(
-                                onLaunchMiniApp = { path -> navController.navigate(Route.MiniApp(path)) },
+                                onNavigateToPayout = { navController.navigate(Route.Payout) },
+                                onNavigateToHub = { navController.navigate(Route.Hub) },
                                 onNavigateToWallet = { navController.navigate(Route.Wallet) },
                                 onNavigateToSettings = { navController.navigate(Route.ApiKeys) }
                             )
                         }
-                        is Route.MiniApp -> NavEntry(key) {
-                            MiniAppScreen(initialPath = key.initialPath)
+                        Route.Payout -> NavEntry(key) {
+                            com.example.myapplication.ui.screens.PayoutScreen(onBack = { navController.pop() })
+                        }
+                        Route.Hub -> NavEntry(key) {
+                            com.example.myapplication.ui.screens.HubScreen(
+                                onBack = { navController.pop() },
+                                onNavigateToWebhooks = { navController.navigate(Route.Webhooks) },
+                                onNavigateToInvoices = { navController.navigate(Route.Invoices) },
+                                onNavigateToVca = { navController.navigate(Route.Vca) }
+                            )
+                        }
+                        Route.Webhooks -> NavEntry(key) {
+                            com.example.myapplication.ui.screens.WebhooksScreen(onBack = { navController.pop() })
+                        }
+                        Route.Invoices -> NavEntry(key) {
+                            com.example.myapplication.ui.screens.InvoicesScreen(onBack = { navController.pop() })
+                        }
+                        Route.Vca -> NavEntry(key) {
+                            com.example.myapplication.ui.screens.VcaScreen(onBack = { navController.pop() })
                         }
                         Route.Profile -> NavEntry(key) {
                             ProfileScreen()

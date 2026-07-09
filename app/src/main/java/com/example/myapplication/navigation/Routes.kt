@@ -11,10 +11,22 @@ sealed interface Route {
     data object Home : Route
 
     @Serializable
-    data class MiniApp(val initialPath: String? = null) : Route
+    data object Wallet : Route
 
     @Serializable
-    data object Wallet : Route
+    data object Payout : Route
+
+    @Serializable
+    data object Hub : Route
+
+    @Serializable
+    data object Invoices : Route
+
+    @Serializable
+    data object Webhooks : Route
+
+    @Serializable
+    data object Vca : Route
 
     @Serializable
     data class Payment(val amount: Double) : Route

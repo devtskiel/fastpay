@@ -7,8 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication.bridge.SwiftPaySDKBridge
-import com.example.myapplication.bridge.PaymentData
+import com.example.myapplication.data.model.PaymentData
 import com.example.myapplication.data.SwiftPayService
 import com.example.myapplication.data.SettingsManager
 import com.example.myapplication.data.TransactionStore
@@ -65,7 +64,6 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
     var uiState by mutableStateOf<MiniAppUiState>(MiniAppUiState.Idle)
         private set
 
-    var bridge: SwiftPaySDKBridge? = null
     private var nfcTimerJob: Job? = null
 
     val transactions = repository.getAllTransactions()
@@ -95,36 +93,36 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
 
     fun onWebhooksRequest() {
         viewModelScope.launch {
-            getService().getWebhooks().onSuccess { bridge?.sendResponse(it) }
-                .onFailure { bridge?.sendError(it.message ?: "Failed") }
+            getService().getWebhooks().onSuccess { /* Update State */ }
+                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
 
     fun onAddWebhookRequest(name: String, url: String) {
         viewModelScope.launch {
-            getService().registerWebhook(name, url).onSuccess { bridge?.sendResponse(it) }
-                .onFailure { bridge?.sendError(it.message ?: "Failed") }
+            getService().registerWebhook(name, url).onSuccess { /* Update State */ }
+                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
 
     fun onDeleteWebhookRequest(id: String) {
         viewModelScope.launch {
-            getService().deleteWebhook(id).onSuccess { bridge?.sendResponse(true) }
-                .onFailure { bridge?.sendError(it.message ?: "Failed") }
+            getService().deleteWebhook(id).onSuccess { /* Update State */ }
+                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
 
     fun onCreateInvoiceRequest(amount: Double, description: String) {
         viewModelScope.launch {
-            getService().createInvoice(amount, description).onSuccess { bridge?.sendResponse(it) }
-                .onFailure { bridge?.sendError(it.message ?: "Failed") }
+            getService().createInvoice(amount, description).onSuccess { /* Update State */ }
+                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
 
     fun onBanksRequest() {
         viewModelScope.launch {
-            getService().getInstitutions().onSuccess { bridge?.sendResponse(it) }
-                .onFailure { bridge?.sendError(it.message ?: "Failed") }
+            getService().getInstitutions().onSuccess { /* Update State */ }
+                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
 
@@ -148,26 +146,24 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
                 .onSuccess {
                     recordLocalTransaction("D${System.currentTimeMillis()}", -amount, "SUCCESS")
                     uiState = MiniAppUiState.Idle
-                    bridge?.sendResponse(mapOf("status" to "scheduled"))
                 }
                 .onFailure {
                     uiState = MiniAppUiState.Error(it.message ?: "Failed")
-                    bridge?.sendError(it.message ?: "Failed")
                 }
         }
     }
 
     fun onGenerateVcaRequest(accountName: String) {
         viewModelScope.launch {
-            getService().generateVca(accountName).onSuccess { bridge?.sendResponse(it) }
-                .onFailure { bridge?.sendError(it.message ?: "Failed") }
+            getService().generateVca(accountName).onSuccess { /* Update State */ }
+                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
 
     fun onVcaTransactionsRequest() {
         viewModelScope.launch {
-            getService().getVcaTransactions().onSuccess { bridge?.sendResponse(it) }
-                .onFailure { bridge?.sendError(it.message ?: "Failed") }
+            getService().getVcaTransactions().onSuccess { /* Update State */ }
+                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
 
@@ -179,11 +175,9 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
                 if (response.customerRedirectUrl != null) {
                     recordLocalTransaction(response.paymentId ?: refNo, amount, "PENDING")
                     uiState = MiniAppUiState.PaymentRedirect(response.customerRedirectUrl)
-                    bridge?.sendResponse(response)
-                } else bridge?.sendError("No redirect URL")
+                }
             }.onFailure {
                 uiState = MiniAppUiState.Error(it.message ?: "Failed")
-                bridge?.sendError(it.message ?: "Failed")
             }
         }
     }
@@ -196,36 +190,32 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
                 if (response.qrCode != null) {
                     recordLocalTransaction(response.paymentId ?: refNo, amount, "PENDING")
                     uiState = MiniAppUiState.DynamicQrReady(response.qrCode, amount)
-                    bridge?.sendResponse(response)
-                } else bridge?.sendError("No QR data")
+                }
             }.onFailure {
                 uiState = MiniAppUiState.Error(it.message ?: "Failed")
-                bridge?.sendError(it.message ?: "Failed")
             }
         }
     }
 
     fun onBalanceRequest() {
-        viewModelScope.launch { bridge?.sendResponse(walletBalance.value) }
+        refreshBalance()
     }
 
     fun onTransactionsRequest() {
         viewModelScope.launch {
-            getService().getInternalTransactions().onSuccess { bridge?.sendResponse(it) }
-                .onFailure { bridge?.sendError(it.message ?: "Failed") }
+            getService().getInternalTransactions().onSuccess { /* Update State */ }
         }
     }
 
     fun onPaymentChannelsRequest() {
-        viewModelScope.launch { bridge?.sendResponse(getService().getPaymentChannels()) }
+        // No-op
     }
 
     fun onPaymentLinkRequest(data: PaymentData) {
         viewModelScope.launch {
             getService().createPaymentLink(data.amount, data.description).onSuccess {
                 uiState = MiniAppUiState.PaymentLinkReady(it.paymentLinkUrl ?: "")
-                bridge?.sendResponse(it)
-            }.onFailure { bridge?.sendError(it.message ?: "Failed") }
+            }.onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
 
@@ -237,8 +227,7 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             getService().createDynamicQr(amount).onSuccess {
                 uiState = MiniAppUiState.DynamicQrReady(it.qrCodeBody ?: "", amount)
-                bridge?.sendResponse(it)
-            }.onFailure { bridge?.sendError(it.message ?: "Failed") }
+            }.onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
 
@@ -272,7 +261,6 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
                 .onSuccess {
                     recordLocalTransaction(it.paymentId ?: "V", state.amount, "SUCCESS")
                     uiState = MiniAppUiState.Idle
-                    bridge?.sendResponse(mapOf("status" to "success"))
                 }
                 .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
@@ -322,20 +310,13 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
             map["mid"]?.let { settingsManager.saveMid(it) }
             map["terminalId"]?.let { settingsManager.saveTerminalId(it) }
             map["environment"]?.let { settingsManager.saveEnvironment(it) }
-            bridge?.sendResponse(true)
         }
     }
 
     fun getSettings() {
         viewModelScope.launch {
             val credentials = settingsManager.loadSwiftPayCredentials()
-            val map = mapOf(
-                "merchantAlias" to (settingsManager.merchantAlias.first() ?: ""),
-                "mid" to (credentials.mid ?: ""),
-                "publicKey" to (credentials.publicKey ?: ""),
-                "environment" to credentials.environment
-            )
-            bridge?.sendResponse(map)
+            // Native UI can observe settingsManager directly
         }
     }
     var transactionStatusMap by mutableStateOf<Map<String, OrderResponse>>(emptyMap())

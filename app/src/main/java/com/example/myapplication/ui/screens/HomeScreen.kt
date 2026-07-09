@@ -25,7 +25,8 @@ import com.example.myapplication.ui.theme.*
 
 @Composable
 fun HomeScreen(
-    onLaunchMiniApp: (String?) -> Unit,
+    onNavigateToPayout: () -> Unit,
+    onNavigateToHub: () -> Unit,
     onNavigateToWallet: () -> Unit,
     onNavigateToSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -84,7 +85,7 @@ fun HomeScreen(
                 letterSpacing = 1.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
-            TreasuryActionGrid(onLaunchMiniApp)
+            TreasuryActionGrid(onNavigateToPayout, onNavigateToHub, onNavigateToSettings)
 
             Spacer(modifier = Modifier.height(40.dp))
 
@@ -121,12 +122,10 @@ fun HomeScreen(
                 onConfirm = { amount ->
                     showAmountDialog = false
                     when (pendingAction) {
-                        PendingAction.LINK -> viewModel.onPaymentLinkRequest(com.example.myapplication.bridge.PaymentData(amount, "Payment Link"))
+                        PendingAction.LINK -> viewModel.onPaymentLinkRequest(com.example.myapplication.data.model.PaymentData(amount, "Payment Link"))
                         PendingAction.QRPH -> viewModel.onBootstrapQrphRequest(amount)
                         PendingAction.NFC -> viewModel.onScanNFCCard(amount)
-                        PendingAction.PAYOUT -> {
-                            onLaunchMiniApp("disbursement-page?amount=$amount")
-                        }
+                        PendingAction.PAYOUT -> onNavigateToPayout()
                         else -> {}
                     }
                 },
@@ -267,17 +266,21 @@ fun DirectActionItem(
 }
 
 @Composable
-fun TreasuryActionGrid(onLaunch: (String?) -> Unit) {
+fun TreasuryActionGrid(
+    onNavigateToPayout: () -> Unit,
+    onNavigateToHub: () -> Unit,
+    onNavigateToSettings: () -> Unit
+) {
     val items = listOf(
-        Triple(Icons.Rounded.AccountBalance, "CASH IN", null),
-        Triple(Icons.Rounded.FileUpload, "PAYOUT", "disbursement-page"),
-        Triple(Icons.Rounded.Dashboard, "HUB", "dashboard-page"),
-        Triple(Icons.Rounded.Settings, "CONFIG", "settings-page")
+        Triple(Icons.Rounded.AccountBalance, "CASH IN", {}),
+        Triple(Icons.Rounded.FileUpload, "PAYOUT", onNavigateToPayout),
+        Triple(Icons.Rounded.Dashboard, "HUB", onNavigateToHub),
+        Triple(Icons.Rounded.Settings, "CONFIG", onNavigateToSettings)
     )
 
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        items.forEach { (icon, label, path) ->
-            ActionItem(icon, label) { onLaunch(path) }
+        items.forEach { (icon, label, onClick) ->
+            ActionItem(icon, label, onClick)
         }
     }
 }

@@ -3,7 +3,7 @@ package com.example.myapplication.ui.screens.state
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.example.myapplication.bridge.PaymentData
+import com.example.myapplication.data.model.PaymentData
 
 /**
  * Payment flow state manager.

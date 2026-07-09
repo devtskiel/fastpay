@@ -1,7 +1,7 @@
 package com.example.myapplication.domain.usecase
 
 import com.example.myapplication.data.repository.PaymentRepository
-import com.example.myapplication.bridge.PaymentData
+import com.example.myapplication.data.model.PaymentData
 
 /**
  * Use case for creating and processing payments.
