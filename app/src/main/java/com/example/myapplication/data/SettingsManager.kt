@@ -112,10 +112,14 @@ class SettingsManager(private val context: Context) {
     }
 
     suspend fun saveEnvironment(environment: String) {
-        // No-op: Environment is always forced to PRODUCTION
+        context.dataStore.edit { preferences ->
+            preferences[SWIFTPAY_ENVIRONMENT] = environment
+        }
     }
 
-    val environment: Flow<String?> = kotlinx.coroutines.flow.flowOf("PRODUCTION")
+    val environment: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[SWIFTPAY_ENVIRONMENT] ?: "PRODUCTION"
+    }
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[IS_LOGGED_IN] == "true"

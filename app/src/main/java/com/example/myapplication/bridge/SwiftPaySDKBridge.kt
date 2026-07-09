@@ -37,7 +37,7 @@ class SwiftPaySDKBridge(
     private val onAddMember: (String, String, String) -> Unit = { _, _, _ -> },
     private val onDeleteMember: (String) -> Unit = {},
     private val onBanksRequest: () -> Unit = {},
-    private val onDisburseRequest: (Double, String, String, String, String?) -> Unit = { _, _, _, _, _ -> },
+    private val onDisburseRequest: (Double, String, String, String, String?, String?, String?, String?, String?, com.example.myapplication.data.api.AddressV2?) -> Unit = { _, _, _, _, _, _, _, _, _, _ -> },
     private val onGenerateVca: (String) -> Unit = {},
     private val onVcaTransactionsRequest: () -> Unit = {},
     private val onCreateOrder: (Double, String?, String?) -> Unit = { _, _, _ -> },
@@ -128,8 +128,13 @@ class SwiftPaySDKBridge(
                 val accountNo = obj?.get("accountNumber")?.jsonPrimitive?.content ?: ""
                 val firstName = obj?.get("firstName")?.jsonPrimitive?.content ?: ""
                 val lastName = obj?.get("lastName")?.jsonPrimitive?.content ?: ""
+                val middleName = obj?.get("middleName")?.jsonPrimitive?.content
                 val bankCode = obj?.get("bankCode")?.jsonPrimitive?.content
-                onDisburseRequest(amount, accountNo, firstName, lastName, bankCode)
+                val remarks = obj?.get("remarks")?.jsonPrimitive?.content
+                val email = obj?.get("email")?.jsonPrimitive?.content
+                val mobileNumber = obj?.get("mobileNumber")?.jsonPrimitive?.content
+                val address = obj?.get("address")?.let { json.decodeFromJsonElement<com.example.myapplication.data.api.AddressV2>(it) }
+                onDisburseRequest(amount, accountNo, firstName, lastName, middleName, bankCode, remarks, email, mobileNumber, address)
             }
             "generate_vca" -> {
                 val accountName = request.data?.jsonObject?.get("accountName")?.jsonPrimitive?.content ?: ""

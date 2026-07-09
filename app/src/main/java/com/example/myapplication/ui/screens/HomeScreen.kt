@@ -27,6 +27,7 @@ import com.example.myapplication.ui.theme.*
 fun HomeScreen(
     onLaunchMiniApp: (String?) -> Unit,
     onNavigateToWallet: () -> Unit,
+    onNavigateToSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: MiniAppViewModel = com.example.myapplication.LocalMiniAppViewModel.current
 ) {
@@ -44,7 +45,7 @@ fun HomeScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = SwiftPayBackground,
-        topBar = { HomeTopBar() }
+        topBar = { HomeTopBar(onNavigateToSettings) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -88,6 +89,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(40.dp))
 
             // 4. Activity Ledger
+            val transactions by viewModel.transactions.collectAsState()
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -104,7 +106,7 @@ fun HomeScreen(
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-            ActivityLedgerPreview()
+            ActivityLedgerPreview(transactions.take(3))
 
             Spacer(modifier = Modifier.height(40.dp))
 
@@ -123,8 +125,7 @@ fun HomeScreen(
                         PendingAction.QRPH -> viewModel.onBootstrapQrphRequest(amount)
                         PendingAction.NFC -> viewModel.onScanNFCCard(amount)
                         PendingAction.PAYOUT -> {
-                            // Launch payout screen in mini app directly if no native dialog yet
-                            onLaunchMiniApp("disbursement-page")
+                            onLaunchMiniApp("disbursement-page?amount=$amount")
                         }
                         else -> {}
                     }
@@ -142,7 +143,7 @@ enum class PendingAction { LINK, QRPH, NFC, PAYOUT }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeTopBar() {
+fun HomeTopBar(onNavigateToSettings: () -> Unit = {}) {
     CenterAlignedTopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -152,6 +153,9 @@ fun HomeTopBar() {
             }
         },
         actions = {
+            IconButton(onClick = onNavigateToSettings) {
+                Icon(Icons.Rounded.Settings, null, tint = SwiftPayTextSecondary)
+            }
             IconButton(onClick = { /* Help */ }) {
                 Icon(Icons.AutoMirrored.Rounded.HelpOutline, null, tint = SwiftPayTextSecondary)
             }
@@ -298,20 +302,45 @@ fun ActionItem(icon: ImageVector, label: String, onClick: () -> Unit) {
 }
 
 @Composable
-fun ActivityLedgerPreview() {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        repeat(2) {
-            LedgerItem(
-                id = "TX-8293${it}X",
-                amount = 1250.0,
-                status = "EXECUTED"
+fun ActivityLedgerPreview(transactions: List<com.example.myapplication.data.api.InternalTransaction>) {
+    if (transactions.isEmpty()) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = SwiftPaySurface,
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, SwiftPayBorder)
+        ) {
+            Text(
+                "No recent transactions",
+                modifier = Modifier.padding(24.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = SwiftPayTextDim,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
+        }
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            transactions.forEach { tx ->
+                LedgerItem(
+                    id = tx.transactionId,
+                    amount = tx.amount,
+                    status = tx.status,
+                    date = tx.date
+                )
+            }
         }
     }
 }
 
 @Composable
-fun LedgerItem(id: String, amount: Double, status: String) {
+fun LedgerItem(id: String, amount: Double, status: String, date: String = "") {
+    val statusColor = when (status.uppercase()) {
+        "EXECUTED", "SUCCESS" -> SwiftPaySuccess
+        "PENDING", "PROCESSING" -> SwiftPayPrimary
+        "FAILED", "REJECTED", "CANCELLED" -> Color(0xFFE91E63)
+        else -> SwiftPayTextDim
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = SwiftPaySurface,
@@ -326,16 +355,26 @@ fun LedgerItem(id: String, amount: Double, status: String) {
                 modifier = Modifier.size(40.dp).background(SwiftPayCard, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Rounded.Wallet, null, tint = SwiftPayTextDim, modifier = Modifier.size(18.dp))
+                Icon(
+                    imageVector = if (amount >= 0) Icons.Rounded.ArrowDownward else Icons.Rounded.ArrowUpward,
+                    contentDescription = null,
+                    tint = if (amount >= 0) SwiftPaySuccess else Color(0xFFE91E63),
+                    modifier = Modifier.size(18.dp)
+                )
             }
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(id, style = MaterialTheme.typography.bodyMedium, color = SwiftPayTextPrimary, fontWeight = FontWeight.SemiBold)
-                Text("SwiftPay Settlement", style = MaterialTheme.typography.bodySmall, color = SwiftPayTextDim)
+                Text(id, style = MaterialTheme.typography.bodyMedium, color = SwiftPayTextPrimary, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Text(if (date.isNotBlank()) date else "SwiftPay Settlement", style = MaterialTheme.typography.bodySmall, color = SwiftPayTextDim)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("₱${"%,.2f".format(amount)}", style = MaterialTheme.typography.bodyLarge, color = SwiftPayTextPrimary, fontWeight = FontWeight.Bold)
-                Text(status, style = MaterialTheme.typography.labelSmall, color = SwiftPaySuccess)
+                Text(
+                    text = "${if (amount >= 0) "+" else ""}₱${"%,.2f".format(Math.abs(amount))}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (amount >= 0) SwiftPaySuccess else SwiftPayTextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(status, style = MaterialTheme.typography.labelSmall, color = statusColor)
             }
         }
     }

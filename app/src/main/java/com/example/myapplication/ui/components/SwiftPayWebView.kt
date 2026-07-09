@@ -51,7 +51,7 @@ fun SwiftPayWebView(
     onAddMember: (String, String, String) -> Unit = { _, _, _ -> },
     onDeleteMember: (String) -> Unit = {},
     onBanksRequest: () -> Unit = {},
-    onDisburseRequest: (Double, String, String, String, String?) -> Unit = { _, _, _, _, _ -> },
+    onDisburseRequest: (Double, String, String, String, String?, String?, String?, String?, String?, com.example.myapplication.data.api.AddressV2?) -> Unit = { _, _, _, _, _, _, _, _, _, _ -> },
     onGenerateVca: (String) -> Unit = {},
     onVcaTransactionsRequest: () -> Unit = {},
     onCreateOrder: (Double, String?, String?) -> Unit = { _, _, _ -> },

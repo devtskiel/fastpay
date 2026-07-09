@@ -138,7 +138,14 @@ data class OrderItem(
 data class OrderResponse(
     val customerRedirectUrl: String? = null,
     val paymentId: String? = null,
-    val status: String? = null
+    val id: String? = null,
+    val status: String? = null,
+    val paymentStatus: String? = null,
+    val referenceNo: String? = null,
+    val amount: String? = null,
+    val currency: String? = null,
+    val merchantName: String? = null,
+    val createdOn: String? = null
 )
 
 @Serializable
@@ -156,7 +163,9 @@ data class QrphBootstrapResponse(
     val paymentStatus: String? = null,
     val referenceNo: String? = null,
     val amount: Double? = null,
-    val qrCode: String? = null
+    val qrCode: String? = null,
+    val bankAccountNumber: String? = null,
+    val instapayBankCode: String? = null
 )
 
 // --- SwiftPay Disbursement API (v2.0) ---
@@ -202,12 +211,14 @@ data class DisbursementResponse(
     val id: Int? = null,
     val merchantId: Int? = null,
     val merchantName: String? = null,
+    val registrationTime: String? = null,
+    val settlementTime: String? = null,
     val merchantReferenceNo: String? = null,
     val channel: String? = null,
     val institutionCode: String? = null,
     val creditInformation: CreditInformation? = null,
     val recipientInformation: RecipientInformation? = null,
-    val status: String? = null,
+    @SerialName("Status") val status: String? = null,
     val errorMessage: String? = null,
     val channelReferenceNo: String? = null,
     val bankOperationId: String? = null

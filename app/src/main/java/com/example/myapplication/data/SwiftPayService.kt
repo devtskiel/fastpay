@@ -19,13 +19,14 @@ class SwiftPayService(
     customPublicKey: String? = null,
     customMid: String? = null,
     customTerminalId: String? = null,
-    customCardMid: String? = null
+    customCardMid: String? = null,
+    forcedSandbox: Boolean? = null
 ) {
     
     private val secretKey = customSecretKey?.takeUnless { it.isBlank() } ?: BuildConfig.SWIFTPAY_SECRET_KEY
     private val publicKey = customPublicKey?.takeUnless { it.isBlank() } ?: BuildConfig.SWIFTPAY_PUBLIC_KEY
     
-    private val isSandbox = false
+    private val isSandbox = forcedSandbox ?: publicKey?.startsWith("pk_test") ?: false
     
     private val hasSecretKey = !secretKey.isNullOrBlank() && secretKey != SwiftPayCredentials.MISSING_KEY
     private val hasPublicKey = !publicKey.isNullOrBlank() && publicKey != SwiftPayCredentials.MISSING_KEY
@@ -157,18 +158,53 @@ class SwiftPayService(
         accountNumber: String,
         firstName: String,
         lastName: String,
-        bankCode: String? = null
+        middleName: String? = null,
+        bankCode: String? = null,
+        remarks: String? = null,
+        email: String? = null,
+        mobileNumber: String? = null,
+        address: AddressV2? = null
     ): Result<Boolean> {
         return try {
             if (!hasSecretKey || !hasPublicKey) return missingSecretKey()
             val request = DisbursementRequest(
                 merchantReferenceNo = "P${System.currentTimeMillis()}",
                 institutionCode = bankCode ?: "",
-                creditInformation = CreditInformation(amount = "%.2f".format(amount), remarks = "Payout"),
-                recipientInformation = RecipientInformation(accountNumber = accountNumber, firstName = firstName, lastName = lastName)
+                creditInformation = CreditInformation(
+                    amount = "%.2f".format(amount),
+                    remarks = remarks ?: "Payout"
+                ),
+                recipientInformation = RecipientInformation(
+                    accountNumber = accountNumber,
+                    firstName = firstName,
+                    middleName = middleName,
+                    lastName = lastName,
+                    email = email,
+                    mobileNumber = mobileNumber,
+                    address = address
+                )
             )
             val response = api.sendDisbursement(payBaseUrl + "disbursements/send", v2AuthHeader, request)
             if (response.isSuccessful) Result.success(true) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun getDisbursementStatus(disbursementId: String): Result<DisbursementResponse> {
+        return try {
+            if (!hasSecretKey || !hasPublicKey) return missingSecretKey()
+            val response = api.getDisbursement(payBaseUrl + "disbursements/$disbursementId", v2AuthHeader)
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun listDisbursements(
+        status: String? = null,
+        refNo: String? = null
+    ): Result<List<DisbursementResponse>> {
+        return try {
+            if (!hasSecretKey || !hasPublicKey) return missingSecretKey()
+            val response = api.listDisbursements(payBaseUrl + "disbursements", v2AuthHeader, status = status, merchantReferenceNo = refNo)
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
         } catch (e: Exception) { Result.failure(e) }
     }
 
@@ -206,6 +242,23 @@ class SwiftPayService(
             if (!hasSecretKey) return missingSecretKey()
             val response = api.getPaymentStatus(authHeader, paymentId)
             if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun getPaymentStatusV2(paymentId: String): Result<OrderResponse> {
+        return try {
+            val response = api.getPaymentStatusV2(payBaseUrl + "payments/status", paymentId)
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun queryPaymentStatus(referenceNo: String): Result<OrderResponse> {
+        return try {
+            if (!hasPublicKey) return missingPublicKey()
+            val response = api.queryPaymentStatus(payBaseUrl + "payments/status/query", publicKey, referenceNo)
+            if (response.isSuccessful && !response.body().isNullOrEmpty()) {
+                Result.success(response.body()!!.first())
+            } else Result.failure(Exception(parseError(response)))
         } catch (e: Exception) { Result.failure(e) }
     }
 

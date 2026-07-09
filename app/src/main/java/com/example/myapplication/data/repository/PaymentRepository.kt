@@ -50,8 +50,21 @@ class PaymentRepository(private val swiftPayService: SwiftPayService) {
         accountNumber: String,
         firstName: String,
         lastName: String,
-        bankCode: String? = null
-    ) = swiftPayService.disburse(amount, accountNumber, firstName, lastName, bankCode)
+        middleName: String? = null,
+        bankCode: String? = null,
+        remarks: String? = null,
+        email: String? = null,
+        mobileNumber: String? = null,
+        address: com.example.myapplication.data.api.AddressV2? = null
+    ) = swiftPayService.disburse(
+        amount, accountNumber, firstName, lastName, middleName, bankCode, remarks, email, mobileNumber, address
+    )
+
+    /**
+     * Get disbursement status
+     */
+    suspend fun getDisbursementStatus(disbursementId: String) =
+        swiftPayService.getDisbursementStatus(disbursementId)
 
     /**
      * Get checkout status

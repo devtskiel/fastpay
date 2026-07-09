@@ -1,7 +1,6 @@
 package com.example.myapplication.ui.screens
 
 import android.app.Application
-import android.nfc.NfcAdapter
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,7 +13,9 @@ import com.example.myapplication.data.SwiftPayService
 import com.example.myapplication.data.SettingsManager
 import com.example.myapplication.data.TransactionStore
 import com.example.myapplication.data.createSwiftPayService
+import com.example.myapplication.data.loadSwiftPayCredentials
 import com.example.myapplication.data.api.InternalTransaction
+import com.example.myapplication.data.api.OrderResponse
 import com.example.myapplication.data.api.VaultPaymentResponse
 import com.example.myapplication.data.repository.TransactionRepository
 import com.example.myapplication.util.normalizePaymentStatus
@@ -66,6 +67,9 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
 
     var bridge: SwiftPaySDKBridge? = null
     private var nfcTimerJob: Job? = null
+
+    val transactions = repository.getAllTransactions()
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val walletBalance = settingsManager.walletBalance.map { it?.toDoubleOrNull() ?: 0.0 }
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
@@ -124,10 +128,23 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun onDisburseRequest(amount: Double, accountNo: String, firstName: String, lastName: String, bankCode: String?) {
+    fun onDisburseRequest(
+        amount: Double,
+        accountNo: String,
+        firstName: String,
+        lastName: String,
+        middleName: String? = null,
+        bankCode: String? = null,
+        remarks: String? = null,
+        email: String? = null,
+        mobileNumber: String? = null,
+        address: com.example.myapplication.data.api.AddressV2? = null
+    ) {
         viewModelScope.launch {
             uiState = MiniAppUiState.Processing("Processing Payout...")
-            getService().disburse(amount, accountNo, firstName, lastName, bankCode)
+            getService().disburse(
+                amount, accountNo, firstName, lastName, middleName, bankCode, remarks, email, mobileNumber, address
+            )
                 .onSuccess {
                     recordLocalTransaction("D${System.currentTimeMillis()}", -amount, "SUCCESS")
                     uiState = MiniAppUiState.Idle
@@ -299,10 +316,48 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
     }
     fun onNfcError(error: String) { uiState = MiniAppUiState.Error(error) }
     fun retryNfc() { (uiState as? MiniAppUiState.WaitingForNFC)?.let { startNFCTimer(it.amount) } }
-    fun onSaveSettings(map: Map<String, String>) {}
-    fun getSettings() {}
-    fun fetchPaymentStatuses(ids: List<String>) {}
-    fun fetchPaymentStatus(id: String) {}
-    fun getPaymentStatusForId(id: String): com.example.myapplication.data.api.VaultPaymentResponse? = null
-    val transactionStatusMap: Map<String, com.example.myapplication.data.api.VaultPaymentResponse> = emptyMap()
+    fun onSaveSettings(map: Map<String, String>) {
+        viewModelScope.launch {
+            map["merchantAlias"]?.let { settingsManager.saveMerchantAlias(it) }
+            map["mid"]?.let { settingsManager.saveMid(it) }
+            map["terminalId"]?.let { settingsManager.saveTerminalId(it) }
+            map["environment"]?.let { settingsManager.saveEnvironment(it) }
+            bridge?.sendResponse(true)
+        }
+    }
+
+    fun getSettings() {
+        viewModelScope.launch {
+            val credentials = settingsManager.loadSwiftPayCredentials()
+            val map = mapOf(
+                "merchantAlias" to (settingsManager.merchantAlias.first() ?: ""),
+                "mid" to (credentials.mid ?: ""),
+                "publicKey" to (credentials.publicKey ?: ""),
+                "environment" to credentials.environment
+            )
+            bridge?.sendResponse(map)
+        }
+    }
+    var transactionStatusMap by mutableStateOf<Map<String, OrderResponse>>(emptyMap())
+        private set
+
+    fun fetchPaymentStatus(id: String) {
+        viewModelScope.launch {
+            getService().getPaymentStatusV2(id).onSuccess { response ->
+                transactionStatusMap = transactionStatusMap + (id to response)
+            }
+        }
+    }
+
+    fun fetchPaymentStatuses(ids: List<String>) {
+        viewModelScope.launch {
+            ids.forEach { id ->
+                getService().getPaymentStatusV2(id).onSuccess { response ->
+                    transactionStatusMap = transactionStatusMap + (id to response)
+                }
+            }
+        }
+    }
+
+    fun getPaymentStatusForId(id: String): OrderResponse? = transactionStatusMap[id]
 }

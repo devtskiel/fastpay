@@ -37,6 +37,13 @@ interface SwiftPayApi {
         @Header("X-Swiftpay-Payment-Token") paymentId: String
     ): Response<OrderResponse>
 
+    @GET
+    suspend fun queryPaymentStatus(
+        @Url url: String,
+        @Query("accessKey") accessKey: String,
+        @Query("referenceNo") referenceNo: String
+    ): Response<List<OrderResponse>>
+
     // --- SwiftPay Disbursement API (v2.0) ---
 
     @POST
@@ -55,7 +62,10 @@ interface SwiftPayApi {
     @GET
     suspend fun listDisbursements(
         @Url url: String,
-        @Header("Authorization") auth: String
+        @Header("Authorization") auth: String,
+        @Query("merchantId") merchantId: Int? = null,
+        @Query("merchantReferenceNo") merchantReferenceNo: String? = null,
+        @Query("status") status: String? = null
     ): Response<List<DisbursementResponse>>
 
     // --- Standard Operations ---

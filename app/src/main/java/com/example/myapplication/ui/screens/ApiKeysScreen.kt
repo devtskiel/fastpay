@@ -40,6 +40,7 @@ fun ApiKeysScreen() {
     val midFlow = settings.mid.collectAsState(initial = null)
     val terminalFlow = settings.terminalId.collectAsState(initial = null)
     val aliasFlow = settings.merchantAlias.collectAsState(initial = null)
+    val envFlow = settings.environment.collectAsState(initial = "PRODUCTION")
 
     var editingAlias by remember { mutableStateOf(false) }
     var aliasInput by remember(aliasFlow.value) { mutableStateOf(aliasFlow.value ?: "") }
@@ -56,7 +57,7 @@ fun ApiKeysScreen() {
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text("SwiftPay API Keys", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                    Text("SwiftPay Configuration", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = FastPayNavy
@@ -72,6 +73,36 @@ fun ApiKeysScreen() {
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
+
+            // Environment Toggle
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = surfaceColor),
+                elevation = CardDefaults.cardElevation(defaultElevation = if (isDarkTheme) 0.dp else 2.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(18.dp).fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Environment", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = textColor)
+                        Text(envFlow.value ?: "PRODUCTION", color = if (envFlow.value == "SANDBOX") SwiftPayPrimary else SwiftPaySuccess, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Switch(
+                        checked = envFlow.value == "SANDBOX",
+                        onCheckedChange = { isSandbox ->
+                            scope.launch {
+                                settings.saveEnvironment(if (isSandbox) "SANDBOX" else "PRODUCTION")
+                            }
+                        },
+                        colors = SwitchDefaults.colors(checkedThumbColor = SwiftPayPrimary)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
 
             Surface(
                 color = Color(0xFFFFF3CD),
