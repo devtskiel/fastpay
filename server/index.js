@@ -142,6 +142,7 @@ app.post('/approvals/:id/deny', requireApiKey, async (req, res) => {
 })
 
 // --- SwiftPay Gateway ---
+app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
     try {
         const u = await getClient(req.user.id)
         const auth = Buffer.from(`${u.pub}:${u.sec}`).toString('base64')
