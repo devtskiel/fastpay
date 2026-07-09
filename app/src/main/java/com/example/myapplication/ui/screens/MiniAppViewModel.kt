@@ -125,6 +125,55 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun onBanksRequest() {
+        viewModelScope.launch {
+            val result = getService().getBanks()
+            result.onSuccess { bridge?.sendResponse(it) }
+                .onFailure { bridge?.sendError(it.message ?: "Failed to fetch banks") }
+        }
+    }
+
+    fun onDisburseRequest(amount: Double, accountNo: String, firstName: String, lastName: String, bankCode: String?) {
+        viewModelScope.launch {
+            uiState = MiniAppUiState.Processing("Processing disbursement...")
+            val result = getService().disburse(amount, accountNo, firstName, lastName, bankCode)
+            result.onSuccess { response ->
+                recordLocalTransaction(
+                    id = response.id ?: response.disbursementId ?: "D${System.currentTimeMillis()}",
+                    amount = -amount,
+                    status = response.status ?: "SUCCESS"
+                )
+                uiState = MiniAppUiState.Idle
+                bridge?.sendResponse(response)
+            }.onFailure { error ->
+                uiState = MiniAppUiState.Error(error.message ?: "Disbursement failed")
+                bridge?.sendError(error.message ?: "Disbursement failed")
+            }
+        }
+    }
+
+    fun onGenerateVcaRequest(accountName: String) {
+        viewModelScope.launch {
+            uiState = MiniAppUiState.Processing("Generating Virtual Collection Account...")
+            val result = getService().generateVca(accountName)
+            result.onSuccess { response ->
+                uiState = MiniAppUiState.Idle
+                bridge?.sendResponse(response)
+            }.onFailure { error ->
+                uiState = MiniAppUiState.Error(error.message ?: "VCA generation failed")
+                bridge?.sendError(error.message ?: "VCA generation failed")
+            }
+        }
+    }
+
+    fun onVcaTransactionsRequest() {
+        viewModelScope.launch {
+            val result = getService().getVcaTransactions()
+            result.onSuccess { bridge?.sendResponse(it) }
+                .onFailure { bridge?.sendError(it.message ?: "Failed to fetch VCA transactions") }
+        }
+    }
+
     val walletBalance = settingsManager.walletBalance.map { it?.toDoubleOrNull() ?: 0.0 }
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
 

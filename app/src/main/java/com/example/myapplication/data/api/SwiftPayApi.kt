@@ -151,6 +151,11 @@ interface SwiftPayApi {
         @Header("Authorization") auth: String
     ): Response<BalanceResponse>
 
+    @GET("v1/disburse/banks")
+    suspend fun getBanks(
+        @Header("Authorization") auth: String
+    ): Response<List<BankResponse>>
+
     @POST("v1/disburse/execute")
     suspend fun createDisbursement(
         @Header("Authorization") auth: String,
@@ -179,4 +184,16 @@ interface SwiftPayApi {
         @Header("Authorization") auth: String,
         @retrofit2.http.Path("id") id: String
     ): Response<Unit>
+
+    // --- Virtual Collection Account (VCA) ---
+    @POST("v1/vca/generate")
+    suspend fun generateVca(
+        @Header("Authorization") auth: String,
+        @Body request: VcaRequest
+    ): Response<VcaResponse>
+
+    @GET("v1/vca/transactions")
+    suspend fun getVcaTransactions(
+        @Header("Authorization") auth: String
+    ): Response<SwiftPayTransactionResponse>
 }

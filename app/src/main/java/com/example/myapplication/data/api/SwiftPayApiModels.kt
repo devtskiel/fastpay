@@ -321,10 +321,18 @@ data class ResendResponse(
 )
 
 @Serializable
+data class BankResponse(
+    val code: String,
+    val name: String,
+    val type: String? = null,
+)
+
+@Serializable
 data class Recipient(
     val firstName: String? = null,
     val lastName: String? = null,
     val accountNumber: String? = null,
+    val bankCode: String? = null,
 )
 
 @Serializable
@@ -366,4 +374,20 @@ data class WebhookRequest(
     val name: String,
     val callbackUrl: String,
     val id: String? = null
+)
+
+@Serializable
+data class VcaRequest(
+    val accountName: String,
+    val merchantReferenceNumber: String? = null,
+    val metadata: Map<String, String>? = null
+)
+
+@Serializable
+data class VcaResponse(
+    val id: String? = null,
+    val accountName: String? = null,
+    val accountNumber: String? = null,
+    val bankName: String? = null,
+    val status: String? = null
 )

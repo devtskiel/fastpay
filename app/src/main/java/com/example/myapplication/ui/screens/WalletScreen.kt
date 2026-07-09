@@ -92,6 +92,7 @@ fun WalletScreen(
         when (selectedFilter) {
             "Inflow" -> transactions.filter { it.amount > 0 }
             "Outflow" -> transactions.filter { it.amount < 0 }
+            "Payouts" -> transactions.filter { it.amount < 0 }
             "Failed" -> transactions.filter { it.status.uppercase() == "FAILED" }
             else -> transactions
         }
@@ -265,7 +266,7 @@ fun WalletListContent(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            val filters = listOf("All", "Inflow", "Outflow", "Failed")
+            val filters = listOf("All", "Inflow", "Payouts", "Failed")
             items(filters) { filter ->
                 PremiumFilterChip(
                     selected = selectedFilter == filter,

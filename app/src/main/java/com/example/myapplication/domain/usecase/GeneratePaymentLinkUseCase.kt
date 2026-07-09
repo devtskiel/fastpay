@@ -1,6 +1,6 @@
 package com.example.myapplication.domain.usecase
 
-import com.example.myapplication.data.MayaService
+import com.example.myapplication.data.SwiftPayService
 import com.example.myapplication.data.api.PaymentLinkResponse
 import com.example.myapplication.data.api.strategy.PaymentLinkRequestBuilder
 import android.util.Log
@@ -10,7 +10,7 @@ import android.util.Log
  * Encapsulates business logic for payment link generation.
  */
 class GeneratePaymentLinkUseCase(
-    private val mayaService: MayaService
+    private val swiftPayService: SwiftPayService
 ) {
     /**
      * Generate a payment link for the given amount and description.
@@ -37,11 +37,10 @@ class GeneratePaymentLinkUseCase(
             val desc = description.ifBlank { "Fast Pay Payment" }
             Log.d("GeneratePaymentLinkUseCase", "Generating payment link: amount=$amount, desc=$desc")
 
-            // Use service to create link with fallback strategies
-            val result = mayaService.createPaymentLink(
+            // Use service to create link
+            val result = swiftPayService.createPaymentLink(
                 amount = if (amount > 0) amount else 0.0,
-                description = desc,
-                merchantAliasOverride = merchantAlias
+                description = desc
             )
 
             when {

@@ -35,7 +35,11 @@ class SwiftPaySDKBridge(
     private val onCreateInvoice: (Double, String) -> Unit = { _, _ -> },
     private val onMembersRequest: () -> Unit = {},
     private val onAddMember: (String, String, String) -> Unit = { _, _, _ -> },
-    private val onDeleteMember: (String) -> Unit = {}
+    private val onDeleteMember: (String) -> Unit = {},
+    private val onBanksRequest: () -> Unit = {},
+    private val onDisburseRequest: (Double, String, String, String, String?) -> Unit = { _, _, _, _, _ -> },
+    private val onGenerateVca: (String) -> Unit = {},
+    private val onVcaTransactionsRequest: () -> Unit = {}
 ) {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -115,6 +119,21 @@ class SwiftPaySDKBridge(
                 val id = request.data?.jsonObject?.get("id")?.jsonPrimitive?.content ?: ""
                 onDeleteMember(id)
             }
+            "get_banks" -> onBanksRequest()
+            "disburse" -> {
+                val obj = request.data?.jsonObject
+                val amount = obj?.get("amount")?.jsonPrimitive?.doubleOrNull ?: 0.0
+                val accountNo = obj?.get("accountNumber")?.jsonPrimitive?.content ?: ""
+                val firstName = obj?.get("firstName")?.jsonPrimitive?.content ?: ""
+                val lastName = obj?.get("lastName")?.jsonPrimitive?.content ?: ""
+                val bankCode = obj?.get("bankCode")?.jsonPrimitive?.content
+                onDisburseRequest(amount, accountNo, firstName, lastName, bankCode)
+            }
+            "generate_vca" -> {
+                val accountName = request.data?.jsonObject?.get("accountName")?.jsonPrimitive?.content ?: ""
+                onGenerateVca(accountName)
+            }
+            "get_vca_transactions" -> onVcaTransactionsRequest()
             else -> sendError("Unknown action: ${request.action}")
         }
     }
@@ -141,6 +160,9 @@ class SwiftPaySDKBridge(
                 is com.example.myapplication.data.Member -> json.encodeToJsonElement(data)
                 is com.example.myapplication.data.api.WebhookRequest -> json.encodeToJsonElement(data)
                 is com.example.myapplication.data.api.InvoiceResponse -> json.encodeToJsonElement(data)
+                is com.example.myapplication.data.api.BankResponse -> json.encodeToJsonElement(data)
+                is com.example.myapplication.data.api.DisbursementResponse -> json.encodeToJsonElement(data)
+                is com.example.myapplication.data.api.VcaResponse -> json.encodeToJsonElement(data)
                 is List<*> -> {
                     val elementList = data.map { item ->
                         when (item) {
@@ -149,6 +171,9 @@ class SwiftPaySDKBridge(
                             is PaymentChannel -> json.encodeToJsonElement(item)
                             is com.example.myapplication.data.Member -> json.encodeToJsonElement(item)
                             is com.example.myapplication.data.api.WebhookRequest -> json.encodeToJsonElement(item)
+                            is com.example.myapplication.data.api.BankResponse -> json.encodeToJsonElement(item)
+                            is com.example.myapplication.data.api.DisbursementResponse -> json.encodeToJsonElement(item)
+                            is com.example.myapplication.data.api.VcaResponse -> json.encodeToJsonElement(item)
                             is String -> json.encodeToJsonElement(item)
                             is Number -> when (item) {
                                 is Int -> json.encodeToJsonElement(item)

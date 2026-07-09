@@ -1,7 +1,7 @@
 package com.example.myapplication.di
 
 import android.content.Context
-import com.example.myapplication.data.MayaService
+import com.example.myapplication.data.SwiftPayService
 import com.example.myapplication.data.SettingsManager
 import com.example.myapplication.data.TransactionStore
 import com.example.myapplication.data.repository.AuthRepository
@@ -19,7 +19,7 @@ import com.example.myapplication.domain.usecase.ProcessPaymentUseCase
 object DIContainer {
 
     private var context: Context? = null
-    private var mayaService: MayaService? = null
+    private var swiftPayService: SwiftPayService? = null
     private var settingsManager: SettingsManager? = null
     private var transactionStore: TransactionStore? = null
 
@@ -33,13 +33,13 @@ object DIContainer {
     }
 
     /**
-     * Get or create MayaService instance
+     * Get or create SwiftPayService instance
      */
-    fun provideMayaService(): MayaService {
-        if (mayaService == null) {
-            mayaService = MayaService()
+    fun provideSwiftPayService(): SwiftPayService {
+        if (swiftPayService == null) {
+            swiftPayService = SwiftPayService()
         }
-        return mayaService!!
+        return swiftPayService!!
     }
 
     /**
@@ -59,16 +59,16 @@ object DIContainer {
     // Repositories
 
     fun providePaymentRepository(): PaymentRepository =
-        PaymentRepository(provideMayaService())
+        PaymentRepository(provideSwiftPayService())
 
     fun provideAuthRepository(): AuthRepository =
-        AuthRepository(provideMayaService())
+        AuthRepository(provideSwiftPayService())
 
     fun provideQrRepository(): QrRepository =
-        QrRepository(provideMayaService())
+        QrRepository(provideSwiftPayService())
 
     fun provideTransactionRepository(): TransactionRepository =
-        TransactionRepository(provideMayaService(), provideTransactionStore())
+        TransactionRepository(provideSwiftPayService(), provideTransactionStore())
 
     // Use Cases
 

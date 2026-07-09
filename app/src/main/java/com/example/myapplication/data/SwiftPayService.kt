@@ -232,14 +232,30 @@ class SwiftPayService(
     fun getPaymentChannels(): List<PaymentChannel> {
         return listOf(
             PaymentChannel("SwiftPay Wallet", "ACTIVE"),
-            PaymentChannel("GCash", "ACTIVE"),
-            PaymentChannel("Maya", "ACTIVE"),
-            PaymentChannel("GrabPay", "ACTIVE"),
-            PaymentChannel("ShopeePay", "ACTIVE"),
+            PaymentChannel("Direct Bank Transfer", "ACTIVE"),
+            PaymentChannel("InstaPay", "ACTIVE"),
+            PaymentChannel("PESONet", "ACTIVE"),
             PaymentChannel("QRPH", "ACTIVE"),
-            PaymentChannel("Visa", "ACTIVE"),
-            PaymentChannel("Mastercard", "ACTIVE")
+            PaymentChannel("Visa/Mastercard", "ACTIVE")
         )
+    }
+
+    suspend fun requestEmailOtp(email: String, refNo: String): Result<Unit> {
+        return try {
+            val response = api.requestEmailOtp(pgBaseUrl + "v1/identity/otp", authHeader, refNo, OtpRequest(email))
+            if (response.isSuccessful) Result.success(Unit) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun verifyEmailOtp(email: String, code: String, refNo: String): Result<Unit> {
+        return try {
+            val response = api.verifyEmailOtp(pgBaseUrl + "v1/identity/otp/verify", authHeader, refNo, OtpVerifyRequest(email, code))
+            if (response.isSuccessful) Result.success(Unit) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     suspend fun processVaultPayment(
@@ -311,12 +327,35 @@ class SwiftPayService(
         }
     }
 
-    suspend fun disburse(amount: Double, accountNumber: String, firstName: String, lastName: String): Result<DisbursementResponse> {
+    suspend fun getBanks(): Result<List<BankResponse>> {
+        return try {
+            if (!hasSecretKey) return missingSecretKey()
+            val response = api.getBanks(authHeader)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun disburse(
+        amount: Double,
+        accountNumber: String,
+        firstName: String,
+        lastName: String,
+        bankCode: String? = null
+    ): Result<DisbursementResponse> {
         return try {
             if (!hasSecretKey) return missingSecretKey()
             val request = DisbursementRequest(
                 totalAmount = TotalAmount(value = amount, currency = "PHP"),
-                recipient = Recipient(firstName = firstName, lastName = lastName, accountNumber = accountNumber),
+                recipient = Recipient(
+                    firstName = firstName,
+                    lastName = lastName,
+                    accountNumber = accountNumber,
+                    bankCode = bankCode
+                ),
                 requestReferenceNumber = "DISB${System.currentTimeMillis()}"
             )
             val response = api.createDisbursement(authHeader, request)
@@ -374,6 +413,40 @@ class SwiftPayService(
             if (!hasSecretKey) return missingSecretKey()
             val response = api.deleteWebhook(authHeader, id)
             if (response.isSuccessful) Result.success(true) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun generateVca(accountName: String): Result<VcaResponse> {
+        return try {
+            if (!hasSecretKey) return missingSecretKey()
+            val request = VcaRequest(accountName = accountName, merchantReferenceNumber = "VCA${System.currentTimeMillis()}")
+            val response = api.generateVca(authHeader, request)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getVcaTransactions(): Result<List<InternalTransaction>> {
+        if (!hasSecretKey) return missingSecretKey()
+        return try {
+            val response = api.getVcaTransactions(authHeader)
+            if (response.isSuccessful && response.body() != null) {
+                val apiTransactions = response.body()?.data ?: response.body()?.payments ?: emptyList()
+                val transactions = apiTransactions.map {
+                    InternalTransaction(
+                        transactionId = it.id ?: "VCA_TX_${System.currentTimeMillis()}",
+                        amount = it.amount?.toDoubleOrNull() ?: 0.0,
+                        status = it.status ?: "SUCCESS",
+                        date = it.timestamp ?: ""
+                    )
+                }
+                Result.success(transactions)
+            } else Result.success(emptyList())
         } catch (e: Exception) {
             Result.failure(e)
         }

@@ -25,7 +25,7 @@ import com.example.myapplication.ui.theme.*
 
 /**
  * Merchant Profile Card Component
- * Displays merchant information from Maya API
+ * Displays merchant information from SwiftPay API
  */
 @Composable
 fun MerchantProfileCard(

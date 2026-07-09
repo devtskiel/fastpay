@@ -5,20 +5,13 @@ import org.junit.Test
 import org.junit.Assert.*
 
 /**
- * Unit tests for MayaService data models and validation logic
- *
- * These tests verify:
- * - Amount validation for QRPH and vault payments
- * - Card details and PAN handling
- * - Expiry format parsing
- * - PAN masking for security
- * - Response model construction
+ * Unit tests for SwiftPayService data models and validation logic
  */
-class MayaServiceTest {
+class SwiftPayServiceTest {
 
     @Test
     fun testAmountBoundaryValidation() {
-        // QRPH amount range: 0.01 - 1,000,000
+        // SwiftPay amount range: 0.01 - 1,000,000
         assertTrue("0.01 should be valid", 0.01 > 0 && 0.01 <= 1000000.0)
         assertTrue("1000000.0 should be valid", 1000000.0 > 0 && 1000000.0 <= 1000000.0)
         assertFalse("0.0 should be invalid", 0.0 > 0 && 0.0 <= 1000000.0)
@@ -78,18 +71,14 @@ class MayaServiceTest {
     }
 
     @Test
-    fun testMayaQrphResponse_Construction() {
-        val response = MayaQrphResponse(
-            id = "qrph_123",
-            qrCode = "00020101...",
-            referenceNumber = "QR123456",
-            amount = 100.0,
-            currency = "PHP",
-            status = "ACTIVE"
+    fun testDynamicQrResponse_Construction() {
+        val response = DynamicQrResponse(
+            paymentId = "qr_123",
+            qrCodeBody = "00020101...",
+            redirectUrl = "https://pay.example.com"
         )
 
-        assertEquals("qrph_123", response.id)
-        assertEquals("ACTIVE", response.status)
+        assertEquals("qr_123", response.paymentId)
     }
 
     @Test
@@ -115,6 +104,3 @@ class MayaServiceTest {
         assertTrue(response.verificationUrl!!.contains("3ds"))
     }
 }
-
-
-

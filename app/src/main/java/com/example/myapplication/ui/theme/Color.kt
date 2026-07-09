@@ -60,6 +60,4 @@ val onBackgroundDark = Color.White
 val surfaceDark = FastPayDarkGray
 val onSurfaceDark = Color.White
 
-// Legacy aliases for compatibility
-val MayaGreen = FastPayBlue
-val MayaBlack = FastPayBlack
+// Legacy aliases for compatibility (Removed)

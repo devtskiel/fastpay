@@ -36,6 +36,12 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.myapplication.ui.components.shimmerEffect
 import com.example.myapplication.ui.theme.*
+import com.example.myapplication.data.SettingsManager
+import com.example.myapplication.data.TransactionStore
+import com.example.myapplication.data.createSwiftPayService
+import com.example.myapplication.data.mergeTransactions
+import com.example.myapplication.data.api.InternalTransaction
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun HomeScreen(
@@ -48,9 +54,23 @@ fun HomeScreen(
     val isLoadingBalance = viewModel.isLoadingBalance
     val scrollState = rememberScrollState()
     val context = androidx.compose.ui.platform.LocalContext.current
+    
+    var transactions by remember { mutableStateOf<List<InternalTransaction>>(emptyList()) }
 
     LaunchedEffect(Unit) {
         viewModel.refreshBalance()
+        
+        val settings = SettingsManager(context)
+        val store = TransactionStore(context)
+        val service = settings.createSwiftPayService()
+        
+        try {
+            val local = store.transactions.first()
+            val remote = service.getInternalTransactions().getOrNull() ?: emptyList()
+            transactions = mergeTransactions(local, remote).take(5)
+        } catch (e: Exception) {
+            // ignore
+        }
     }
 
     Box(modifier = modifier.fillMaxSize().background(Color.White)) {
@@ -77,13 +97,7 @@ fun HomeScreen(
             // 3. Primary Action Row
             PrimaryActionRow(
                 onCashIn = { onLaunchMiniApp(null) },
-                onSend = {
-                    android.widget.Toast.makeText(
-                        context,
-                        "Instant Payout Tip: Your balance must reach at least ₱100,000.00 to qualify for instant settlement.",
-                        android.widget.Toast.LENGTH_LONG
-                    ).show()
-                },
+                onSend = { onLaunchMiniApp("disbursement-page") },
                 onScan = { onLaunchMiniApp("qr-page") }
             )
 
@@ -92,24 +106,17 @@ fun HomeScreen(
             // 4. Secondary Tool Grid
             SecondaryToolGrid(onLaunchMiniApp)
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // 5. Promotional Banner
-            PromotionalBanner()
+            // 5. Transaction History Section
+            TransactionHistorySection(
+                transactions = transactions,
+                onNavigateToWallet = onNavigateToWallet
+            )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 6. Transaction History Section
-            TransactionHistorySection(onNavigateToWallet)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 7. Rewards Hub Section
-            RewardsHubSection()
-            
             Spacer(modifier = Modifier.height(32.dp))
         }
-    }
+    </div>
 }
 
 @Composable
@@ -238,11 +245,11 @@ fun PrimaryActionButton(icon: ImageVector, label: String, onClick: () -> Unit) {
 @Composable
 fun SecondaryToolGrid(onLaunch: (String?) -> Unit) {
     val tools = listOf(
-        Triple(Icons.Rounded.Description, "Pay Bills", null),
+        Triple(Icons.Rounded.AccountBalance, "Payouts", "disbursement-page"),
+        Triple(Icons.Rounded.AccountBox, "Virtual Acc", "vca-page"),
+        Triple(Icons.Rounded.Group, "Team", "members-page"),
         Triple(Icons.Rounded.PhonelinkRing, "Buy Load", null),
-        Triple(Icons.Rounded.Token, "Buy Crypto", null),
-        Triple(Icons.AutoMirrored.Rounded.CompareArrows, "Spot Trading", null),
-        Triple(Icons.Rounded.CardGiftcard, "Rewards Hub", null),
+        Triple(Icons.Rounded.Description, "Pay Bills", null),
         Triple(Icons.Rounded.AccountBalanceWallet, "Tap to Pay", "card-payment-page"),
         Triple(Icons.Rounded.Terminal, "API Hub", "api-docs-page"),
         Triple(Icons.Rounded.GridView, "More", null)
@@ -288,67 +295,13 @@ fun ToolItem(icon: ImageVector, label: String, onClick: () -> Unit) {
 }
 
 @Composable
-fun PromotionalBanner() {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(20.dp),
-        color = Color(0xFFEFF6FF)
-    ) {
-        Box(modifier = Modifier.fillMaxWidth().height(140.dp)) {
-            // Placeholder for background illustration
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawCircle(color = Color(0xFFDBEAFE), center = Offset(size.width * 0.9f, size.height * 0.5f), radius = size.width * 0.3f)
-            }
-            
-            Column(modifier = Modifier.padding(20.dp).fillMaxHeight(), verticalArrangement = Arrangement.Center) {
-                Text(
-                    text = "coins.ph",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = FastPayTextSecondary,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Loyalty Program\nNow Live!",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = FastPayTextPrimary,
-                    lineHeight = 24.sp
-                )
-                Text(
-                    text = "Powered by ShareTreats",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = FastPayTextSecondary,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-                
-                Spacer(modifier = Modifier.weight(1f))
-                
-                Button(
-                    onClick = { /* Get Started */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = FastPayActionIcon),
-                    shape = RoundedCornerShape(20.dp),
-                    contentPadding = PaddingValues(horizontal = 24.dp),
-                    modifier = Modifier.height(36.dp)
-                ) {
-                    Text("Get Started", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-            
-            // Image overlay (donut/coins from screenshot)
-            Box(modifier = Modifier.align(Alignment.CenterEnd).padding(end = 12.dp)) {
-                Icon(Icons.Rounded.DonutLarge, null, tint = Color(0xFFF97316).copy(alpha = 0.8f), modifier = Modifier.size(80.dp))
-            }
-        }
-    }
-}
-
-@Composable
-fun TransactionHistorySection(onClick: () -> Unit) {
+fun TransactionHistorySection(
+    transactions: List<InternalTransaction>,
+    onNavigateToWallet: () -> Unit
+) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth().clickable { onClick() },
+            modifier = Modifier.fillMaxWidth().clickable { onNavigateToWallet() },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -356,8 +309,8 @@ fun TransactionHistorySection(onClick: () -> Unit) {
                 Box(modifier = Modifier.width(4.dp).height(20.dp).clip(CircleShape).background(Color(0xFF818CF8)))
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Transaction History",
-                    style = MaterialTheme.typography.titleMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                    text = "Recent Transactions",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = FastPayTextPrimary
                 )
@@ -367,33 +320,21 @@ fun TransactionHistorySection(onClick: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Sample History Item 1
-        TransactionListItem(label = "Scan to Pay", amount = -1.0, isOutflow = true)
-        Spacer(modifier = Modifier.height(12.dp))
-        // Sample History Item 2
-        TransactionListItem(label = "Scan to Pay", amount = -300.0, isOutflow = true)
-        
-        Spacer(modifier = Modifier.height(20.dp))
-        
-        // Featured Payment Card
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            color = Color(0xFFF8FAFC),
-            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
-        ) {
-            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Coins.ph Payment", style = MaterialTheme.typography.labelSmall, color = FastPayTextSecondary)
-                    Text(
-                        "Use Coins.ph QR\nfor fast and easy payments",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = FastPayTextPrimary,
-                        lineHeight = 22.sp
+        if (transactions.isEmpty()) {
+            Text(
+                "No recent activity",
+                style = MaterialTheme.typography.bodySmall,
+                color = FastPayTextSecondary,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        } else {
+            transactions.forEach { tx ->
+                TransactionListItem(
+                    label = if (tx.amount < 0) "Payout" else "Payment Received",
+                    amount = tx.amount,
+                    isOutflow = tx.amount < 0
                 )
-            }
-            Icon(Icons.AutoMirrored.Rounded.Send, null, tint = FastPayActionIcon, modifier = Modifier.size(48.dp).alpha(0.2f))
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }
@@ -426,49 +367,5 @@ fun TransactionListItem(label: String, amount: Double, isOutflow: Boolean) {
             fontWeight = FontWeight.Bold,
             color = FastPayTextPrimary
         )
-    }
-}
-
-@Composable
-fun RewardsHubSection() {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.width(4.dp).height(20.dp).clip(CircleShape).background(Color(0xFF2DD4BF)))
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Rewards Hub",
-                    style = MaterialTheme.typography.titleMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
-                    fontWeight = FontWeight.ExtraBold,
-                    color = FastPayTextPrimary
-                )
-            }
-            Icon(Icons.Rounded.ChevronRight, null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            color = Color(0xFFF0FDFA)
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text("Point Rewards", style = MaterialTheme.typography.labelSmall, color = Color(0xFF0D9488), fontWeight = FontWeight.Bold)
-                Text(
-                    "Complete tasks to get epic rewards\nin the points shop.",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = FastPayTextPrimary,
-                    lineHeight = 22.sp
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Icon(Icons.Rounded.CardGiftcard, null, tint = Color(0xFF2DD4BF), modifier = Modifier.size(60.dp).alpha(0.3f).align(Alignment.End))
-            }
-        }
     }
 }

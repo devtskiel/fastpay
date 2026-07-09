@@ -1,31 +1,25 @@
 package com.example.myapplication.data.repository
 
-import com.example.myapplication.data.MayaService
+import com.example.myapplication.data.SwiftPayService
 import com.example.myapplication.data.api.*
 
 /**
  * Repository for authentication and merchant operations.
  * Handles OTP, login, and merchant profile related operations.
  */
-class AuthRepository(private val mayaService: MayaService) {
+class AuthRepository(private val swiftPayService: SwiftPayService) {
 
     /**
      * Send custom OTP code
      */
-    suspend fun sendCustomOtp(email: String, code: String): Result<Boolean> =
-        mayaService.sendCustomOtp(email, code)
-
-    /**
-     * Online login with email and password
-     */
-    suspend fun onlineLogin(email: String, password: String): Result<Boolean> =
-        mayaService.onlineLogin(email, password)
+    suspend fun sendEmailOtp(email: String, refNo: String): Result<Unit> =
+        swiftPayService.requestEmailOtp(email, refNo)
 
     /**
      * Verify OTP code
      */
-    suspend fun verifyOnlineCode(email: String, code: String): Result<Boolean> =
-        mayaService.verifyOnlineCode(email, code)
+    suspend fun verifyEmailOtp(email: String, code: String, refNo: String): Result<Unit> =
+        swiftPayService.verifyEmailOtp(email, code, refNo)
 }
 
 

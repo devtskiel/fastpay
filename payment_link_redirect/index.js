@@ -3,12 +3,12 @@ const app = express()
 const PORT = process.env.PORT || 3000
 
 // Example usage:
-// Maya redirect -> https://your-redirect.example/return?linkId=PLK_123&status=SUCCESS
-// This server will forward to app deep link: myapp://payment/success?linkId=PLK_123&status=SUCCESS
+// SwiftPay redirect -> https://your-redirect.example/return?linkId=PLK_123&status=SUCCESS
+// This server will forward to app deep link: fastpay-app://payment/success?linkId=PLK_123&status=SUCCESS
 
 app.get('/return', (req, res) => {
   const { linkId, status, ...rest } = req.query
-  const basePath = status === 'SUCCESS' ? 'myapp://payment/success' : (status === 'CANCELLED' ? 'myapp://payment/cancel' : 'myapp://payment/failure')
+  const basePath = status === 'SUCCESS' ? 'fastpay-app://payment/success' : (status === 'CANCELLED' ? 'fastpay-app://payment/cancel' : 'fastpay-app://payment/failure')
   const params = new URLSearchParams(req.query).toString()
   const deepLink = `${basePath}?${params}`
 
@@ -27,7 +27,7 @@ app.get('/return', (req, res) => {
           document.getElementById('fallback').style.display = 'block'
         }, 1500);
       </script>
-      <style> body { font-family: Arial, sans-serif; padding: 2rem; } #fallback { display:none; margin-top:1rem; } a.button{ background:#00C389; color:white; padding:10px 16px; border-radius:6px; text-decoration:none; }</style>
+      <style> body { font-family: Arial, sans-serif; padding: 2rem; } #fallback { display:none; margin-top:1rem; } a.button{ background:#0052CC; color:white; padding:10px 16px; border-radius:6px; text-decoration:none; }</style>
     </head>
     <body>
       <h2>Returning to app…</h2>
@@ -43,8 +43,7 @@ app.get('/return', (req, res) => {
 })
 
 app.get('/', (req, res) => {
-  res.send('Payment Link Redirect Helper. Use /return to accept Maya redirects and forward to app deep link.')
+  res.send('Payment Link Redirect Helper. Use /return to accept SwiftPay redirects and forward to app deep link.')
 })
 
 app.listen(PORT, () => console.log(`Payment redirect helper running on port ${PORT}`))
-
