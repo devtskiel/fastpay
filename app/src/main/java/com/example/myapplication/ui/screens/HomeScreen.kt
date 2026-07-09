@@ -122,6 +122,10 @@ fun HomeScreen(
                         PendingAction.LINK -> viewModel.onPaymentLinkRequest(com.example.myapplication.bridge.PaymentData(amount, "Payment Link"))
                         PendingAction.QRPH -> viewModel.onBootstrapQrphRequest(amount)
                         PendingAction.NFC -> viewModel.onScanNFCCard(amount)
+                        PendingAction.PAYOUT -> {
+                            // Launch payout screen in mini app directly if no native dialog yet
+                            onLaunchMiniApp("disbursement-page")
+                        }
                         else -> {}
                     }
                 },
@@ -134,7 +138,7 @@ fun HomeScreen(
     }
 }
 
-enum class PendingAction { LINK, QRPH, NFC }
+enum class PendingAction { LINK, QRPH, NFC, PAYOUT }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -220,6 +224,13 @@ fun PaymentActionGrid(onAction: (PendingAction) -> Unit) {
             label = "LINK",
             color = Color(0xFF6200EE),
             onClick = { onAction(PendingAction.LINK) }
+        )
+        DirectActionItem(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Rounded.FileUpload,
+            label = "PAYOUT",
+            color = Color(0xFFE91E63),
+            onClick = { onAction(PendingAction.PAYOUT) }
         )
     }
 }
