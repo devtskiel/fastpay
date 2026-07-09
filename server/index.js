@@ -204,6 +204,21 @@ app.post('/api/swiftpay/profile', requireAuth, async (req, res) => {
     res.json({ status: 'success' })
 })
 
+app.post('/api/swiftpay/qr', requireAuth, async (req, res) => {
+    try {
+        const u = await getClient(req.user.id)
+        const auth = Buffer.from(`${u.pub}:${u.sec}`).toString('base64')
+        const { amount } = req.body
+        const payload = {
+            totalAmount: { value: parseFloat(amount), currency: 'PHP' },
+            requestReferenceNumber: 'QR' + Date.now(),
+            type: 'DYNAMIC'
+        }
+        const resp = await axios.post('https://api.netbank.ph/v1/collect/qr/payments', payload, { headers: { 'Authorization': `Basic ${auth}` } })
+        res.json(resp.data)
+    } catch (e) { res.status(500).json({ error: 'QR Error' }) }
+})
+
 app.use(express.static(path.join(__dirname, 'public')))
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')))
 
