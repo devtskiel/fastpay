@@ -33,14 +33,14 @@ class PaymentRepository(private val swiftPayService: SwiftPayService) {
         swiftPayService.bootstrapQrph(amount, referenceNo)
 
     /**
-     * Get institutions
+     * Get institutions (Collection v2)
      */
     suspend fun getInstitutions() = swiftPayService.getInstitutions()
 
     /**
-     * Get disbursement banks (legacy or standard)
+     * Get disbursement banks (v1/v2)
      */
-    suspend fun getBanks() = swiftPayService.getInstitutions()
+    suspend fun getBanks() = swiftPayService.getBanks()
 
     /**
      * Execute disbursement
@@ -85,6 +85,15 @@ class PaymentRepository(private val swiftPayService: SwiftPayService) {
         swiftPayService.getPaymentStatus(paymentId)
 
     /**
+     * Process a vault payment (Card)
+     */
+    suspend fun processVaultPayment(
+        amount: Double,
+        cardDetails: CardDetails,
+        externalRefNo: String? = null
+    ) = swiftPayService.processVaultPayment(amount, cardDetails, externalRefNo)
+
+    /**
      * Create a dynamic QR code
      */
     suspend fun createDynamicQr(amount: Double) =
@@ -95,7 +104,46 @@ class PaymentRepository(private val swiftPayService: SwiftPayService) {
      */
     suspend fun getInternalTransactions() =
         swiftPayService.getInternalTransactions()
+
+    /**
+     * Get wallet balance
+     */
+    suspend fun getWalletBalance() =
+        swiftPayService.getWalletBalance()
+
+    /**
+     * Create invoice
+     */
+    suspend fun createInvoice(amount: Double, description: String) =
+        swiftPayService.createInvoice(amount, description)
+
+    /**
+     * Generate VCA
+     */
+    suspend fun generateVca(accountName: String) =
+        swiftPayService.generateVca(accountName)
+
+    /**
+     * Get VCA transactions
+     */
+    suspend fun getVcaTransactions() =
+        swiftPayService.getVcaTransactions()
+
+    /**
+     * Get webhooks
+     */
+    suspend fun getWebhooks() =
+        swiftPayService.getWebhooks()
+
+    /**
+     * Register webhook
+     */
+    suspend fun registerWebhook(name: String, url: String) =
+        swiftPayService.registerWebhook(name, url)
+
+    /**
+     * Delete webhook
+     */
+    suspend fun deleteWebhook(id: String) =
+        swiftPayService.deleteWebhook(id)
 }
-
-
-

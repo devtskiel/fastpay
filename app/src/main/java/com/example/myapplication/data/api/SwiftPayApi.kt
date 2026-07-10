@@ -29,7 +29,7 @@ interface SwiftPayApi {
     @GET
     suspend fun getInstitutions(
         @Url url: String
-    ): Response<List<BankResponse>>
+    ): Response<BankListResponse>
 
     @GET
     suspend fun getPaymentStatusV2(

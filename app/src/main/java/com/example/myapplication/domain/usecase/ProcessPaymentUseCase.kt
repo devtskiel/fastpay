@@ -87,7 +87,13 @@ class ProcessPaymentUseCase(private val paymentRepository: PaymentRepository) {
         firstName: String,
         lastName: String,
         bankCode: String? = null
-    ) = paymentRepository.disburse(amount, accountNumber, firstName, lastName, bankCode)
+    ) = paymentRepository.disburse(
+        amount = amount,
+        accountNumber = accountNumber,
+        firstName = firstName,
+        lastName = lastName,
+        bankCode = bankCode
+    )
 }
 
 /**

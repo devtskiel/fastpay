@@ -41,7 +41,7 @@ class SwiftPayService(
     private val json = Json {
         ignoreUnknownKeys = true
         coerceInputValues = true
-        encodeDefaults = false
+        encodeDefaults = true
     }
 
     private val okHttpClient = OkHttpClient.Builder()
@@ -71,13 +71,13 @@ class SwiftPayService(
     private val api = retrofit.create(SwiftPayApi::class.java)
 
     private val authHeader: String
-        get() = "Basic " + Base64.encodeToString("${secretKey.trim()}:".toByteArray(), Base64.NO_WRAP)
+        get() = "Basic " + Base64.encodeToString("${secretKey?.trim().orEmpty()}:".toByteArray(), Base64.NO_WRAP)
 
     private val publicKeyAuth: String
-        get() = "Basic " + Base64.encodeToString("${publicKey.trim()}:".toByteArray(), Base64.NO_WRAP)
+        get() = "Basic " + Base64.encodeToString("${publicKey?.trim().orEmpty()}:".toByteArray(), Base64.NO_WRAP)
 
     private val v2AuthHeader: String
-        get() = "Basic " + Base64.encodeToString("${publicKey.trim()}:${secretKey.trim()}".toByteArray(), Base64.NO_WRAP)
+        get() = "Basic " + Base64.encodeToString("${publicKey?.trim().orEmpty()}:${secretKey?.trim().orEmpty()}".toByteArray(), Base64.NO_WRAP)
 
     private fun <T> parseError(response: retrofit2.Response<T>): String {
         return try {
@@ -101,10 +101,10 @@ class SwiftPayService(
         return try {
             if (!hasPublicKey || !hasSecretKey) return missingSecretKey()
             val amountStr = "%.2f".format(amount)
-            val params = mapOf("x_access_key" to publicKey, "x_reference_no" to referenceNo, "x_amount" to amountStr)
-            val signature = com.example.myapplication.util.SwiftPaySignatureHelper.calculateSignature(params, secretKey)
+            val params = mapOf("x_access_key" to publicKey.orEmpty(), "x_reference_no" to referenceNo, "x_amount" to amountStr)
+            val signature = com.example.myapplication.util.SwiftPaySignatureHelper.calculateSignature(params, secretKey.orEmpty())
             val request = OrderRequest(
-                accessKey = publicKey, referenceNo = referenceNo, amount = amountStr,
+                accessKey = publicKey.orEmpty(), referenceNo = referenceNo, amount = amountStr,
                 details = OrderDetails(customerName = customerName, customerAddress = OrderAddress(email = email)),
                 signature = signature
             )
@@ -117,9 +117,9 @@ class SwiftPayService(
         return try {
             if (!hasPublicKey || !hasSecretKey) return missingSecretKey()
             val amountStr = "%.2f".format(amount)
-            val params = mapOf("x_access_key" to publicKey, "x_reference_no" to referenceNo, "x_amount" to amountStr, "x_currency" to "PHP")
-            val signature = com.example.myapplication.util.SwiftPaySignatureHelper.calculateSignature(params, secretKey)
-            val request = QrphBootstrapRequest(accessKey = publicKey, referenceNo = referenceNo, amount = amountStr, signature = signature)
+            val params = mapOf("x_access_key" to publicKey.orEmpty(), "x_reference_no" to referenceNo, "x_amount" to amountStr, "x_currency" to "PHP")
+            val signature = com.example.myapplication.util.SwiftPaySignatureHelper.calculateSignature(params, secretKey.orEmpty())
+            val request = QrphBootstrapRequest(accessKey = publicKey.orEmpty(), referenceNo = referenceNo, amount = amountStr, signature = signature)
             val response = api.bootstrapQrph(payBaseUrl + "bootstrap/qrph?type=P2M", request)
             if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
         } catch (e: Exception) { Result.failure(e) }
@@ -211,7 +211,23 @@ class SwiftPayService(
     suspend fun getInstitutions(): Result<List<BankResponse>> {
         return try {
             val response = api.getInstitutions(payBaseUrl + "institutions")
-            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!.data)
+            } else {
+                Result.failure(Exception(parseError(response)))
+            }
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun getBanks(): Result<List<BankResponse>> {
+        return try {
+            if (!hasSecretKey) return missingSecretKey()
+            val response = api.getBanks(authHeader)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!.data)
+            } else {
+                Result.failure(Exception(parseError(response)))
+            }
         } catch (e: Exception) { Result.failure(e) }
     }
 

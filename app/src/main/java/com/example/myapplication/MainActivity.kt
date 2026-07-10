@@ -67,6 +67,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
+        com.example.myapplication.di.DIContainer.initialize(applicationContext)
+        
         setContent {
             val settings = remember { SettingsManager(application) }
             val themeMode by settings.themeMode.collectAsState(initial = "SYSTEM")

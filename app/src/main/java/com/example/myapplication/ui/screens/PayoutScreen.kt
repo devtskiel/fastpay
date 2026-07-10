@@ -30,7 +30,16 @@ fun PayoutScreen(
     var remarks by remember { mutableStateOf("") }
     
     var showBankSheet by remember { mutableStateOf(false) }
-    val banks = remember { 
+    
+    val dynamicBanks by viewModel::institutions
+    
+    LaunchedEffect(Unit) {
+        viewModel.onBanksRequest()
+    }
+
+    val banks = if (dynamicBanks.isNotEmpty()) {
+        dynamicBanks.map { it.name to it.code }
+    } else {
         listOf(
             "GCASH" to "GXCPHM2XXX",
             "MAYA" to "MYDBPHM2XXX",

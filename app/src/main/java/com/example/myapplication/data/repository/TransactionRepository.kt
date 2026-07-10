@@ -26,4 +26,15 @@ class TransactionRepository(
     suspend fun saveTransaction(transaction: InternalTransaction) {
         transactionStore.record(transaction)
     }
+
+    /**
+     * Sync local transactions with the remote API
+     */
+    suspend fun syncWithApi(): Result<List<InternalTransaction>> {
+        return swiftPayService.getInternalTransactions().onSuccess { remote ->
+            remote.forEach { tx ->
+                transactionStore.record(tx)
+            }
+        }
+    }
 }

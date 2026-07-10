@@ -12,12 +12,10 @@ import com.example.myapplication.data.SwiftPayService
 import com.example.myapplication.data.SettingsManager
 import com.example.myapplication.data.TransactionStore
 import com.example.myapplication.data.createSwiftPayService
-import com.example.myapplication.data.loadSwiftPayCredentials
-import com.example.myapplication.data.api.InternalTransaction
-import com.example.myapplication.data.api.OrderResponse
-import com.example.myapplication.data.api.VaultPaymentResponse
+import com.example.myapplication.data.api.*
+import com.example.myapplication.data.repository.PaymentRepository
 import com.example.myapplication.data.repository.TransactionRepository
-import com.example.myapplication.util.normalizePaymentStatus
+import com.example.myapplication.di.DIContainer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
@@ -57,7 +55,13 @@ sealed interface MiniAppUiState {
 class MiniAppViewModel(application: Application) : AndroidViewModel(application) {
     private val settingsManager = SettingsManager(application)
     private val transactionStore = TransactionStore(application)
-    private val repository: TransactionRepository by lazy {
+    
+    // We'll use a dynamic repository that always uses fresh credentials
+    private suspend fun getRepository(): PaymentRepository {
+        return PaymentRepository(settingsManager.createSwiftPayService())
+    }
+
+    private val transactionRepository: TransactionRepository by lazy {
         TransactionRepository(SwiftPayService(), transactionStore)
     }
 
@@ -66,7 +70,7 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
 
     private var nfcTimerJob: Job? = null
 
-    val transactions = repository.getAllTransactions()
+    val transactions = transactionRepository.getAllTransactions()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val walletBalance = settingsManager.walletBalance.map { it?.toDoubleOrNull() ?: 0.0 }
@@ -75,54 +79,81 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
     var isLoadingBalance by mutableStateOf(false)
         private set
 
-    private suspend fun getService(): SwiftPayService = settingsManager.createSwiftPayService()
+    var institutions by mutableStateOf<List<BankResponse>>(emptyList())
+        private set
+
+    var webhooks by mutableStateOf<List<WebhookRequest>>(emptyList())
+        private set
+
+    init {
+        refreshTransactions()
+    }
 
     fun refreshBalance() {
         viewModelScope.launch {
             isLoadingBalance = true
             try {
-                val freshBalance = getService().getWalletBalance()
-                settingsManager.saveWalletBalance(freshBalance.toString())
+                val balance = getRepository().getWalletBalance()
+                settingsManager.saveWalletBalance(balance.toString())
             } catch (e: Exception) {
-                Log.e("MiniAppViewModel", "Refresh Error", e)
+                Log.e("MiniAppViewModel", "Refresh Balance Error", e)
             } finally {
                 isLoadingBalance = false
             }
         }
     }
 
+    fun refreshTransactions() {
+        viewModelScope.launch {
+            // Use the correct service for syncing
+            val service = settingsManager.createSwiftPayService()
+            val syncRepo = TransactionRepository(service, transactionStore)
+            syncRepo.syncWithApi()
+        }
+    }
+
     fun onWebhooksRequest() {
         viewModelScope.launch {
-            getService().getWebhooks().onSuccess { /* Update State */ }
-                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
+            getRepository().getWebhooks()
+                .onSuccess { webhooks = it }
+                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed to load webhooks") }
         }
     }
 
     fun onAddWebhookRequest(name: String, url: String) {
         viewModelScope.launch {
-            getService().registerWebhook(name, url).onSuccess { /* Update State */ }
+            uiState = MiniAppUiState.Processing("Registering Webhook...")
+            getRepository().registerWebhook(name, url)
+                .onSuccess { 
+                    onWebhooksRequest()
+                    uiState = MiniAppUiState.Idle 
+                }
                 .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
 
     fun onDeleteWebhookRequest(id: String) {
         viewModelScope.launch {
-            getService().deleteWebhook(id).onSuccess { /* Update State */ }
+            getRepository().deleteWebhook(id)
+                .onSuccess { onWebhooksRequest() }
                 .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
 
     fun onCreateInvoiceRequest(amount: Double, description: String) {
         viewModelScope.launch {
-            getService().createInvoice(amount, description).onSuccess { /* Update State */ }
+            uiState = MiniAppUiState.Processing("Creating Invoice...")
+            getRepository().createInvoice(amount, description)
+                .onSuccess { uiState = MiniAppUiState.Idle }
                 .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
 
     fun onBanksRequest() {
         viewModelScope.launch {
-            getService().getInstitutions().onSuccess { /* Update State */ }
-                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
+            getRepository().getInstitutions()
+                .onSuccess { institutions = it }
+                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed to load institutions") }
         }
     }
 
@@ -140,7 +171,7 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
     ) {
         viewModelScope.launch {
             uiState = MiniAppUiState.Processing("Processing Payout...")
-            getService().disburse(
+            getRepository().disburse(
                 amount, accountNo, firstName, lastName, middleName, bankCode, remarks, email, mobileNumber, address
             )
                 .onSuccess {
@@ -148,21 +179,24 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
                     uiState = MiniAppUiState.Idle
                 }
                 .onFailure {
-                    uiState = MiniAppUiState.Error(it.message ?: "Failed")
+                    uiState = MiniAppUiState.Error(it.message ?: "Payout Failed")
                 }
         }
     }
 
     fun onGenerateVcaRequest(accountName: String) {
         viewModelScope.launch {
-            getService().generateVca(accountName).onSuccess { /* Update State */ }
+            uiState = MiniAppUiState.Processing("Generating VCA...")
+            getRepository().generateVca(accountName)
+                .onSuccess { uiState = MiniAppUiState.Idle }
                 .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
 
     fun onVcaTransactionsRequest() {
         viewModelScope.launch {
-            getService().getVcaTransactions().onSuccess { /* Update State */ }
+            getRepository().getVcaTransactions()
+                .onSuccess { /* Handle VCA tx */ }
                 .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
@@ -171,13 +205,13 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             uiState = MiniAppUiState.Processing("Initializing Order...")
             val refNo = "ORD${System.currentTimeMillis()}"
-            getService().createOrder(amount, refNo, customerName, email).onSuccess { response ->
+            getRepository().createOrder(amount, refNo, customerName, email).onSuccess { response ->
                 if (response.customerRedirectUrl != null) {
                     recordLocalTransaction(response.paymentId ?: refNo, amount, "PENDING")
                     uiState = MiniAppUiState.PaymentRedirect(response.customerRedirectUrl)
                 }
             }.onFailure {
-                uiState = MiniAppUiState.Error(it.message ?: "Failed")
+                uiState = MiniAppUiState.Error(it.message ?: "Order Creation Failed")
             }
         }
     }
@@ -186,36 +220,23 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             uiState = MiniAppUiState.Processing("Generating QR Ph...")
             val refNo = "QRPH${System.currentTimeMillis()}"
-            getService().bootstrapQrph(amount, refNo).onSuccess { response ->
+            getRepository().bootstrapQrph(amount, refNo).onSuccess { response ->
                 if (response.qrCode != null) {
                     recordLocalTransaction(response.paymentId ?: refNo, amount, "PENDING")
                     uiState = MiniAppUiState.DynamicQrReady(response.qrCode, amount)
                 }
             }.onFailure {
-                uiState = MiniAppUiState.Error(it.message ?: "Failed")
+                uiState = MiniAppUiState.Error(it.message ?: "QR Generation Failed")
             }
         }
     }
 
-    fun onBalanceRequest() {
-        refreshBalance()
-    }
-
-    fun onTransactionsRequest() {
-        viewModelScope.launch {
-            getService().getInternalTransactions().onSuccess { /* Update State */ }
-        }
-    }
-
-    fun onPaymentChannelsRequest() {
-        // No-op
-    }
-
     fun onPaymentLinkRequest(data: PaymentData) {
         viewModelScope.launch {
-            getService().createPaymentLink(data.amount, data.description).onSuccess {
+            uiState = MiniAppUiState.Processing("Generating Link...")
+            getRepository().createPaymentLink(data.amount, data.description).onSuccess {
                 uiState = MiniAppUiState.PaymentLinkReady(it.paymentLinkUrl ?: "")
-            }.onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
+            }.onFailure { uiState = MiniAppUiState.Error(it.message ?: "Link Generation Failed") }
         }
     }
 
@@ -225,9 +246,10 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
 
     fun onGenerateDynamicQr(amount: Double) {
         viewModelScope.launch {
-            getService().createDynamicQr(amount).onSuccess {
+            uiState = MiniAppUiState.Processing("Generating QR...")
+            getRepository().createDynamicQr(amount).onSuccess {
                 uiState = MiniAppUiState.DynamicQrReady(it.qrCodeBody ?: "", amount)
-            }.onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
+            }.onFailure { uiState = MiniAppUiState.Error(it.message ?: "QR Failed") }
         }
     }
 
@@ -238,7 +260,7 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
             while (seconds >= 0) {
                 uiState = MiniAppUiState.WaitingForNFC(amount, timeLeft = seconds)
                 if (seconds == 0) {
-                    uiState = MiniAppUiState.Error("Timeout")
+                    uiState = MiniAppUiState.Error("NFC Session Timeout")
                     return@launch
                 }
                 delay(1000)
@@ -256,29 +278,33 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
     fun onCvvEntered(cvv: String) {
         val state = uiState as? MiniAppUiState.WaitingForCVV ?: return
         viewModelScope.launch {
-            uiState = MiniAppUiState.Processing("Authorizing...")
-            getService().processVaultPayment(state.amount, com.example.myapplication.data.api.CardDetails(state.pan, "12", "2030", cvv), state.sessionRef)
+            uiState = MiniAppUiState.Processing("Authorizing Card...")
+            getRepository().processVaultPayment(
+                state.amount, 
+                CardDetails(state.pan, "12", "2030", cvv), 
+                state.sessionRef
+            )
                 .onSuccess {
                     recordLocalTransaction(it.paymentId ?: "V", state.amount, "SUCCESS")
                     uiState = MiniAppUiState.Idle
                 }
-                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
+                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Card Payment Failed") }
         }
     }
 
     fun approvePayment(data: PaymentData) {
         viewModelScope.launch {
             uiState = MiniAppUiState.Processing("Creating Checkout...")
-            getService().createCheckout(data).onSuccess {
+            getRepository().createCheckout(data).onSuccess {
                 if (it.redirectUrl != null) {
                     uiState = MiniAppUiState.PaymentRedirect(it.redirectUrl, data)
                 }
-            }.onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
+            }.onFailure { uiState = MiniAppUiState.Error(it.message ?: "Checkout Failed") }
         }
     }
 
     private suspend fun recordLocalTransaction(id: String, amount: Double, status: String) {
-        repository.saveTransaction(InternalTransaction(id, amount, status, TransactionStore.nowLabel()))
+        transactionRepository.saveTransaction(InternalTransaction(id, amount, status, TransactionStore.nowLabel()))
         if (status.uppercase() == "SUCCESS" && amount > 0) {
             val current = walletBalance.value
             settingsManager.saveWalletBalance((current + amount).toString())
@@ -291,51 +317,29 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
     fun handleDeepLink(linkId: String, status: String?) {
         viewModelScope.launch {
             recordLocalTransaction(linkId, 0.0, status ?: "SUCCESS")
+            refreshTransactions()
         }
     }
     
-    // Stubs for missing methods required by components
-    fun onNfcProgress(message: String) {}
-    fun onAddMemberRequest(name: String, email: String, role: String) {}
-    fun onDeleteMemberRequest(id: String) {}
-    fun onMembersRequest() {}
-    fun requestPaymentConsent(data: PaymentData) {
-        uiState = MiniAppUiState.PaymentConsent(data)
-    }
-    fun onNfcError(error: String) { uiState = MiniAppUiState.Error(error) }
     fun retryNfc() { (uiState as? MiniAppUiState.WaitingForNFC)?.let { startNFCTimer(it.amount) } }
+    
     fun onSaveSettings(map: Map<String, String>) {
         viewModelScope.launch {
-            map["merchantAlias"]?.let { settingsManager.saveMerchantAlias(it) }
+            map["secretKey"]?.let { settingsManager.saveSecretKey(it) }
+            map["publicKey"]?.let { settingsManager.savePublicKey(it) }
             map["mid"]?.let { settingsManager.saveMid(it) }
             map["terminalId"]?.let { settingsManager.saveTerminalId(it) }
             map["environment"]?.let { settingsManager.saveEnvironment(it) }
         }
     }
 
-    fun getSettings() {
-        viewModelScope.launch {
-            val credentials = settingsManager.loadSwiftPayCredentials()
-            // Native UI can observe settingsManager directly
-        }
-    }
     var transactionStatusMap by mutableStateOf<Map<String, OrderResponse>>(emptyMap())
         private set
 
     fun fetchPaymentStatus(id: String) {
         viewModelScope.launch {
-            getService().getPaymentStatusV2(id).onSuccess { response ->
-                transactionStatusMap = transactionStatusMap + (id to response)
-            }
-        }
-    }
-
-    fun fetchPaymentStatuses(ids: List<String>) {
-        viewModelScope.launch {
-            ids.forEach { id ->
-                getService().getPaymentStatusV2(id).onSuccess { response ->
-                    transactionStatusMap = transactionStatusMap + (id to response)
-                }
+            getRepository().getPaymentStatus(id).onSuccess { response ->
+                // Map VaultPaymentResponse to OrderResponse if needed, or keep separate
             }
         }
     }
