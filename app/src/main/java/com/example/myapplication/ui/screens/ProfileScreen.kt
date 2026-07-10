@@ -59,10 +59,10 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
     var showThemeDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    val isDarkTheme = MaterialTheme.colorScheme.background == FastPayBlack
+    val isDarkTheme = MaterialTheme.colorScheme.background == SwiftPayBackground
     val bgColor = if (isDarkTheme) Color(0xFF121212) else Color.White
     val surfaceColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color.White
-    val textColor = if (isDarkTheme) Color.White else FastPayNavy
+    val textColor = if (isDarkTheme) Color.White else SwiftPayPrimary
     val secondaryTextColor = if (isDarkTheme) Color.LightGray else Color.Gray
     val borderColor = if (isDarkTheme) Color.DarkGray else Color(0xFFE3E8EF)
 
@@ -117,7 +117,7 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
                         alpha = avatarAlpha
                     }
                     .clip(RoundedCornerShape(40.dp))
-                    .background(if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else FastPayNavy.copy(alpha = 0.1f)),
+                    .background(if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else SwiftPayPrimary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Rounded.Settings, null, tint = textColor, modifier = Modifier.size(40.dp).graphicsLayer { rotationZ = settingsRotation })
@@ -147,7 +147,7 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
                             modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Rounded.StoreMallDirectory, null, tint = FastPayAccent, modifier = Modifier.size(24.dp))
+                                Icon(Icons.Rounded.StoreMallDirectory, null, tint = SwiftPayPrimary, modifier = Modifier.size(24.dp))
                             }
                         }
                         Spacer(Modifier.width(16.dp))
@@ -181,7 +181,7 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
                     ) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else FastPayNavy.copy(alpha = 0.05f),
+                            color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else SwiftPayPrimary.copy(alpha = 0.05f),
                             modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -205,7 +205,7 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
                     ) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else FastPayNavy.copy(alpha = 0.05f),
+                            color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else SwiftPayPrimary.copy(alpha = 0.05f),
                             modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -242,7 +242,7 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
                     ) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else FastPayNavy.copy(alpha = 0.05f),
+                            color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else SwiftPayPrimary.copy(alpha = 0.05f),
                             modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -266,7 +266,7 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
                     ) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else FastPayNavy.copy(alpha = 0.05f),
+                            color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else SwiftPayPrimary.copy(alpha = 0.05f),
                             modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -290,7 +290,7 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
                     ) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else FastPayNavy.copy(alpha = 0.05f),
+                            color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else SwiftPayPrimary.copy(alpha = 0.05f),
                             modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -376,7 +376,7 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
                                     }
                                 },
                                 colors = RadioButtonDefaults.colors(
-                                    selectedColor = FastPayBlue,
+                                    selectedColor = SwiftPayPrimary,
                                     unselectedColor = secondaryTextColor
                                 )
                             )
@@ -388,7 +388,7 @@ fun ProfileScreen(onBack: () -> Unit = {}) {
             },
             confirmButton = {
                 TextButton(onClick = { showThemeDialog = false }) {
-                    Text("Cancel", color = FastPayBlue)
+                    Text("Cancel", color = SwiftPayPrimary)
                 }
             }
         )

@@ -1,7 +1,7 @@
-# Fast Pay SwiftPay Integration Documentation
+# SwiftPay Integration Documentation
 
 ## Overview
-This project has been migrated from Maya Business to **SwiftPay** (Netbank Infrastructure). All payment processing, wallet management, and API calls now point to SwiftPay's endpoints.
+This project is powered by **SwiftPay** (Netbank Infrastructure).
 
 ## Core Components
 

@@ -13,7 +13,7 @@ app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors())
 app.use(bodyParser.json())
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fastpay-enterprise-core-2024'
+const JWT_SECRET = process.env.JWT_SECRET || 'swiftpay-enterprise-core-2024'
 const APP_SERVER_KEY = process.env.APP_SERVER_KEY || 'my-secret-key'
 
 // --- Database Layer ---
@@ -50,8 +50,19 @@ async function startServer() {
             expires_at BIGINT
         )`)
 
-        const adminEmail = 'admin@fastpay.com'
-        const hash = await bcrypt.hash('SwiftPay#Admin#2024', 10)
+        await pgPool.query(`CREATE TABLE IF NOT EXISTS deposits (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            user_email TEXT NOT NULL,
+            amount DECIMAL(12,2) NOT NULL,
+            reference_number TEXT,
+            bank_name TEXT,
+            status TEXT DEFAULT 'PENDING',
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )`)
+
+        const adminEmail = 'drltechgroup2024@gmail.com'
+        const hash = await bcrypt.hash('#Sirden1216', 10)
         const { rows } = await pgPool.query('SELECT id FROM users WHERE email = $1', [adminEmail])
 
         if (rows.length === 0) {
@@ -225,6 +236,37 @@ app.post('/api/swiftpay/qr', requireAuth, async (req, res) => {
         const resp = await axios.post('https://api.netbank.ph/v1/collect/qr/payments', payload, { headers: { 'Authorization': `Basic ${auth}` } })
         res.json(resp.data)
     } catch (e) { res.status(500).json({ error: 'QR Error' }) }
+})
+
+// --- Deposits ---
+app.post('/api/swiftpay/deposit', requireAuth, async (req, res) => {
+    const { amount, referenceNumber, bankName } = req.body
+    const id = 'DEP' + Date.now()
+    try {
+        await pgPool.query(
+            'INSERT INTO deposits(id, user_id, user_email, amount, reference_number, bank_name) VALUES($1, $2, $3, $4, $5, $6)',
+            [id, req.user.id, req.user.email, amount, referenceNumber, bankName]
+        )
+        res.json({ status: 'success', depositId: id })
+    } catch (e) { res.status(500).json({ error: 'Deposit failed' }) }
+})
+
+app.get('/api/admin/deposits', requireAuth, async (req, res) => {
+    // Basic admin check (could be more robust)
+    if (req.user.email !== 'drltechgroup2024@gmail.com') return res.status(403).json({ error: 'Admin only' })
+    try {
+        const { rows } = await pgPool.query('SELECT * FROM deposits ORDER BY created_at DESC')
+        res.json(rows)
+    } catch (e) { res.status(500).json({ error: 'Query failed' }) }
+})
+
+app.post('/api/admin/deposits/:id/status', requireAuth, async (req, res) => {
+    if (req.user.email !== 'drltechgroup2024@gmail.com') return res.status(403).json({ error: 'Admin only' })
+    const { status } = req.body
+    try {
+        await pgPool.query('UPDATE deposits SET status = $1 WHERE id = $2', [status, req.params.id])
+        res.json({ status: 'success' })
+    } catch (e) { res.status(500).json({ error: 'Update failed' }) }
 })
 
 app.use(express.static(path.join(__dirname, 'public')))

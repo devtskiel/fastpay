@@ -357,4 +357,44 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
             Log.d("MiniAppViewModel", "Removing member $email")
         }
     }
+
+    var pendingDeposits by mutableStateOf<List<DepositResponse>>(emptyList())
+        private set
+
+    fun onFetchPendingDeposits() {
+        viewModelScope.launch {
+            uiState = MiniAppUiState.Processing("Fetching Deposits...")
+            getRepository().getAdminDeposits()
+                .onSuccess { 
+                    pendingDeposits = it 
+                    uiState = MiniAppUiState.Idle
+                }
+                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
+        }
+    }
+
+    fun onUpdateDepositStatus(id: String, status: String) {
+        viewModelScope.launch {
+            uiState = MiniAppUiState.Processing("Updating Status...")
+            getRepository().updateDepositStatus(id, status)
+                .onSuccess { 
+                    onFetchPendingDeposits() 
+                }
+                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
+        }
+    }
+
+    fun onSubmitDeposit(amount: Double, ref: String, bank: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            uiState = MiniAppUiState.Processing("Submitting Deposit...")
+            getRepository().submitDeposit(amount, ref, bank)
+                .onSuccess { 
+                    uiState = MiniAppUiState.Idle
+                    onSuccess()
+                }
+                .onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
+        }
+    }
 }
+
+

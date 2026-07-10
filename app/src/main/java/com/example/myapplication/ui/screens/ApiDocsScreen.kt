@@ -21,16 +21,15 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.ui.theme.FastPayBlack
-import com.example.myapplication.ui.theme.FastPayBlue
-import com.example.myapplication.ui.theme.FastPayNavy
+import com.example.myapplication.ui.theme.SwiftPayBackground
+import com.example.myapplication.ui.theme.SwiftPayPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ApiDocsScreen() {
-    val isDarkTheme = MaterialTheme.colorScheme.background == FastPayBlack
+    val isDarkTheme = MaterialTheme.colorScheme.background == SwiftPayBackground
     val bgColor = if (isDarkTheme) Color(0xFF121212) else Color(0xFFF8F9FA)
-    val textColor = if (isDarkTheme) Color.White else FastPayNavy
+    val textColor = if (isDarkTheme) Color.White else SwiftPayPrimary
     val cardColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color.White
 
     Scaffold(
@@ -102,7 +101,7 @@ fun ApiDocsScreen() {
             )
 
             Card(
-                colors = CardDefaults.cardColors(containerColor = FastPayBlue),
+                colors = CardDefaults.cardColors(containerColor = SwiftPayPrimary),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -148,7 +147,7 @@ fun DocSection(
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, null, tint = FastPayBlue, modifier = Modifier.size(24.dp))
+                Icon(icon, null, tint = SwiftPayPrimary, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(12.dp))
                 Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = textColor)
             }

@@ -23,4 +23,4 @@ npm start
 https://your-domain.example/return
 ```
 
-The helper will forward to `fastpay-app://payment/success?linkId=...&status=...` which your Android app should handle via an intent-filter.
+The helper will forward to `swiftpay-app://payment/success?linkId=...&status=...` which your Android app should handle via an intent-filter.

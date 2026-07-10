@@ -75,7 +75,7 @@ fun MerchantProfileCard(
                 .fillMaxWidth()
                 .padding(12.dp),
             shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = FastPayNavy)
+            colors = CardDefaults.cardColors(containerColor = SwiftPayPrimary)
         ) {
             Column(
                 modifier = Modifier
@@ -116,8 +116,8 @@ fun MerchantProfileCard(
             .fillMaxWidth()
             .padding(12.dp),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = FastPayNavy),
-        border = androidx.compose.foundation.BorderStroke(1.dp, FastPayBlue.copy(alpha = 0.2f))
+        colors = CardDefaults.cardColors(containerColor = SwiftPayPrimary),
+        border = androidx.compose.foundation.BorderStroke(1.dp, SwiftPayPrimary.copy(alpha = 0.2f))
     ) {
         Column(
             modifier = Modifier
@@ -136,7 +136,7 @@ fun MerchantProfileCard(
                     Text(
                         text = "Merchant Profile",
                         style = MaterialTheme.typography.labelSmall,
-                        color = FastPayBlue,
+                        color = SwiftPayPrimary,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
@@ -246,7 +246,7 @@ fun MerchantProfileCard(
                     Icon(
                         Icons.Rounded.Key,
                         contentDescription = "MID",
-                        tint = FastPayBlue,
+                        tint = SwiftPayPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                     Column {
@@ -295,7 +295,7 @@ private fun MerchantInfoBox(
             Icon(
                 icon,
                 contentDescription = label,
-                tint = FastPayBlue,
+                tint = SwiftPayPrimary,
                 modifier = Modifier.size(20.dp)
             )
             Text(
@@ -335,13 +335,13 @@ private fun ContactInfoRow(
     ) {
         Surface(
             shape = CircleShape,
-            color = FastPayBlue.copy(alpha = 0.2f),
+            color = SwiftPayPrimary.copy(alpha = 0.2f),
             modifier = Modifier.size(36.dp)
         ) {
             Icon(
                 icon,
                 contentDescription = label,
-                tint = FastPayBlue,
+                tint = SwiftPayPrimary,
                 modifier = Modifier
                     .padding(8.dp)
                     .fillMaxSize()
@@ -400,7 +400,7 @@ fun TransactionStatusCard(
         "PENDING" -> Color(0xFFFF9800)
         "FAILED" -> Color(0xFFF44336)
         "CANCELLED" -> Color(0xFF9E9E9E)
-        else -> FastPayBlue
+        else -> SwiftPayPrimary
     }
 
     val statusIcon = when (payment.status?.uppercase()) {
@@ -460,7 +460,7 @@ fun TransactionStatusCard(
                         text = "₱${payment.amount ?: "0.00"} ${payment.currency}",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = FastPayNavy
+                        color = SwiftPayPrimary
                     )
                 }
             }
@@ -489,7 +489,7 @@ fun TransactionStatusIndicator(
         "PENDING" -> Color(0xFFFF9800) to Icons.Rounded.Schedule
         "FAILED" -> Color(0xFFF44336) to Icons.Rounded.Close
         "CANCELLED" -> Color(0xFF9E9E9E) to Icons.Rounded.Cancel
-        else -> FastPayBlue to Icons.Rounded.Info
+        else -> SwiftPayPrimary to Icons.Rounded.Info
     }
 
     Surface(

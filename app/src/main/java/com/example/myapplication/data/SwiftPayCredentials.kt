@@ -49,12 +49,15 @@ suspend fun SettingsManager.loadSwiftPayCredentials(): SwiftPayCredentials {
 
 suspend fun SettingsManager.createSwiftPayService(): SwiftPayService {
     val credentials = loadSwiftPayCredentials()
+    val token = jwtToken.first()
     return SwiftPayService(
         customSecretKey = credentials.secretKey,
         customPublicKey = credentials.publicKey,
         customMid = credentials.mid,
         customTerminalId = credentials.terminalId,
         customCardMid = credentials.cardMid,
-        forcedSandbox = credentials.isSandbox
+        forcedSandbox = credentials.isSandbox,
+        jwtToken = token
     )
 }
+

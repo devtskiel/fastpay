@@ -1,15 +1,35 @@
-# Add project specific ProGuard rules here.
-# By default, the flags in this file are appended to flags specified
-# in C:\Users\densh\AppData\Local\Android\Sdk/tools/proguard/proguard-android-optimize.txt
-# You can edit the include path and order by changing the proguardFiles
-# directive in build.gradle.kts.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Project specific ProGuard rules
 
-# Add any custom rules here that might be needed for your libraries
+# General Android rules are already included via getDefaultProguardFile
+# Ensure our API models are preserved for JSON serialization
 -keep class com.example.myapplication.data.api.** { *; }
+-keep class com.example.myapplication.data.model.** { *; }
+
+# Preserve signatures and annotations for serialization libraries
 -keepattributes Signature
 -keepattributes *Annotation*
+-keepattributes EnclosingMethod
+
+# Security: Remove all Log calls in release builds
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int w(...);
+    public static int e(...);
+}
+
+# Security: Prevent reverse engineering of critical business logic
+-keepnames class com.example.myapplication.util.SwiftPaySignatureHelper { *; }
+
+# Retrofit/OkHttp specific security rules
 -dontwarn okio.**
 -dontwarn javax.annotation.**
+-keep class retrofit2.** { *; }
+-keep class okhttp3.** { *; }
+-keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+
+# Security: Obfuscate everything else heavily
+-optimizationpasses 5
+-allowaccessmodification
+-mergeinterfacesaggressively

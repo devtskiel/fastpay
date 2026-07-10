@@ -26,7 +26,7 @@ enum class RegistrationStep { BASIC, BUSINESS, KYC, DOCUMENTS, REVIEW }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrationScreen(
-    onSuccess: () -> Unit,
+    onSuccess: (String, String) -> Unit,
     onBack: () -> Unit,
     onNavigateToTerms: () -> Unit
 ) {
@@ -104,8 +104,7 @@ fun RegistrationScreen(
                 onClick = {
                     if (currentStep == RegistrationStep.REVIEW) {
                         isLoading = true
-                        // Simulate API call
-                        onSuccess()
+                        onSuccess(email, password)
                     } else {
                         currentStep = RegistrationStep.values()[currentStep.ordinal + 1]
                     }

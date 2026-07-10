@@ -4,11 +4,11 @@ const PORT = process.env.PORT || 3000
 
 // Example usage:
 // SwiftPay redirect -> https://your-redirect.example/return?linkId=PLK_123&status=SUCCESS
-// This server will forward to app deep link: fastpay-app://payment/success?linkId=PLK_123&status=SUCCESS
+// This server will forward to app deep link: swiftpay-app://payment/success?linkId=PLK_123&status=SUCCESS
 
 app.get('/return', (req, res) => {
   const { linkId, status, ...rest } = req.query
-  const basePath = status === 'SUCCESS' ? 'fastpay-app://payment/success' : (status === 'CANCELLED' ? 'fastpay-app://payment/cancel' : 'fastpay-app://payment/failure')
+  const basePath = status === 'SUCCESS' ? 'swiftpay-app://payment/success' : (status === 'CANCELLED' ? 'swiftpay-app://payment/cancel' : 'swiftpay-app://payment/failure')
   const params = new URLSearchParams(req.query).toString()
   const deepLink = `${basePath}?${params}`
 

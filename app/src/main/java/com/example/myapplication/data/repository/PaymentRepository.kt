@@ -146,4 +146,23 @@ class PaymentRepository(private val swiftPayService: SwiftPayService) {
      */
     suspend fun deleteWebhook(id: String) =
         swiftPayService.deleteWebhook(id)
+
+    /**
+     * Submit deposit proof
+     */
+    suspend fun submitDeposit(amount: Double, ref: String, bank: String) =
+        swiftPayService.submitDeposit(amount, ref, bank)
+
+    /**
+     * Get deposits for admin
+     */
+    suspend fun getAdminDeposits() =
+        swiftPayService.getAdminDeposits()
+
+    /**
+     * Update deposit status
+     */
+    suspend fun updateDepositStatus(id: String, status: String) =
+        swiftPayService.updateDepositStatus(id, status)
 }
+

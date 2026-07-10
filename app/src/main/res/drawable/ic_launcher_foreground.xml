@@ -18,8 +18,8 @@
                 android:startY="20"
                 android:endX="88"
                 android:endY="88">
-                <item android:offset="0" android:color="#0052CC" />
-                <item android:offset="1" android:color="#002B5B" />
+                <item android:offset="0" android:color="#1F4BA8" />
+                <item android:offset="1" android:color="#1F4BA8" />
             </gradient>
         </aapt:attr>
     </path>
@@ -34,8 +34,8 @@
                 android:startY="24"
                 android:endX="84"
                 android:endY="84">
-                <item android:offset="0" android:color="#0052CC" /> <!-- FastPayBlue -->
-                <item android:offset="1" android:color="#002B5B" /> <!-- FastPayNavy -->
+                <item android:offset="0" android:color="#1F4BA8" /> <!-- SwiftPayBlue -->
+                <item android:offset="1" android:color="#1F4BA8" /> <!-- SwiftPayNavy -->
             </gradient>
         </aapt:attr>
     </path>

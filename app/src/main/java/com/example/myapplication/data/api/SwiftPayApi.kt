@@ -194,4 +194,34 @@ interface SwiftPayApi {
     suspend fun getVcaTransactions(
         @Header("Authorization") auth: String
     ): Response<SwiftPayTransactionResponse>
+
+    // --- Custom Backend Endpoints ---
+
+    @POST
+    suspend fun submitDeposit(
+        @Url url: String,
+        @Header("Authorization") auth: String,
+        @Body request: DepositRequest
+    ): Response<Unit>
+
+    @GET
+    suspend fun getAdminDeposits(
+        @Url url: String,
+        @Header("Authorization") auth: String
+    ): Response<List<DepositResponse>>
+
+    @POST
+    suspend fun updateDepositStatus(
+        @Url url: String,
+        @Header("Authorization") auth: String,
+        @Body request: DepositStatusUpdateRequest
+    ): Response<Unit>
+
+    @POST
+    suspend fun login(
+        @Url url: String,
+        @Body request: LoginRequest
+    ): Response<LoginResponse>
 }
+
+

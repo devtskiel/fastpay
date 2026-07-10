@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.myapplication.ui.theme.FastPayBlack
+import com.example.myapplication.ui.theme.SwiftPayBackground
 
 /**
  * Utility functions for common dialog styling and patterns.
@@ -19,7 +19,7 @@ object DialogUtils {
      */
     @Composable
     fun getDialogBackgroundColor(): Color {
-        val isDarkTheme = MaterialTheme.colorScheme.background == FastPayBlack
+        val isDarkTheme = MaterialTheme.colorScheme.background == SwiftPayBackground
         return if (isDarkTheme) Color(0xFF1E1E1E) else Color.White
     }
 
@@ -28,7 +28,7 @@ object DialogUtils {
      */
     @Composable
     fun getDialogTextColor(): Color {
-        val isDarkTheme = MaterialTheme.colorScheme.background == FastPayBlack
+        val isDarkTheme = MaterialTheme.colorScheme.background == SwiftPayBackground
         return if (isDarkTheme) Color.White else Color(0xFF0A0E27)
     }
 
@@ -37,7 +37,7 @@ object DialogUtils {
      */
     @Composable
     fun getDialogSecondaryTextColor(): Color {
-        val isDarkTheme = MaterialTheme.colorScheme.background == FastPayBlack
+        val isDarkTheme = MaterialTheme.colorScheme.background == SwiftPayBackground
         return if (isDarkTheme) Color.LightGray else Color.Gray
     }
 

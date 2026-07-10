@@ -47,10 +47,10 @@ fun ApiKeysScreen() {
 
     val clipboardManager = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-    val isDarkTheme = MaterialTheme.colorScheme.background == FastPayBlack
-    val bgColor = if (isDarkTheme) Color(0xFF121212) else FastPaySurface
+    val isDarkTheme = MaterialTheme.colorScheme.background == SwiftPayBackground
+    val bgColor = if (isDarkTheme) Color(0xFF121212) else SwiftPaySurface
     val surfaceColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color.White
-    val textColor = if (isDarkTheme) Color.White else FastPayNavy
+    val textColor = if (isDarkTheme) Color.White else SwiftPayPrimary
     val secondaryTextColor = if (isDarkTheme) Color.LightGray else Color.Gray
 
     Scaffold(
@@ -60,7 +60,7 @@ fun ApiKeysScreen() {
                     Text("SwiftPay Configuration", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = FastPayNavy
+                    containerColor = SwiftPayPrimary
                 )
             )
         },
@@ -174,7 +174,7 @@ fun ApiKeysScreen() {
             Spacer(Modifier.height(24.dp))
 
             Surface(
-                color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else FastPayNavy.copy(alpha = 0.05f),
+                color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else SwiftPayPrimary.copy(alpha = 0.05f),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -210,8 +210,8 @@ private fun CredentialRow(
     value: String?,
     onCopy: () -> Unit
 ) {
-    val isDarkTheme = MaterialTheme.colorScheme.background == FastPayBlack
-    val textColor = if (isDarkTheme) Color.White else FastPayNavy
+    val isDarkTheme = MaterialTheme.colorScheme.background == SwiftPayBackground
+    val textColor = if (isDarkTheme) Color.White else SwiftPayPrimary
     val secondaryTextColor = if (isDarkTheme) Color.LightGray else Color.Gray
 
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -226,7 +226,7 @@ private fun CredentialRow(
             )
         }
         IconButton(onClick = onCopy, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Rounded.ContentCopy, contentDescription = null, tint = if (isDarkTheme) Color.LightGray else FastPayNavy.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
+            Icon(Icons.Rounded.ContentCopy, contentDescription = null, tint = if (isDarkTheme) Color.LightGray else SwiftPayPrimary.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
         }
     }
 }

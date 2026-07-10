@@ -6,6 +6,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -52,7 +54,7 @@ fun PayoutScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Send Payout", fontWeight = FontWeight.Bold) },
+                title = { Text("Transfer Funds", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, null)
@@ -71,21 +73,25 @@ fun PayoutScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("RECIPIENT DETAILS", style = MaterialTheme.typography.labelMedium, color = SwiftPayTextDim)
+            Text("BENEFICIARY INFORMATION", style = MaterialTheme.typography.labelMedium, color = SwiftPayTextDim, letterSpacing = 1.sp)
             
             OutlinedTextField(
                 value = amount,
                 onValueChange = { amount = it },
-                label = { Text("Amount (PHP)") },
+                label = { Text("Disbursement Amount (PHP)") },
                 modifier = Modifier.fillMaxWidth(),
                 prefix = { Text("₱ ") },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = SwiftPayPrimary,
+                    unfocusedBorderColor = SwiftPayBorder
+                )
             )
 
             Surface(
                 onClick = { showBankSheet = true },
                 shape = RoundedCornerShape(12.dp),
-                color = Color.Transparent,
+                color = SwiftPayCard.copy(alpha = 0.5f),
                 border = BorderStroke(1.dp, SwiftPayBorder)
             ) {
                 Row(
@@ -94,8 +100,8 @@ fun PayoutScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Destination Bank", style = MaterialTheme.typography.labelSmall, color = SwiftPayTextDim)
-                        Text(selectedBank ?: "Select Bank", style = MaterialTheme.typography.bodyLarge, color = if (selectedBank == null) SwiftPayTextDim else SwiftPayTextPrimary)
+                        Text("Destination Institution", style = MaterialTheme.typography.labelSmall, color = SwiftPayTextDim)
+                        Text(selectedBank ?: "Select Bank or E-Wallet", style = MaterialTheme.typography.bodyLarge, color = if (selectedBank == null) SwiftPayTextDim else SwiftPayTextPrimary, fontWeight = FontWeight.Bold)
                     }
                     Icon(Icons.Rounded.KeyboardArrowDown, null, tint = SwiftPayTextDim)
                 }
@@ -106,7 +112,11 @@ fun PayoutScreen(
                 onValueChange = { accountNumber = it },
                 label = { Text("Account Number") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = SwiftPayPrimary,
+                    unfocusedBorderColor = SwiftPayBorder
+                )
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -115,23 +125,35 @@ fun PayoutScreen(
                     onValueChange = { firstName = it },
                     label = { Text("First Name") },
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = SwiftPayPrimary,
+                        unfocusedBorderColor = SwiftPayBorder
+                    )
                 )
                 OutlinedTextField(
                     value = lastName,
                     onValueChange = { lastName = it },
                     label = { Text("Last Name") },
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = SwiftPayPrimary,
+                        unfocusedBorderColor = SwiftPayBorder
+                    )
                 )
             }
 
             OutlinedTextField(
                 value = remarks,
                 onValueChange = { remarks = it },
-                label = { Text("Remarks (Optional)") },
+                label = { Text("Purpose of Transfer (Optional)") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = SwiftPayPrimary,
+                    unfocusedBorderColor = SwiftPayBorder
+                )
             )
 
             Spacer(Modifier.height(24.dp))
@@ -153,24 +175,42 @@ fun PayoutScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = SwiftPayPrimary),
                 enabled = amount.toDoubleOrNull() != null && accountNumber.isNotBlank() && selectedBank != null
             ) {
-                Text("Confirm & Disburse", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Authorize Disbursement", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
+            
+            Text(
+                "Funds will be deducted from your settled balance immediately upon authorization.",
+                style = MaterialTheme.typography.labelSmall,
+                color = SwiftPayTextDim,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
+            )
         }
     }
 
     if (showBankSheet) {
-        ModalBottomSheet(onDismissRequest = { showBankSheet = false }) {
+        ModalBottomSheet(
+            onDismissRequest = { showBankSheet = false },
+            containerColor = SwiftPaySurface
+        ) {
             Column(modifier = Modifier.padding(bottom = 40.dp)) {
-                Text("Select Bank", modifier = Modifier.padding(20.dp), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                banks.forEach { (name, _) ->
-                    ListItem(
-                        headlineContent = { Text(name) },
-                        leadingContent = { Icon(Icons.Rounded.AccountBalance, null, tint = SwiftPayPrimary) },
-                        modifier = Modifier.clickable {
-                            selectedBank = name
-                            showBankSheet = false
-                        }
-                    )
+                Text("Select Institution", modifier = Modifier.padding(20.dp), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = SwiftPayTextPrimary)
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(banks) { (name, _) ->
+                        ListItem(
+                            headlineContent = { Text(name, color = SwiftPayTextPrimary) },
+                            leadingContent = { 
+                                Box(modifier = Modifier.size(32.dp).background(SwiftPayPrimary.copy(alpha = 0.1f), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Rounded.AccountBalance, null, tint = SwiftPayPrimary, modifier = Modifier.size(18.dp)) 
+                                }
+                            },
+                            modifier = Modifier.clickable {
+                                selectedBank = name
+                                showBankSheet = false
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                        )
+                    }
                 }
             }
         }

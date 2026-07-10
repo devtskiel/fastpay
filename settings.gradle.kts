@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Fast Pay"
+rootProject.name = "SwiftPay"
 include(":app")
  

@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- Security: Block all cleartext traffic app-wide -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Specific configuration for SwiftPay and Netbank -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">netbank.ph</domain>
+        <domain includeSubdomains="true">swiftpay.ph</domain>
+        <domain includeSubdomains="true">onrender.com</domain>
     </domain-config>
-    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

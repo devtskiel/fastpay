@@ -20,7 +20,7 @@ import com.example.myapplication.ui.theme.*
  * Unified SwiftPay Logo component.
  */
 @Composable
-fun FastPayLogo(
+fun SwiftPayLogo(
     modifier: Modifier = Modifier,
     isDark: Boolean = false,
     scale: Float = 1f
@@ -65,7 +65,7 @@ fun FastPayLogo(
  * Fintech Standard Info Card.
  */
 @Composable
-fun FastPayInfoCard(
+fun SwiftPayInfoCard(
     title: String,
     value: String,
     modifier: Modifier = Modifier,
@@ -111,7 +111,7 @@ fun FastPayInfoCard(
  * Standardized Status Badge.
  */
 @Composable
-fun FastPayStatusBadge(
+fun SwiftPayStatusBadge(
     status: String,
     modifier: Modifier = Modifier,
     backgroundColor: Color? = null,

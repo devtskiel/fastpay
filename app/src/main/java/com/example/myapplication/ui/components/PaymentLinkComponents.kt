@@ -21,8 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import android.widget.Toast
-import com.example.myapplication.ui.theme.FastPayBlack
-import com.example.myapplication.ui.theme.FastPayNavy
+import com.example.myapplication.ui.theme.SwiftPayBackground
+import com.example.myapplication.ui.theme.SwiftPayPrimary
 import com.example.myapplication.ui.constants.ComponentDimensions
 
 /**
@@ -34,12 +34,12 @@ fun PaymentLinkDisplayCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val isDarkTheme = MaterialTheme.colorScheme.background == FastPayBlack
-    val textColor = if (isDarkTheme) Color.White else FastPayNavy
+    val isDarkTheme = MaterialTheme.colorScheme.background == SwiftPayBackground
+    val textColor = if (isDarkTheme) Color.White else SwiftPayPrimary
 
     Surface(
         shape = RoundedCornerShape(ComponentDimensions.CornerRadiusSmall),
-        color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else FastPayNavy.copy(alpha = 0.05f),
+        color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else SwiftPayPrimary.copy(alpha = 0.05f),
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
@@ -84,8 +84,8 @@ fun PaymentLinkActions(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val isDarkTheme = MaterialTheme.colorScheme.background == FastPayBlack
-    val textColor = if (isDarkTheme) Color.White else FastPayNavy
+    val isDarkTheme = MaterialTheme.colorScheme.background == SwiftPayBackground
+    val textColor = if (isDarkTheme) Color.White else SwiftPayPrimary
     val secondaryTextColor = if (isDarkTheme) Color.LightGray else Color.Gray
 
     Column(modifier = modifier) {
@@ -104,7 +104,7 @@ fun PaymentLinkActions(
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = FastPayNavy)
+            colors = ButtonDefaults.buttonColors(containerColor = SwiftPayPrimary)
         ) {
             Icon(Icons.Rounded.Share, null, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
@@ -154,9 +154,9 @@ fun PaymentLinkContent(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDarkTheme = MaterialTheme.colorScheme.background == FastPayBlack
+    val isDarkTheme = MaterialTheme.colorScheme.background == SwiftPayBackground
     val bgColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color.White
-    val textColor = if (isDarkTheme) Color.White else FastPayNavy
+    val textColor = if (isDarkTheme) Color.White else SwiftPayPrimary
     val secondaryTextColor = if (isDarkTheme) Color.LightGray else Color.Gray
 
     Surface(

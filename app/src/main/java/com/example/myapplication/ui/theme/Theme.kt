@@ -34,7 +34,7 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 @Composable
-fun FastPayTheme(
+fun SwiftPayTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit

@@ -34,7 +34,7 @@ class GeneratePaymentLinkUseCase(
                 return Result.failure(Exception("Amount exceeds maximum limit of ₱1,000,000"))
             }
 
-            val desc = description.ifBlank { "Fast Pay Payment" }
+            val desc = description.ifBlank { "SwiftPay Payment" }
             Log.d("GeneratePaymentLinkUseCase", "Generating payment link: amount=$amount, desc=$desc")
 
             // Use service to create link

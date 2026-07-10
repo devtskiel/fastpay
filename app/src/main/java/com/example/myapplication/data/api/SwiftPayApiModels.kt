@@ -469,3 +469,50 @@ data class CustomizationRequest(
     val skipResultPage: Boolean? = null,
     val redirectTimer: Int? = null
 )
+
+// --- Custom Backend / Deposit Models ---
+
+@Serializable
+data class DepositRequest(
+    val amount: Double,
+    val referenceNumber: String,
+    val bankName: String
+)
+
+@Serializable
+data class DepositResponse(
+    val id: String? = null,
+    @SerialName("user_id") val userId: String? = null,
+    @SerialName("user_email") val userEmail: String? = null,
+    val amount: Double? = null,
+    @SerialName("reference_number") val referenceNumber: String? = null,
+    @SerialName("bank_name") val bankName: String? = null,
+    val status: String? = null,
+    @SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class DepositStatusUpdateRequest(
+    val status: String
+)
+
+@Serializable
+data class LoginRequest(
+    val email: String,
+    val password: String
+)
+
+@Serializable
+data class LoginResponse(
+    val token: String,
+    val user: UserInfo
+)
+
+@Serializable
+data class UserInfo(
+    val id: String,
+    val email: String,
+    @SerialName("businessName") val businessName: String? = null
+)
+
+

@@ -20,7 +20,8 @@ class SwiftPayService(
     customMid: String? = null,
     customTerminalId: String? = null,
     customCardMid: String? = null,
-    forcedSandbox: Boolean? = null
+    forcedSandbox: Boolean? = null,
+    private val jwtToken: String? = null
 ) {
     
     private val secretKey = customSecretKey?.takeUnless { it.isBlank() } ?: BuildConfig.SWIFTPAY_SECRET_KEY
@@ -33,8 +34,10 @@ class SwiftPayService(
     
     private val pgBaseUrl = if (isSandbox) "https://api-sandbox.netbank.ph/" else "https://api.netbank.ph/"
     private val payBaseUrl = if (isSandbox) "https://api.pay.sandbox.live.swiftpay.ph/api/" else "https://api.pay.live.swiftpay.ph/api/"
+    private val backendUrl = "http://10.0.2.2:3000/api/"
 
     private var activeMid: String? = customMid ?: BuildConfig.SWIFTPAY_QR_MID
+
     private var cardMid: String? = customCardMid ?: customMid ?: BuildConfig.SWIFTPAY_CARD_MID
     private var terminalId: String? = customTerminalId ?: BuildConfig.SWIFTPAY_TERMINAL_ID
 
@@ -49,7 +52,7 @@ class SwiftPayService(
             val original = chain.request()
             val request = original.newBuilder()
                 .header("Accept", "application/json")
-                .header("User-Agent", "FastPayAndroid/1.0")
+                .header("User-Agent", "SwiftPayAndroid/1.0")
             
             if (original.header("x-swiftpay-mid") == null) {
                 activeMid?.let { request.header("x-swiftpay-mid", it) }
@@ -408,4 +411,43 @@ class SwiftPayService(
             delay(10000L)
         }
     }
+
+    // --- Custom Backend / Deposit Methods ---
+
+    suspend fun submitDeposit(amount: Double, referenceNumber: String, bankName: String): Result<Unit> {
+        return try {
+            val response = api.submitDeposit(
+                backendUrl + "swiftpay/deposit",
+                "Bearer $jwtToken",
+                DepositRequest(amount, referenceNumber, bankName)
+            )
+            if (response.isSuccessful) Result.success(Unit) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun getAdminDeposits(): Result<List<DepositResponse>> {
+        return try {
+            val response = api.getAdminDeposits(backendUrl + "admin/deposits", "Bearer $jwtToken")
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun updateDepositStatus(id: String, status: String): Result<Unit> {
+        return try {
+            val response = api.updateDepositStatus(
+                backendUrl + "admin/deposits/$id/status",
+                "Bearer $jwtToken",
+                DepositStatusUpdateRequest(status)
+            )
+            if (response.isSuccessful) Result.success(Unit) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun login(email: String, pass: String): Result<LoginResponse> {
+        return try {
+            val response = api.login(backendUrl + "auth/login", LoginRequest(email, pass))
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
 }
+

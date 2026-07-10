@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.example.myapplication.data.SettingsManager
 import com.example.myapplication.data.ApprovalService
 import com.example.myapplication.data.api.ApprovalRequestDto
-import com.example.myapplication.ui.theme.FastPayBlue
+import com.example.myapplication.ui.theme.SwiftPayPrimary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -79,7 +79,7 @@ fun ApprovalsScreen() {
         ) {
             if (isLoading && pending.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = FastPayBlue)
+                    CircularProgressIndicator(color = SwiftPayPrimary)
                 }
             } else if (pending.isEmpty()) {
                 EmptyApprovalsState()
@@ -139,14 +139,14 @@ fun ApprovalCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     shape = CircleShape,
-                    color = FastPayBlue.copy(alpha = 0.1f),
+                    color = SwiftPayPrimary.copy(alpha = 0.1f),
                     modifier = Modifier.size(48.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Rounded.PhonelinkLock, 
                             contentDescription = null, 
-                            tint = FastPayBlue,
+                            tint = SwiftPayPrimary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -191,7 +191,7 @@ fun ApprovalCard(
                     onClick = onApprove,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = FastPayBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = SwiftPayPrimary)
                 ) {
                     Text("Approve", fontWeight = FontWeight.Bold)
                 }

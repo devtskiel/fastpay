@@ -1,6 +1,8 @@
 package com.example.myapplication.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -41,47 +44,60 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     val authUseCase = remember { DIContainer.provideAuthenticateUseCase() }
 
-    Scaffold(
-        containerColor = SwiftPayBackground
-    ) { innerPadding ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(SwiftPayBackground, Color(0xFF000000))
+                )
+            )
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = when {
-                    isForgotMode -> Icons.Rounded.LockReset
-                    isOtpSent -> Icons.Rounded.VerifiedUser
-                    else -> Icons.Rounded.ElectricBolt
-                },
-                contentDescription = null,
-                tint = SwiftPayPrimary,
-                modifier = Modifier.size(64.dp)
-            )
-            
-            Spacer(modifier = Modifier.height(32.dp))
+            // SwiftPay Logo/Wordmark
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Rounded.ElectricBolt,
+                    contentDescription = null,
+                    tint = SwiftPayPrimary,
+                    modifier = Modifier.size(40.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "SWIFTPAY",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Black,
+                    color = Color.White,
+                    letterSpacing = 4.sp
+                )
+            }
             
             Text(
-                text = when {
-                    isForgotMode -> "Reset Password"
-                    isOtpSent -> "Verify Identity"
-                    else -> "Enterprise Access"
-                },
-                style = MaterialTheme.typography.headlineLarge,
+                text = "ENTERPRISE BANKING",
+                style = MaterialTheme.typography.labelSmall,
+                color = SwiftPayPrimary,
+                letterSpacing = 2.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            Text(
+                text = if (isOtpSent) "Identity Verification" else if (isForgotMode) "Security Reset" else "Secure Access",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
                 color = SwiftPayTextPrimary
             )
             
             Text(
-                text = when {
-                    isForgotMode -> "Enter your email to receive recovery instructions."
-                    isOtpSent -> "Enter the 6-digit code sent to $email"
-                    else -> "Authenticate to continue to terminal"
-                },
-                style = MaterialTheme.typography.bodyMedium,
+                text = if (isOtpSent) "A verification code was sent to $email" else "Authorized Merchant Access Terminal",
+                style = MaterialTheme.typography.bodySmall,
                 color = SwiftPayTextSecondary,
                 modifier = Modifier.padding(top = 8.dp),
                 textAlign = TextAlign.Center
@@ -96,28 +112,34 @@ fun LoginScreen(
                     onValueChange = { email = it; errorMessage = null },
                     label = { Text("Merchant Email") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    leadingIcon = { Icon(Icons.Rounded.Email, null, tint = SwiftPayTextDim) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = SwiftPayPrimary,
-                        unfocusedBorderColor = SwiftPayBorder
+                        unfocusedBorderColor = SwiftPayBorder,
+                        focusedContainerColor = SwiftPayCard.copy(alpha = 0.5f),
+                        unfocusedContainerColor = SwiftPayCard.copy(alpha = 0.3f)
                     )
                 )
                 
                 if (!isForgotMode) {
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    // Access Key (Secret Key) Field
+                    // Password Field
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it; errorMessage = null },
-                        label = { Text("Access Key") },
+                        label = { Text("Password") },
                         modifier = Modifier.fillMaxWidth(),
                         visualTransformation = PasswordVisualTransformation(),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        leadingIcon = { Icon(Icons.Rounded.Lock, null, tint = SwiftPayTextDim) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = SwiftPayPrimary,
-                            unfocusedBorderColor = SwiftPayBorder
+                            unfocusedBorderColor = SwiftPayBorder,
+                            focusedContainerColor = SwiftPayCard.copy(alpha = 0.5f),
+                            unfocusedContainerColor = SwiftPayCard.copy(alpha = 0.3f)
                         )
                     )
                     
@@ -125,7 +147,7 @@ fun LoginScreen(
                         onClick = { isForgotMode = true },
                         modifier = Modifier.align(Alignment.End)
                     ) {
-                        Text("Forgot Key?", color = SwiftPayPrimary, style = MaterialTheme.typography.bodySmall)
+                        Text("Forgot Password?", color = SwiftPayPrimary, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             } else {
@@ -138,57 +160,65 @@ fun LoginScreen(
                             errorMessage = null
                         }
                     },
-                    label = { Text("6-Digit OTP") },
+                    label = { Text("6-Digit Verification Code") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     textStyle = LocalTextStyle.current.copy(
                         textAlign = TextAlign.Center,
                         letterSpacing = 8.sp,
                         fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = SwiftPayPrimary
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = SwiftPayPrimary,
-                        unfocusedBorderColor = SwiftPayBorder
+                        unfocusedBorderColor = SwiftPayBorder,
+                        focusedContainerColor = SwiftPayCard
                     )
                 )
             }
             
             if (errorMessage != null) {
-                Text(
-                    text = errorMessage!!,
-                    color = Color.Red,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 16.dp)
-                )
+                Surface(
+                    color = SwiftPayError.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.padding(top = 16.dp).fillMaxWidth()
+                ) {
+                    Text(
+                        text = errorMessage!!,
+                        color = SwiftPayError,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(12.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(32.dp))
             
             SwiftPayPrimaryButton(
                 text = when {
-                    isForgotMode -> "Send Reset Link"
-                    isOtpSent -> "Verify & Login"
-                    else -> "Initiate Access"
+                    isForgotMode -> "Request Reset"
+                    isOtpSent -> "Verify Identity"
+                    else -> "Initiate Login"
                 },
                 onClick = {
                     if (isForgotMode) {
-                        // Handle forgot password
                         isForgotMode = false
-                        errorMessage = "Recovery email sent."
+                        errorMessage = "If this email is registered, instructions will be sent."
                     } else {
                         isLoading = true
                         errorMessage = null
                         scope.launch {
                             if (!isOtpSent) {
-                                authUseCase.requestAccess(email, password)
+                                authUseCase.login(email, password)
                                     .onSuccess {
                                         isOtpSent = true
                                         isLoading = false
                                     }
                                     .onFailure {
-                                        errorMessage = it.message ?: "Access request failed"
+                                        errorMessage = it.message ?: "Authentication failed"
                                         isLoading = false
                                     }
                             } else {
@@ -204,7 +234,7 @@ fun LoginScreen(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 enabled = !isLoading && (
                     if (isForgotMode) email.isNotBlank() 
                     else if (isOtpSent) otpCode.length == 6 
@@ -212,13 +242,13 @@ fun LoginScreen(
                 )
             )
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
             if (!isOtpSent && !isForgotMode) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("New merchant?", style = MaterialTheme.typography.bodySmall)
+                    Text("New Enterprise Partner?", style = MaterialTheme.typography.bodySmall, color = SwiftPayTextSecondary)
                     TextButton(onClick = onNavigateToRegistration) {
-                        Text("Register Now", color = SwiftPayPrimary, fontWeight = FontWeight.Bold)
+                        Text("Onboard Now", color = SwiftPayPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
             } else {
@@ -231,18 +261,32 @@ fun LoginScreen(
                     modifier = Modifier.padding(top = 8.dp),
                     enabled = !isLoading
                 ) {
-                    Text("Cancel", color = SwiftPayTextSecondary)
+                    Text("Return to Login", color = SwiftPayTextSecondary)
                 }
             }
-            
-            if (!isOtpSent && !isForgotMode) {
-                TextButton(onClick = onNavigateToCompliance) {
-                    Text("Regulatory Compliance (BSP)", style = MaterialTheme.typography.labelSmall, color = SwiftPayTextDim)
-                }
+        }
+
+        // Compliance Footer
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Regulated by the Bangko Sentral ng Pilipinas",
+                style = MaterialTheme.typography.labelSmall,
+                color = SwiftPayTextDim,
+                fontSize = 10.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = onNavigateToCompliance) {
+                Text("Compliance & Privacy Policy", style = MaterialTheme.typography.labelSmall, color = SwiftPayPrimary)
             }
-            
-            if (isLoading) {
-                Spacer(modifier = Modifier.height(16.dp))
+        }
+        
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = SwiftPayPrimary)
             }
         }

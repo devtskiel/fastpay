@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -65,7 +66,7 @@ fun HomeScreen(
 
             // 2. Direct Payment Actions
             Text(
-                text = "ACCEPT PAYMENTS",
+                text = "ACCEPT COLLECTIONS",
                 style = MaterialTheme.typography.labelMedium,
                 color = SwiftPayTextDim,
                 letterSpacing = 1.sp
@@ -80,7 +81,7 @@ fun HomeScreen(
 
             // 3. Treasury & Operations
             Text(
-                text = "OPERATIONS",
+                text = "BANKING OPERATIONS",
                 style = MaterialTheme.typography.labelMedium,
                 color = SwiftPayTextDim,
                 letterSpacing = 1.sp
@@ -98,13 +99,13 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "RECENT LEDGER",
+                    text = "TRANSACTION LEDGER",
                     style = MaterialTheme.typography.labelMedium,
                     color = SwiftPayTextDim,
                     letterSpacing = 1.sp
                 )
                 TextButton(onClick = onNavigateToWallet) {
-                    Text("VIEW ALL", style = MaterialTheme.typography.labelSmall, color = SwiftPayPrimary)
+                    Text("FULL STATEMENT", style = MaterialTheme.typography.labelSmall, color = SwiftPayPrimary)
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -112,8 +113,8 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // 5. Infrastructure Links
-            PromoCard()
+            // 5. Compliance Branding
+            ComplianceBadge()
 
             Spacer(modifier = Modifier.height(32.dp))
         }
@@ -147,17 +148,14 @@ fun HomeTopBar(onNavigateToSettings: () -> Unit = {}) {
     CenterAlignedTopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.ElectricBolt, null, tint = SwiftPayPrimary, modifier = Modifier.size(20.dp))
+                Icon(Icons.Rounded.ElectricBolt, null, tint = SwiftPayPrimary, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("SWIFTPAY", style = MaterialTheme.typography.labelLarge, color = SwiftPayTextPrimary, letterSpacing = 2.sp)
+                Text("SWIFTPAY", style = MaterialTheme.typography.labelLarge, color = SwiftPayTextPrimary, letterSpacing = 2.sp, fontWeight = FontWeight.Black)
             }
         },
         actions = {
             IconButton(onClick = onNavigateToSettings) {
-                Icon(Icons.Rounded.Settings, null, tint = SwiftPayTextSecondary)
-            }
-            IconButton(onClick = { /* Help */ }) {
-                Icon(Icons.AutoMirrored.Rounded.HelpOutline, null, tint = SwiftPayTextSecondary)
+                Icon(Icons.Rounded.Tune, null, tint = SwiftPayTextSecondary)
             }
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = SwiftPayBackground)
@@ -172,31 +170,51 @@ fun BalanceCard(balance: Double, isLoading: Boolean) {
         shape = RoundedCornerShape(24.dp),
         border = BorderStroke(1.dp, SwiftPayBorder)
     ) {
-        Column(
-            modifier = Modifier.padding(28.dp),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Text(
-                text = "AVAILABLE SETTLEMENT",
-                style = MaterialTheme.typography.labelSmall,
-                color = SwiftPayTextSecondary,
-                letterSpacing = 1.sp
-            )
-            Spacer(Modifier.height(8.dp))
-            if (isLoading) {
-                Box(modifier = Modifier.width(160.dp).height(44.dp).clip(RoundedCornerShape(8.dp)).shimmerEffect())
-            } else {
-                Text(
-                    text = "₱${"%,.2f".format(balance)}",
-                    style = MaterialTheme.typography.displayMedium,
-                    color = SwiftPayTextPrimary
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Subtle gradient pattern
+            Box(modifier = Modifier.matchParentSize().background(
+                Brush.radialGradient(
+                    colors = listOf(SwiftPayPrimary.copy(alpha = 0.05f), Color.Transparent),
+                    radius = 500f
                 )
-            }
-            Spacer(Modifier.height(20.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.CheckCircle, null, tint = SwiftPaySuccess, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Verified by Netbank", style = MaterialTheme.typography.bodySmall, color = SwiftPaySuccess)
+            ))
+            
+            Column(
+                modifier = Modifier.padding(28.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = "SETTLED BALANCE (PHP)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = SwiftPayTextSecondary,
+                    letterSpacing = 1.5.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                if (isLoading) {
+                    Box(modifier = Modifier.width(160.dp).height(44.dp).clip(RoundedCornerShape(8.dp)).shimmerEffect())
+                } else {
+                    Text(
+                        text = "₱${"%,.2f".format(balance)}",
+                        style = MaterialTheme.typography.displayMedium,
+                        color = SwiftPayTextPrimary,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+                Spacer(Modifier.height(24.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = SwiftPaySuccess.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.Security, null, tint = SwiftPaySuccess, modifier = Modifier.size(12.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("BSP COMPLIANT", style = MaterialTheme.typography.labelSmall, color = SwiftPaySuccess, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text("Verified Terminal", style = MaterialTheme.typography.bodySmall, color = SwiftPayTextDim)
+                }
             }
         }
     }
@@ -225,16 +243,9 @@ fun PaymentActionGrid(onAction: (PendingAction) -> Unit) {
         DirectActionItem(
             modifier = Modifier.weight(1f),
             icon = Icons.Rounded.Link,
-            label = "LINK",
+            label = "PAY LINK",
             color = Color(0xFF6200EE),
             onClick = { onAction(PendingAction.LINK) }
-        )
-        DirectActionItem(
-            modifier = Modifier.weight(1f),
-            icon = Icons.Rounded.FileUpload,
-            label = "PAYOUT",
-            color = Color(0xFFE91E63),
-            onClick = { onAction(PendingAction.PAYOUT) }
         )
     }
 }
@@ -259,7 +270,12 @@ fun DirectActionItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(32.dp))
+            Box(
+                modifier = Modifier.size(44.dp).background(color.copy(alpha = 0.1f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
+            }
             Spacer(Modifier.height(8.dp))
             Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = SwiftPayTextPrimary)
         }
@@ -275,8 +291,8 @@ fun TreasuryActionGrid(
 ) {
     val items = listOf(
         Triple(Icons.Rounded.AccountBalance, "CASH IN", onNavigateToCashIn),
-        Triple(Icons.Rounded.FileUpload, "PAYOUT", onNavigateToPayout),
-        Triple(Icons.Rounded.Dashboard, "HUB", onNavigateToHub),
+        Triple(Icons.Rounded.FileUpload, "DISBURSE", onNavigateToPayout),
+        Triple(Icons.Rounded.Hub, "HUB", onNavigateToHub),
         Triple(Icons.Rounded.Settings, "CONFIG", onNavigateToSettings)
     )
 
@@ -302,7 +318,7 @@ fun ActionItem(icon: ImageVector, label: String, onClick: () -> Unit) {
             }
         }
         Spacer(Modifier.height(10.dp))
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = SwiftPayTextSecondary)
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = SwiftPayTextSecondary, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -316,7 +332,7 @@ fun ActivityLedgerPreview(transactions: List<com.example.myapplication.data.api.
             border = BorderStroke(1.dp, SwiftPayBorder)
         ) {
             Text(
-                "No recent transactions",
+                "No transaction history found.",
                 modifier = Modifier.padding(24.dp),
                 style = MaterialTheme.typography.bodyMedium,
                 color = SwiftPayTextDim,
@@ -370,7 +386,7 @@ fun LedgerItem(id: String, amount: Double, status: String, date: String = "") {
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(id, style = MaterialTheme.typography.bodyMedium, color = SwiftPayTextPrimary, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                Text(if (date.isNotBlank()) date else "SwiftPay Settlement", style = MaterialTheme.typography.bodySmall, color = SwiftPayTextDim)
+                Text(if (date.isNotBlank()) date else "Electronic Transfer", style = MaterialTheme.typography.bodySmall, color = SwiftPayTextDim)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
@@ -379,28 +395,28 @@ fun LedgerItem(id: String, amount: Double, status: String, date: String = "") {
                     color = if (amount >= 0) SwiftPaySuccess else SwiftPayTextPrimary,
                     fontWeight = FontWeight.Bold
                 )
-                Text(status, style = MaterialTheme.typography.labelSmall, color = statusColor)
+                Text(status, style = MaterialTheme.typography.labelSmall, color = statusColor, fontWeight = FontWeight.Black)
             }
         }
     }
 }
 
 @Composable
-fun PromoCard() {
+fun ComplianceBadge() {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = SwiftPayPrimary.copy(alpha = 0.1f),
+        color = SwiftPayPrimary.copy(alpha = 0.05f),
         shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, SwiftPayPrimary.copy(alpha = 0.2f))
+        border = BorderStroke(1.dp, SwiftPayPrimary.copy(alpha = 0.1f))
     ) {
         Row(modifier = Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("ENTERPRISE HUB", style = MaterialTheme.typography.labelSmall, color = SwiftPayPrimary)
+                Text("BANKING SECURITY", style = MaterialTheme.typography.labelSmall, color = SwiftPayPrimary, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))
-                Text("Direct API Integration", style = MaterialTheme.typography.titleMedium, color = SwiftPayTextPrimary)
-                Text("Connect your POS system directly to our terminal infrastructure.", style = MaterialTheme.typography.bodySmall, color = SwiftPayTextSecondary)
+                Text("End-to-End Encryption", style = MaterialTheme.typography.titleMedium, color = SwiftPayTextPrimary, fontWeight = FontWeight.Bold)
+                Text("SwiftPay processes real-money transactions via BSP-regulated infrastructure partners.", style = MaterialTheme.typography.bodySmall, color = SwiftPayTextSecondary)
             }
-            Icon(Icons.Rounded.Terminal, null, tint = SwiftPayPrimary, modifier = Modifier.size(40.dp).alpha(0.3f))
+            Icon(Icons.Rounded.Shield, null, tint = SwiftPayPrimary, modifier = Modifier.size(40.dp).alpha(0.2f))
         }
     }
 }
@@ -410,13 +426,13 @@ fun AmountInputDialog(onConfirm: (Double) -> Unit, onDismiss: () -> Unit) {
     var amountText by remember { mutableStateOf("") }
     com.example.myapplication.ui.components.SwiftPayBaseDialog(
         onDismissRequest = onDismiss,
-        title = "Enter Amount",
+        title = "Initiate Collection",
         icon = Icons.Rounded.Payments,
         content = {
             OutlinedTextField(
                 value = amountText,
                 onValueChange = { if (it.isEmpty() || it.toDoubleOrNull() != null) amountText = it },
-                label = { Text("Amount (PHP)") },
+                label = { Text("Transaction Amount (PHP)") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                     keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
@@ -432,7 +448,7 @@ fun AmountInputDialog(onConfirm: (Double) -> Unit, onDismiss: () -> Unit) {
                 text = "Next",
                 onClick = { amountText.toDoubleOrNull()?.let { onConfirm(it) } },
                 modifier = Modifier.weight(1f),
-                enabled = amountText.toDoubleOrNull() != null
+                enabled = amountText.toDoubleOrNull() != null && (amountText.toDoubleOrNull() ?: 0.0) > 0.0
             )
         }
     )

@@ -30,7 +30,7 @@ fun VcaScreen(
     // Mock VCA
     val accounts = remember {
         mutableStateListOf(
-            VcaItem("FastPay Operations", "77770000001", "Netbank", "ACTIVE"),
+            VcaItem("SwiftPay Operations", "77770000001", "Netbank", "ACTIVE"),
             VcaItem("Disbursement Float", "77770000002", "Netbank", "ACTIVE")
         )
     }

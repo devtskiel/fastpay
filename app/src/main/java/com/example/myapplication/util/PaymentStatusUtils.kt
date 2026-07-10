@@ -46,7 +46,7 @@ fun getStatusTextColor(status: String): Color {
     return if (status.contains("SUCCESS", ignoreCase = true)) {
         Color(0xFF04663A)
     } else {
-        Color(0xFF0A0E27) // FastPayNavy
+        Color(0xFF0A0E27) // SwiftPayNavy
     }
 }
 

@@ -32,7 +32,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="maya-showcase" />
+                <data android:scheme="swiftpay-app" />
             </intent-filter>
         </activity>
 
@@ -45,10 +45,10 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- Standard scheme: maya-showcase://payment/success -->
-                <data android:scheme="maya-showcase" android:host="payment" android:pathPrefix="/success" />
-                <data android:scheme="maya-showcase" android:host="payment" android:pathPrefix="/failure" />
-                <data android:scheme="maya-showcase" android:host="payment" android:pathPrefix="/cancel" />
+                <!-- Standard scheme: swiftpay-app://payment/success -->
+                <data android:scheme="swiftpay-app" android:host="payment" android:pathPrefix="/success" />
+                <data android:scheme="swiftpay-app" android:host="payment" android:pathPrefix="/failure" />
+                <data android:scheme="swiftpay-app" android:host="payment" android:pathPrefix="/cancel" />
             </intent-filter>
         </activity>
     </application>

@@ -28,7 +28,7 @@ class SessionManager(private val context: Context, private val settingsManager: 
 
     companion object {
         private const val TAG = "SessionManager"
-        private const val SESSION_STORAGE_KEY = "fastpay_sessions"
+        private const val SESSION_STORAGE_KEY = "swiftpay_sessions"
     }
 
     private fun getDeviceId(): String {

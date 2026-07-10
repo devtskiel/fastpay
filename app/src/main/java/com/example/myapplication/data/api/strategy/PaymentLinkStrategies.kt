@@ -92,7 +92,7 @@ class PaymentLinkRequestBuilder {
     fun amount(amount: Double) = apply { this.amount = amount }
 
     fun description(description: String) = apply {
-        this.description = description.ifBlank { "Fast Pay Payment" }
+        this.description = description.ifBlank { "SwiftPay Payment" }
     }
 
     fun merchantAlias(alias: String?) = apply {
@@ -106,7 +106,7 @@ class PaymentLinkRequestBuilder {
     fun build(): PaymentLinkStrategyConfig {
         return PaymentLinkStrategyConfig(
             amount = amount,
-            description = description.ifBlank { "Fast Pay Payment" },
+            description = description.ifBlank { "SwiftPay Payment" },
             merchantAlias = merchantAlias,
             referenceNumber = referenceNumber
         )

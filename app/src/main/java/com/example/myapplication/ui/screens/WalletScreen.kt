@@ -30,7 +30,7 @@ import com.example.myapplication.data.TransactionStore
 import com.example.myapplication.data.createSwiftPayService
 import com.example.myapplication.data.mergeTransactions
 import com.example.myapplication.ui.theme.*
-import com.example.myapplication.ui.components.FastPayStatusBadge
+import com.example.myapplication.ui.components.SwiftPayStatusBadge
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -138,7 +138,7 @@ fun TransactionRow(tx: InternalTransaction) {
                     style = MaterialTheme.typography.titleLarge,
                     color = SwiftPayTextPrimary
                 )
-                FastPayStatusBadge(status = tx.status)
+                SwiftPayStatusBadge(status = tx.status)
             }
         }
     }

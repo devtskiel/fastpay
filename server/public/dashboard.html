@@ -8,8 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #F46119;
-            --primary-hover: #D94E00;
+            --primary: #1F4BA8;
+            --primary-hover: #163E8C;
             --bg-deep: #0B0C0E;
             --bg-surface: #14161A;
             --bg-card: #1C1F26;
@@ -157,11 +157,11 @@
 
             <div class="input-box">
                 <label>Merchant Email</label>
-                <input type="email" id="l-email" value="admin@fastpay.com" placeholder="name@company.com">
+                <input type="email" id="l-email" value="drltechgroup2024@gmail.com" placeholder="name@company.com">
             </div>
             <div class="input-box">
                 <label>Access Key</label>
-                <input type="password" id="l-pass" value="SwiftPay#Admin#2024" placeholder="••••••••">
+                <input type="password" id="l-pass" value="#Sirden1216" placeholder="••••••••">
             </div>
             <button class="btn btn-primary" style="width: 100%; margin-top: 12px;" id="btn-login" onclick="login()">
                 Authenticate Terminal
@@ -187,6 +187,7 @@
 
         <div class="nav-group">
             <div class="nav-label">Treasury</div>
+            <a class="nav-item" onclick="showPage('cashin', this)"><i class="fas fa-university"></i> Cash In</a>
             <a class="nav-item" onclick="showPage('disbursements', this)"><i class="fas fa-paper-plane"></i> Payouts</a>
             <a class="nav-item" onclick="showPage('collections', this)"><i class="fas fa-link"></i> Collection Links</a>
         </div>
@@ -246,6 +247,65 @@
                     </thead>
                     <tbody id="tx-ledger"></tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Cash In Page -->
+        <div id="page-cashin" class="page">
+            <h2 style="margin-bottom: 8px;">Cash In / Deposit</h2>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 32px;">Please deposit funds to the standard accounts below to top up your SwiftPay balance.</p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px;">
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
+                        <div>
+                            <h3 style="color: var(--primary);">Security Bank Corporation</h3>
+                            <p style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">Standard Bank Deposit</p>
+                        </div>
+                        <i class="fas fa-university" style="font-size: 24px; color: var(--text-dim);"></i>
+                    </div>
+                    <div class="input-box" style="margin-bottom: 12px;">
+                        <label>Account Number</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input value="0000068888173" readonly style="background: var(--bg-deep); border-color: var(--border);">
+                            <button class="btn btn-ghost" onclick="copyText('0000068888173')"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <div class="input-box">
+                        <label>Account Name</label>
+                        <input value="Click Store" readonly style="background: var(--bg-deep); border-color: var(--border);">
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
+                        <div>
+                            <h3 style="color: var(--primary);">Asia United Bank/Hellomoney</h3>
+                            <p style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">Standard Bank Deposit</p>
+                        </div>
+                        <i class="fas fa-mobile-alt" style="font-size: 24px; color: var(--text-dim);"></i>
+                    </div>
+                    <div class="input-box" style="margin-bottom: 12px;">
+                        <label>Account Number</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input value="934105321485" readonly style="background: var(--bg-deep); border-color: var(--border);">
+                            <button class="btn btn-ghost" onclick="copyText('934105321485')"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <div class="input-box">
+                        <label>Account Name</label>
+                        <input value="Click Store" readonly style="background: var(--bg-deep); border-color: var(--border);">
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 40px; padding: 24px; background: rgba(244, 97, 25, 0.05); border-radius: 16px; border: 1px solid rgba(244, 97, 25, 0.2);">
+                <div style="display: flex; gap: 16px; align-items: center;">
+                    <i class="fas fa-info-circle" style="color: var(--primary); font-size: 24px;"></i>
+                    <p style="font-size: 13px; color: var(--text-secondary);">
+                        Settlements to these accounts are typically processed within 30-60 minutes. Please ensure you include your Merchant ID in the transaction remarks if possible.
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -572,6 +632,13 @@
                 document.getElementById('qr-btn').innerText = 'Generate QR Code';
             }
         }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Copied to clipboard', 'success');
+            });
+        }
+
         function logout() { localStorage.clear(); location.reload(); }
     </script>
 </body>

@@ -1,4 +1,4 @@
-# Deployment Guide for Fast Pay
+# Deployment Guide for SwiftPay
 
 This project is configured for production deployment on **Render**.
 

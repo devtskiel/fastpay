@@ -26,9 +26,9 @@ import androidx.compose.ui.window.Dialog
 import com.example.myapplication.analytics.PaymentLinkAnalyticsEvent
 import com.example.myapplication.analytics.PaymentLinkAnalyticsTracker
 import com.example.myapplication.ui.localization.rememberPaymentLinkLocalization
-import com.example.myapplication.ui.theme.FastPayBlack
-import com.example.myapplication.ui.theme.FastPayNavy
-import com.example.myapplication.ui.components.FastPayInfoCard
+import com.example.myapplication.ui.theme.SwiftPayBackground
+import com.example.myapplication.ui.theme.SwiftPayPrimary
+import com.example.myapplication.ui.components.SwiftPayInfoCard
 
 /**
  * Enhanced payment link dialog with localization, analytics, and expiry support.
@@ -48,9 +48,9 @@ fun EnhancedPaymentLinkDialog(
     val context = LocalContext.current
     val localization = rememberPaymentLinkLocalization()
     val analyticsTracker = remember { PaymentLinkAnalyticsTracker(context) }
-    val isDarkTheme = MaterialTheme.colorScheme.background == FastPayBlack
+    val isDarkTheme = MaterialTheme.colorScheme.background == SwiftPayBackground
     val bgColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color.White
-    val textColor = if (isDarkTheme) Color.White else FastPayNavy
+    val textColor = if (isDarkTheme) Color.White else SwiftPayPrimary
 
     // Track dialog view
     LaunchedEffect(linkId) {
@@ -127,7 +127,7 @@ fun EnhancedPaymentLinkDialog(
 
                 // Amount display (if fixed)
                 if (hasFixedAmount && amount > 0) {
-                    FastPayInfoCard(
+                    SwiftPayInfoCard(
                         title = "Amount",
                         value = "₱${String.format("%.2f", amount)}",
                         modifier = Modifier.fillMaxWidth()
@@ -190,8 +190,8 @@ fun EnhancedPaymentLinkActions(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val isDarkTheme = MaterialTheme.colorScheme.background == FastPayBlack
-    val textColor = if (isDarkTheme) Color.White else FastPayNavy
+    val isDarkTheme = MaterialTheme.colorScheme.background == SwiftPayBackground
+    val textColor = if (isDarkTheme) Color.White else SwiftPayPrimary
     val secondaryTextColor = if (isDarkTheme) Color.LightGray else Color.Gray
 
     Column(modifier = modifier) {
@@ -218,7 +218,7 @@ fun EnhancedPaymentLinkActions(
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = FastPayNavy)
+            colors = ButtonDefaults.buttonColors(containerColor = SwiftPayPrimary)
         ) {
             Icon(Icons.Rounded.Share, null, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))

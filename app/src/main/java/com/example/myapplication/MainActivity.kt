@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -40,7 +41,8 @@ import com.example.myapplication.ui.screens.ProfileScreen
 import com.example.myapplication.ui.screens.WalletScreen
 import com.example.myapplication.ui.screens.ApiKeysScreen
 import com.example.myapplication.ui.screens.ApiDocsScreen
-import com.example.myapplication.ui.theme.FastPayTheme
+import com.example.myapplication.di.DIContainer
+import com.example.myapplication.ui.theme.SwiftPayTheme
 import com.example.myapplication.ui.theme.SwiftPayPrimary
 import com.example.myapplication.data.SettingsManager
 import com.example.myapplication.data.SessionManager
@@ -67,6 +69,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
+        // Security: Prevent screenshots and screen recording of sensitive payment info
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        
         com.example.myapplication.di.DIContainer.initialize(applicationContext)
         
         setContent {
@@ -77,7 +82,7 @@ class MainActivity : ComponentActivity() {
                 "DARK" -> true
                 else -> androidx.compose.foundation.isSystemInDarkTheme()
             }
-            FastPayTheme(darkTheme = isDarkTheme) {
+            SwiftPayTheme(darkTheme = isDarkTheme) {
                 SwiftPayApp()
             }
         }
@@ -167,6 +172,19 @@ fun SwiftPayApp() {
     }
 
     val miniAppViewModel: MiniAppViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    
+    // Security: Idle Timeout Session Management
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) {
+                // App moved to background - could store timestamp
+            } else if (event == androidx.lifecycle.Lifecycle.Event.ON_START) {
+                // App moved to foreground - could check timestamp and force logout if too long
+            }
+        }
+        // This is a simplified placeholder for session timeout logic
+        onDispose { }
+    }
 
     val navController = remember {
         object : NavController {
@@ -235,7 +253,12 @@ fun SwiftPayApp() {
                     }
                     Route.Registration -> NavEntry(key) {
                         com.example.myapplication.ui.screens.RegistrationScreen(
-                            onSuccess = { navController.navigate(Route.Home) },
+                            onSuccess = { email, password ->
+                                scope.launch {
+                                    DIContainer.provideAuthenticateUseCase().registerAdmin(email, password)
+                                    navController.navigate(Route.Home)
+                                }
+                            },
                             onBack = { navController.pop() },
                             onNavigateToTerms = { navController.navigate(Route.Terms) }
                         )
@@ -337,10 +360,15 @@ fun SwiftPayApp() {
                                 onNavigateToInvoices = { navController.navigate(Route.Invoices) },
                                 onNavigateToVca = { navController.navigate(Route.Vca) },
                                 onNavigateToMembers = { navController.navigate(Route.Members) },
-                                onNavigateToDashboard = { navController.navigate(Route.Dashboard) }
+                                onNavigateToDashboard = { navController.navigate(Route.Dashboard) },
+                                onNavigateToAdminDeposits = { navController.navigate(Route.AdminDeposits) }
                             )
                         }
+                        Route.AdminDeposits -> NavEntry(key) {
+                            com.example.myapplication.ui.screens.AdminDepositsScreen(onBack = { navController.pop() })
+                        }
                         Route.Members -> NavEntry(key) {
+
                             com.example.myapplication.ui.screens.MembersScreen(onBack = { navController.pop() })
                         }
                         Route.Webhooks -> NavEntry(key) {
