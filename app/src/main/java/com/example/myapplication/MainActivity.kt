@@ -114,6 +114,7 @@ interface NavController {
 @Composable
 fun SwiftPayApp() {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val settings = remember { SettingsManager(context) }
     val sessionManager = remember { SessionManager(context, settings) }
     val approvalService: ApprovalService = remember { ApprovalService() }
@@ -182,7 +183,7 @@ fun SwiftPayApp() {
                 if (backStack.size > 1) backStack.removeAt(backStack.size - 1)
             }
             override fun logout() {
-                (context as? androidx.activity.ComponentActivity)?.lifecycleScope?.launch {
+                scope.launch {
                     settings.clearSession()
                     sessionManager.clearSession()
                     backStack.clear()
@@ -222,7 +223,28 @@ fun SwiftPayApp() {
             ) { key ->
                 when (key) {
                     Route.Login -> NavEntry(key) {
-                        LoginScreen(onLoginSuccess = { navController.navigate(Route.Home) })
+                        LoginScreen(
+                            onLoginSuccess = { email ->
+                                scope.launch {
+                                    settings.setLoggedIn(email, true)
+                                }
+                            },
+                            onNavigateToRegistration = { navController.navigate(Route.Registration) },
+                            onNavigateToCompliance = { navController.navigate(Route.Compliance) }
+                        )
+                    }
+                    Route.Registration -> NavEntry(key) {
+                        com.example.myapplication.ui.screens.RegistrationScreen(
+                            onSuccess = { navController.navigate(Route.Home) },
+                            onBack = { navController.pop() },
+                            onNavigateToTerms = { navController.navigate(Route.Terms) }
+                        )
+                    }
+                    Route.Terms -> NavEntry(key) {
+                        com.example.myapplication.ui.screens.TermsAndConditionsScreen(onBack = { navController.pop() })
+                    }
+                    Route.Compliance -> NavEntry(key) {
+                        com.example.myapplication.ui.screens.ComplianceScreen(onBack = { navController.pop() })
                     }
                     else -> NavEntry(key) {}
                 }
@@ -295,8 +317,15 @@ fun SwiftPayApp() {
                                 onNavigateToPayout = { navController.navigate(Route.Payout) },
                                 onNavigateToHub = { navController.navigate(Route.Hub) },
                                 onNavigateToWallet = { navController.navigate(Route.Wallet) },
-                                onNavigateToSettings = { navController.navigate(Route.ApiKeys) }
+                                onNavigateToSettings = { navController.navigate(Route.Settings) },
+                                onNavigateToCashIn = { navController.navigate(Route.CashIn) }
                             )
+                        }
+                        Route.CashIn -> NavEntry(key) {
+                            com.example.myapplication.ui.screens.CashInScreen(onBack = { navController.pop() })
+                        }
+                        Route.Dashboard -> NavEntry(key) {
+                            com.example.myapplication.ui.screens.DashboardScreen(onBack = { navController.pop() })
                         }
                         Route.Payout -> NavEntry(key) {
                             com.example.myapplication.ui.screens.PayoutScreen(onBack = { navController.pop() })
@@ -306,8 +335,13 @@ fun SwiftPayApp() {
                                 onBack = { navController.pop() },
                                 onNavigateToWebhooks = { navController.navigate(Route.Webhooks) },
                                 onNavigateToInvoices = { navController.navigate(Route.Invoices) },
-                                onNavigateToVca = { navController.navigate(Route.Vca) }
+                                onNavigateToVca = { navController.navigate(Route.Vca) },
+                                onNavigateToMembers = { navController.navigate(Route.Members) },
+                                onNavigateToDashboard = { navController.navigate(Route.Dashboard) }
                             )
+                        }
+                        Route.Members -> NavEntry(key) {
+                            com.example.myapplication.ui.screens.MembersScreen(onBack = { navController.pop() })
                         }
                         Route.Webhooks -> NavEntry(key) {
                             com.example.myapplication.ui.screens.WebhooksScreen(onBack = { navController.pop() })
@@ -319,7 +353,10 @@ fun SwiftPayApp() {
                             com.example.myapplication.ui.screens.VcaScreen(onBack = { navController.pop() })
                         }
                         Route.Profile -> NavEntry(key) {
-                            ProfileScreen()
+                            com.example.myapplication.ui.screens.MerchantProfileScreen(onBack = { navController.pop() })
+                        }
+                        Route.Settings -> NavEntry(key) {
+                            com.example.myapplication.ui.screens.ProfileScreen(onBack = { navController.pop() })
                         }
                         Route.ApiKeys -> NavEntry(key) {
                             ApiKeysScreen()

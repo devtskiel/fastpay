@@ -2,6 +2,8 @@ package com.example.myapplication.domain.usecase
 
 import com.example.myapplication.data.repository.AuthRepository
 import com.example.myapplication.data.SettingsManager
+import com.example.myapplication.data.SwiftPayService
+import com.example.myapplication.data.loadSwiftPayCredentials
 
 /**
  * Use case for authentication operations.
@@ -13,48 +15,58 @@ class AuthenticateUseCase(
 ) {
 
     /**
-     * Perform online login
+     * Step 1: Request OTP using email and an access key (Secret Key)
+     * This also validates if the provided access key is correct.
      */
-    suspend fun login(email: String, password: String): Result<Boolean> {
+    suspend fun requestAccess(email: String, accessKey: String): Result<Unit> {
         return try {
             if (!isValidEmail(email)) {
                 return Result.failure(Exception("Invalid email format"))
             }
+            if (accessKey.isBlank()) {
+                return Result.failure(Exception("Access Key is required"))
+            }
 
-            // In production, we assume login is handled via OTP for now as the server login isn't fully integrated here
-            Result.success(true)
+            // Create a temporary service with the provided key to validate it
+            val tempService = SwiftPayService(customSecretKey = accessKey)
+            val refNo = "AUTH${System.currentTimeMillis()}"
+            
+            val result = tempService.requestEmailOtp(email, refNo)
+            
+            if (result.isSuccess) {
+                // Temporarily cache the key so we can use it for verification
+                settingsManager.saveSecretKey(accessKey)
+                Result.success(Unit)
+            } else {
+                result
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
     /**
-     * Send OTP code
+     * Step 2: Verify the OTP code sent to the email
      */
-    suspend fun sendOtpCode(email: String, code: String): Result<Boolean> {
-        return try {
-            if (!isValidEmail(email)) {
-                return Result.failure(Exception("Invalid email format"))
-            }
-
-            val res = authRepository.sendEmailOtp(email, "OTP" + System.currentTimeMillis())
-            if (res.isSuccess) Result.success(true) else Result.failure(res.exceptionOrNull() ?: Exception("Failed"))
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    /**
-     * Verify OTP code
-     */
-    suspend fun verifyOtpCode(email: String, code: String): Result<Boolean> {
+    suspend fun verifyAccess(email: String, code: String): Result<Boolean> {
         return try {
             if (code.length != 6 || !code.all { it.isDigit() }) {
-                return Result.failure(Exception("Invalid OTP format"))
+                return Result.failure(Exception("Invalid OTP format (6 digits required)"))
             }
 
-            val res = authRepository.verifyEmailOtp(email, code, "OTP" + System.currentTimeMillis())
-            if (res.isSuccess) Result.success(true) else Result.failure(res.exceptionOrNull() ?: Exception("Failed"))
+            // Load the key we cached in Step 1
+            val credentials = settingsManager.loadSwiftPayCredentials()
+            val tempService = SwiftPayService(customSecretKey = credentials.secretKey)
+            val refNo = "VERIFY${System.currentTimeMillis()}"
+
+            val result = tempService.verifyEmailOtp(email, code, refNo)
+            
+            if (result.isSuccess) {
+                settingsManager.setLoggedIn(email, true)
+                Result.success(true)
+            } else {
+                Result.failure(result.exceptionOrNull() ?: Exception("Verification failed"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -68,7 +80,3 @@ class AuthenticateUseCase(
         return emailRegex.matches(email)
     }
 }
-
-
-
-

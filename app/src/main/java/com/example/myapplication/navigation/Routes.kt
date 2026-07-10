@@ -8,6 +8,15 @@ sealed interface Route {
     data object Login : Route
 
     @Serializable
+    data object Registration : Route
+
+    @Serializable
+    data object Terms : Route
+
+    @Serializable
+    data object Compliance : Route
+
+    @Serializable
     data object Home : Route
 
     @Serializable
@@ -20,6 +29,9 @@ sealed interface Route {
     data object Hub : Route
 
     @Serializable
+    data object Members : Route
+
+    @Serializable
     data object Invoices : Route
 
     @Serializable
@@ -29,10 +41,19 @@ sealed interface Route {
     data object Vca : Route
 
     @Serializable
+    data object CashIn : Route
+
+    @Serializable
+    data object Dashboard : Route
+
+    @Serializable
     data class Payment(val amount: Double) : Route
 
     @Serializable
     data object Profile : Route
+
+    @Serializable
+    data object Settings : Route
 
     @Serializable
     data object ApiKeys : Route

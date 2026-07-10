@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,7 +39,7 @@ import androidx.compose.ui.window.Popup
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(onBack: () -> Unit = {}) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
@@ -69,7 +70,11 @@ fun ProfileScreen() {
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Settings", color = textColor) },
-                navigationIcon = {},
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, null, tint = textColor)
+                    }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = bgColor,
                     scrolledContainerColor = bgColor
@@ -167,6 +172,30 @@ fun ProfileScreen() {
                 border = BorderStroke(1.dp, borderColor)
             ) {
                 Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { navController.navigate(Route.Profile) }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isDarkTheme) Color.LightGray.copy(alpha = 0.1f) else FastPayNavy.copy(alpha = 0.05f),
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.Business, modifier = Modifier.size(20.dp), contentDescription = null, tint = textColor)
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Merchant Profile", fontWeight = FontWeight.Bold, color = textColor)
+                            Text("Business details and verification", style = MaterialTheme.typography.labelSmall, color = secondaryTextColor)
+                        }
+                        Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = textColor)
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = borderColor)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

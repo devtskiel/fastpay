@@ -24,6 +24,8 @@ fun HubScreen(
     onNavigateToWebhooks: () -> Unit,
     onNavigateToInvoices: () -> Unit,
     onNavigateToVca: () -> Unit = {},
+    onNavigateToMembers: () -> Unit = {},
+    onNavigateToDashboard: () -> Unit = {},
     viewModel: MiniAppViewModel = com.example.myapplication.LocalMiniAppViewModel.current
 ) {
     Scaffold(
@@ -48,6 +50,15 @@ fun HubScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            HubItem(
+                title = "Performance Dashboard",
+                description = "View volume trends and revenue split.",
+                icon = Icons.Rounded.BarChart,
+                color = SwiftPaySuccess,
+                onClick = onNavigateToDashboard
+            )
+
+            Spacer(Modifier.height(12.dp))
             Text("TREASURY SERVICES", style = MaterialTheme.typography.labelMedium, color = SwiftPayTextDim)
             
             HubItem(
@@ -82,7 +93,7 @@ fun HubScreen(
                 description = "Manage team access and roles.",
                 icon = Icons.Rounded.Group,
                 color = SwiftPayPrimary,
-                onClick = { /* TODO */ }
+                onClick = onNavigateToMembers
             )
 
             HubItem(

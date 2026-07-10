@@ -29,6 +29,7 @@ fun HomeScreen(
     onNavigateToHub: () -> Unit,
     onNavigateToWallet: () -> Unit,
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToCashIn: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: MiniAppViewModel = com.example.myapplication.LocalMiniAppViewModel.current
 ) {
@@ -85,7 +86,7 @@ fun HomeScreen(
                 letterSpacing = 1.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
-            TreasuryActionGrid(onNavigateToPayout, onNavigateToHub, onNavigateToSettings)
+            TreasuryActionGrid(onNavigateToPayout, onNavigateToHub, onNavigateToSettings, onNavigateToCashIn)
 
             Spacer(modifier = Modifier.height(40.dp))
 
@@ -269,10 +270,11 @@ fun DirectActionItem(
 fun TreasuryActionGrid(
     onNavigateToPayout: () -> Unit,
     onNavigateToHub: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToCashIn: () -> Unit
 ) {
     val items = listOf(
-        Triple(Icons.Rounded.AccountBalance, "CASH IN", {}),
+        Triple(Icons.Rounded.AccountBalance, "CASH IN", onNavigateToCashIn),
         Triple(Icons.Rounded.FileUpload, "PAYOUT", onNavigateToPayout),
         Triple(Icons.Rounded.Dashboard, "HUB", onNavigateToHub),
         Triple(Icons.Rounded.Settings, "CONFIG", onNavigateToSettings)

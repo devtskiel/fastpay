@@ -345,4 +345,16 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun getPaymentStatusForId(id: String): OrderResponse? = transactionStatusMap[id]
+
+    fun onAddMemberRequest(name: String, email: String, role: String) {
+        viewModelScope.launch {
+            Log.d("MiniAppViewModel", "Inviting $name ($email) as $role")
+        }
+    }
+
+    fun onDeleteMemberRequest(email: String) {
+        viewModelScope.launch {
+            Log.d("MiniAppViewModel", "Removing member $email")
+        }
+    }
 }
