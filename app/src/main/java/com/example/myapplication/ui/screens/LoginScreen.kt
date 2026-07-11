@@ -204,33 +204,37 @@ fun LoginScreen(
                     else -> "Initiate Login"
                 },
                 onClick = {
-                    if (isForgotMode) {
-                        isForgotMode = false
-                        errorMessage = "If this email is registered, instructions will be sent."
-                    } else {
-                        isLoading = true
-                        errorMessage = null
-                        scope.launch {
-                            if (!isOtpSent) {
-                                authUseCase.login(email, password)
-                                    .onSuccess {
-                                        isOtpSent = true
-                                        isLoading = false
-                                    }
-                                    .onFailure {
-                                        errorMessage = it.message ?: "Authentication failed"
-                                        isLoading = false
-                                    }
-                            } else {
-                                authUseCase.verifyAccess(email, otpCode)
-                                    .onSuccess {
-                                        onLoginSuccess(email)
-                                    }
-                                    .onFailure {
-                                        errorMessage = it.message ?: "Verification failed"
-                                        isLoading = false
-                                    }
-                            }
+                    isLoading = true
+                    errorMessage = null
+                    scope.launch {
+                        if (isForgotMode) {
+                            authUseCase.resetPassword(email)
+                                .onSuccess {
+                                    errorMessage = "If this email is registered, reset instructions were sent."
+                                }
+                                .onFailure {
+                                    errorMessage = it.message ?: "Failed to request password reset"
+                                }
+                            isLoading = false
+                        } else if (!isOtpSent) {
+                            authUseCase.login(email, password)
+                                .onSuccess {
+                                    isOtpSent = true
+                                    isLoading = false
+                                }
+                                .onFailure {
+                                    errorMessage = it.message ?: "Authentication failed"
+                                    isLoading = false
+                                }
+                        } else {
+                            authUseCase.verifyAccess(email, otpCode)
+                                .onSuccess {
+                                    onLoginSuccess(email)
+                                }
+                                .onFailure {
+                                    errorMessage = it.message ?: "Verification failed"
+                                    isLoading = false
+                                }
                         }
                     }
                 },
@@ -253,10 +257,10 @@ fun LoginScreen(
                 }
             } else {
                 TextButton(
-                    onClick = { 
-                        isOtpSent = false 
+                    onClick = {
+                        isOtpSent = false
                         isForgotMode = false
-                        otpCode = "" 
+                        otpCode = ""
                     },
                     modifier = Modifier.padding(top = 8.dp),
                     enabled = !isLoading

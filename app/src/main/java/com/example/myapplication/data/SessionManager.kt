@@ -114,7 +114,14 @@ class SessionManager(private val context: Context, private val settingsManager: 
      * Get currently stored session token
      */
     suspend fun getCurrentSessionToken(): SessionToken? {
-        return settingsManager.getSessionToken().first()
+        val current = settingsManager.getSessionToken().first()
+        if (current != null && System.currentTimeMillis() < current.expiresAt) {
+            return current
+        }
+        if (current != null) {
+            clearSession()
+        }
+        return null
     }
 
     /**

@@ -1,0 +1,64 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug --stacktrace
+
+    - name: Build Release Bundle
+      run: ./gradlew bundleRelease --stacktrace
+
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: app-debug.apk
+        path: app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 7
+
+    - name: Upload Release Bundle
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: app-release.aab
+        path: app/build/outputs/bundle/release/app-release.aab
+        retention-days: 7
+
+    - name: Create Release Notes
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        echo "## Build Summary" > build_summary.md
+        echo "- Build Time: $(date)" >> build_summary.md
+        echo "- Commit: $(git rev-parse --short HEAD)" >> build_summary.md
+        echo "- Branch: $(git rev-parse --abbrev-ref HEAD)" >> build_summary.md
+
+    - name: Upload Build Summary
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: build-summary
+        path: build_summary.md

@@ -42,6 +42,8 @@ fun RegistrationScreen(
     var idType by remember { mutableStateOf("Passport") }
     var idNumber by remember { mutableStateOf("") }
     
+    var selfieCaptured by remember { mutableStateOf(false) }
+    var documentsUploaded by remember { mutableStateOf(false) }
     var hasAcceptedTerms by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
 
@@ -88,9 +90,12 @@ fun RegistrationScreen(
                     )
                     RegistrationStep.KYC -> KycStep(
                         idType, { idType = it },
-                        idNumber, { idNumber = it }
+                        idNumber, { idNumber = it },
+                        selfieCaptured, { selfieCaptured = it }
                     )
-                    RegistrationStep.DOCUMENTS -> DocumentsStep()
+                    RegistrationStep.DOCUMENTS -> DocumentsStep(
+                        documentsUploaded, { documentsUploaded = it }
+                    )
                     RegistrationStep.REVIEW -> ReviewStep(
                         email, fullName, businessName, businessAddress, businessType, idType, idNumber,
                         hasAcceptedTerms, { hasAcceptedTerms = it }, onNavigateToTerms
@@ -111,7 +116,7 @@ fun RegistrationScreen(
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
-                enabled = isStepValid(currentStep, email, password, fullName, businessName, hasAcceptedTerms),
+                enabled = isStepValid(currentStep, email, password, fullName, businessName, idNumber, selfieCaptured, documentsUploaded, hasAcceptedTerms),
                 colors = ButtonDefaults.buttonColors(containerColor = SwiftPayPrimary)
             ) {
                 if (isLoading) {
@@ -203,10 +208,10 @@ fun BusinessDetailsStep(name: String, onName: (String) -> Unit, addr: String, on
 }
 
 @Composable
-fun KycStep(type: String, onType: (String) -> Unit, number: String, onNumber: (String) -> Unit) {
+fun KycStep(type: String, onType: (String) -> Unit, number: String, onNumber: (String) -> Unit, selfieCaptured: Boolean, onSelfieCaptured: (Boolean) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Identity Verification", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Upload a valid government-issued ID.", color = SwiftPayTextSecondary)
+        Text("Upload a valid government-issued ID and capture a selfie.", color = SwiftPayTextSecondary)
         
         val ids = listOf("Passport", "UMID", "Driver's License", "SSS ID")
         OutlinedTextField(value = number, onValueChange = onNumber, label = { Text("ID Number") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
@@ -216,26 +221,33 @@ fun KycStep(type: String, onType: (String) -> Unit, number: String, onNumber: (S
             color = SwiftPaySurface,
             shape = RoundedCornerShape(20.dp),
             border = BorderStroke(1.dp, SwiftPayBorder),
-            onClick = { /* Open Camera */ }
+            onClick = { onSelfieCaptured(true) }
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Icon(Icons.Rounded.CameraAlt, null, modifier = Modifier.size(48.dp), tint = SwiftPayPrimary)
+                Icon(Icons.Rounded.Person, null, modifier = Modifier.size(48.dp), tint = SwiftPayPrimary)
                 Spacer(Modifier.height(12.dp))
-                Text("Take Photo of ID", fontWeight = FontWeight.Bold)
+                Text(
+                    if (selfieCaptured) "Selfie captured" else "Capture a selfie for verification",
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
 }
 
 @Composable
-fun DocumentsStep() {
+fun DocumentsStep(documentsUploaded: Boolean, onDocumentsUploaded: (Boolean) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Business Documents", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Upload your BIR and SEC/DTI registration.", color = SwiftPayTextSecondary)
+        Text("Upload your BIR, business permit, and SEC/DTI certificate.", color = SwiftPayTextSecondary)
         
         DocumentUploadRow("BIR Certificate (2303)", Icons.Rounded.Description)
         DocumentUploadRow("Business Permit", Icons.Rounded.Description)
         DocumentUploadRow("SEC/DTI Certificate", Icons.Rounded.Description)
+        
+        Button(onClick = { onDocumentsUploaded(true) }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = SwiftPayPrimary)) {
+            Text(if (documentsUploaded) "Documents Uploaded" else "Mark Documents Uploaded", color = Color.White)
+        }
     }
 }
 
@@ -295,12 +307,22 @@ fun ReviewItem(label: String, value: String) {
     }
 }
 
-fun isStepValid(step: RegistrationStep, email: String, pass: String, name: String, bName: String, terms: Boolean): Boolean {
+fun isStepValid(
+    step: RegistrationStep,
+    email: String,
+    pass: String,
+    name: String,
+    bName: String,
+    idNumber: String,
+    selfieCaptured: Boolean,
+    documentsUploaded: Boolean,
+    terms: Boolean
+): Boolean {
     return when (step) {
         RegistrationStep.BASIC -> email.contains("@") && pass.length >= 6 && name.isNotBlank()
         RegistrationStep.BUSINESS -> bName.isNotBlank()
-        RegistrationStep.KYC -> true
-        RegistrationStep.DOCUMENTS -> true
+        RegistrationStep.KYC -> idNumber.isNotBlank() && selfieCaptured
+        RegistrationStep.DOCUMENTS -> documentsUploaded
         RegistrationStep.REVIEW -> terms
     }
 }

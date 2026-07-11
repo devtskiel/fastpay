@@ -1,0 +1,46 @@
+FROM ubuntu:24.04
+
+# Install required packages
+RUN apt-get update && apt-get install -y \
+    openjdk-17-jdk \
+    git \
+    wget \
+    unzip \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Java environment
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+
+# Install Android SDK
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+RUN mkdir -p ${ANDROID_SDK_ROOT}
+
+RUN wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O /tmp/cmdline-tools.zip && \
+    unzip -q /tmp/cmdline-tools.zip -d ${ANDROID_SDK_ROOT} && \
+    rm /tmp/cmdline-tools.zip && \
+    mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools/latest && \
+    mv ${ANDROID_SDK_ROOT}/cmdline-tools/* ${ANDROID_SDK_ROOT}/cmdline-tools/latest/ 2>/dev/null || true
+
+# Set SDK environment variables
+ENV PATH=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}
+ENV ANDROID_HOME=${ANDROID_SDK_ROOT}
+
+# Accept licenses and install required SDK components
+RUN yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} --licenses > /dev/null 2>&1
+RUN sdkmanager --sdk_root=${ANDROID_SDK_ROOT} \
+    "platforms;android-34" \
+    "build-tools;34.0.0" \
+    "platform-tools" \
+    "cmdline-tools;latest" \
+    --channel=0 2>&1 | grep -v "^$"
+
+# Copy project
+WORKDIR /app
+COPY . .
+
+# Build APK
+RUN ./gradlew clean bundleRelease --stacktrace 2>&1 || ./gradlew clean assembleRelease --stacktrace
+
+# Output
+CMD ["bash", "-c", "ls -lah /app/app/build/outputs/apk/*/release/ && ls -lah /app/app/build/outputs/bundle/*/release/"]

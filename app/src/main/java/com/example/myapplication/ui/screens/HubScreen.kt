@@ -27,6 +27,7 @@ fun HubScreen(
     onNavigateToMembers: () -> Unit = {},
     onNavigateToDashboard: () -> Unit = {},
     onNavigateToAdminDeposits: () -> Unit = {},
+    onNavigateToAuditLogs: () -> Unit = {},
     viewModel: MiniAppViewModel = com.example.myapplication.LocalMiniAppViewModel.current
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -117,7 +118,7 @@ fun HubScreen(
                     description = "View system activity and access history.",
                     icon = Icons.Rounded.History,
                     color = SwiftPayTextDim,
-                    onClick = { /* TODO */ }
+                    onClick = onNavigateToAuditLogs
                 )
             }
         }

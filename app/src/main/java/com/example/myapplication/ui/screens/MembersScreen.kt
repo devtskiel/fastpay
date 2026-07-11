@@ -17,8 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.ui.theme.*
-
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.flow.collectAsState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MembersScreen(
@@ -30,12 +30,14 @@ fun MembersScreen(
     var email by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("MEMBER") }
 
-    val members = remember {
-        mutableStateListOf(
-            MemberItem("Juan Dela Cruz", "juan@company.com", "SUPER_ADMIN", "ACTIVE"),
-            MemberItem("Maria Clara", "maria@company.com", "ADMIN", "ACTIVE"),
-            MemberItem("Dev User", "dev@company.com", "DEVELOPER", "ACTIVE")
-        )
+    val context = LocalContext.current
+    val members = remember { mutableStateListOf<MemberItem>() }
+
+    LaunchedEffect(Unit) {
+        val memberStore = com.example.myapplication.data.MemberStore(context)
+        memberStore.members.collectAsState(initial = emptyList()).value.forEach { member ->
+            members.add(MemberItem(member.name, member.email, member.role, member.status))
+        }
     }
 
     Scaffold(
@@ -69,7 +71,6 @@ fun MembersScreen(
             items(members) { member ->
                 MemberCard(member) {
                     members.remove(member)
-                    viewModel.onDeleteMemberRequest(member.email)
                 }
             }
         }
@@ -101,6 +102,9 @@ fun MembersScreen(
                     if (name.isNotBlank() && email.isNotBlank()) {
                         members.add(MemberItem(name, email, role, "ACTIVE"))
                         viewModel.onAddMemberRequest(name, email, role)
+                        name = ""
+                        email = ""
+                        role = "MEMBER"
                         showAddDialog = false
                     }
                 }) {

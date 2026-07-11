@@ -173,7 +173,7 @@ fun PayoutScreen(
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = SwiftPayPrimary),
-                enabled = amount.toDoubleOrNull() != null && accountNumber.isNotBlank() && selectedBank != null
+                enabled = amount.toDoubleOrNull() != null && (amount.toDoubleOrNull() ?: 0.0) > 0.0 && accountNumber.isNotBlank() && selectedBank != null && firstName.isNotBlank() && lastName.isNotBlank()
             ) {
                 Text("Authorize Disbursement", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }

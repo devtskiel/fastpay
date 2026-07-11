@@ -93,12 +93,15 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Enforce presence of critical server config for release builds
-            if (APP_SERVER_URL_PROP.isBlank()) {
-                throw GradleException("APP_SERVER_URL must be set in local.properties, environment or gradle properties for release builds")
-            }
-            if (APP_SERVER_KEY_PROP.isBlank()) {
-                throw GradleException("APP_SERVER_KEY must be set in local.properties, environment or gradle properties for release builds")
+            // Enforce presence of critical server config only when release artifacts are actually being built
+            val isBuildingRelease = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
+            if (isBuildingRelease) {
+                if (APP_SERVER_URL_PROP.isBlank()) {
+                    throw GradleException("APP_SERVER_URL must be set in local.properties, environment or gradle properties for release builds")
+                }
+                if (APP_SERVER_KEY_PROP.isBlank()) {
+                    throw GradleException("APP_SERVER_KEY must be set in local.properties, environment or gradle properties for release builds")
+                }
             }
         }
     }

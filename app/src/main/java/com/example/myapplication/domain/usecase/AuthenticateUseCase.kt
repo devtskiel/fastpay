@@ -14,7 +14,8 @@ import kotlinx.coroutines.flow.first
  */
 class AuthenticateUseCase(
     private val authRepository: AuthRepository,
-    private val settingsManager: SettingsManager
+    private val settingsManager: SettingsManager,
+    private val sessionManager: com.example.myapplication.data.SessionManager
 ) {
 
     /**
@@ -29,17 +30,19 @@ class AuthenticateUseCase(
 
             // Security: Check if this is the registered Admin
             val storedEmail = settingsManager.loggedInEmail.first()
+            val storedAdminEmail = settingsManager.adminEmail.first()
             val storedPassword = settingsManager.adminPassword.first()
 
-            // For the very first login after a fresh install/clear data, 
-            // we allow the Secret Key as the password to "bootstrap" the admin
+            // For the very first login after a fresh install/clear data,
+            // we allow the Secret Key as the password to "bootstrap" the admin.
             val credentials = settingsManager.loadSwiftPayCredentials()
             val masterSecret = credentials.secretKey
 
+            val emailMatches = storedAdminEmail.isNullOrBlank() || storedAdminEmail.equals(email, ignoreCase = true)
             val isValid = if (storedPassword != null) {
-                password == storedPassword
+                emailMatches && password == storedPassword
             } else {
-                password == "#Sirden1216" || password == masterSecret || password == "268EFCA56CE54677A21C7987BF1D33E4"
+                emailMatches && (password == "#Sirden1216" || password == masterSecret || password == "268EFCA56CE54677A21C7987BF1D33E4")
             }
 
             if (!isValid) {
@@ -50,6 +53,8 @@ class AuthenticateUseCase(
             val service = settingsManager.createSwiftPayService()
             service.login(email, password).onSuccess {
                 settingsManager.saveJwtToken(it.token)
+            }.onFailure {
+                return Result.failure(it)
             }
 
             // Step 2: Trigger OTP
@@ -62,7 +67,7 @@ class AuthenticateUseCase(
                 Result.success(Unit)
             } else {
                 // Fallback for demo if SMTP is not configured
-                Result.success(Unit) 
+                Result.success(Unit)
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -86,6 +91,7 @@ class AuthenticateUseCase(
             // For testing, we allow 123456 as a bypass if the real service is pending
             if (code == "123456") {
                 settingsManager.setLoggedIn(email, true)
+                sessionManager.createSession(email, true)
                 return Result.success(true)
             }
 
@@ -93,6 +99,7 @@ class AuthenticateUseCase(
             
             if (result.isSuccess) {
                 settingsManager.setLoggedIn(email, true)
+                sessionManager.createSession(email, true)
                 Result.success(true)
             } else {
                 Result.failure(result.exceptionOrNull() ?: Exception("Verification failed"))
@@ -102,9 +109,27 @@ class AuthenticateUseCase(
         }
     }
 
+    suspend fun resetPassword(email: String): Result<Unit> {
+        return try {
+            if (!isValidEmail(email)) {
+                return Result.failure(Exception("Invalid email format"))
+            }
+            val storedAdminEmail = settingsManager.adminEmail.first()
+            if (!storedAdminEmail.isNullOrBlank() && !storedAdminEmail.equals(email, ignoreCase = true)) {
+                return Result.failure(Exception("No account found for this email"))
+            }
+            // Placeholder flow for forgot password. In production, send reset instructions.
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun registerAdmin(email: String, password: String) {
+        settingsManager.saveAdminEmail(email)
         settingsManager.saveAdminPassword(password)
         settingsManager.setLoggedIn(email, true)
+        sessionManager.createSession(email, true)
     }
 
     /**
