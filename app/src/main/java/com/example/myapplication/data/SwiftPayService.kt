@@ -34,7 +34,7 @@ class SwiftPayService(
     
     private val pgBaseUrl = if (isSandbox) "https://api-sandbox.netbank.ph/" else "https://api.netbank.ph/"
     private val payBaseUrl = if (isSandbox) "https://api.pay.sandbox.live.swiftpay.ph/api/" else "https://api.pay.live.swiftpay.ph/api/"
-    private val backendUrl = "http://10.0.2.2:3000/api/"
+    private val backendUrl = if (BuildConfig.APP_SERVER_URL.isNotBlank()) BuildConfig.APP_SERVER_URL else "http://10.0.2.2:3000/api/"
 
     private var activeMid: String? = customMid ?: BuildConfig.SWIFTPAY_QR_MID
 

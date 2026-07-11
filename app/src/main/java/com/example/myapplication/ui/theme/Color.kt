@@ -1,5 +1,7 @@
 package com.example.myapplication.ui.theme
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 // SwiftPay Enterprise Palette - PH Banking Standards
@@ -40,23 +42,20 @@ val surfaceDark = SwiftPaySurface
 val onSurfaceDark = SwiftPayTextPrimary
 val outlineDark = SwiftPayBorder
 
-// SwiftPay Aliases for consistency
+// Theme-aware helpers
+@Composable
+fun getSwiftPayBackground() = MaterialTheme.colorScheme.background
+
+@Composable
+fun getSwiftPaySurface() = MaterialTheme.colorScheme.surface
+
+@Composable
+fun getSwiftPayTextPrimary() = if (MaterialTheme.colorScheme.background == backgroundDark) Color.White else Color(0xFF0F172A)
+
+@Composable
+fun getSwiftPayTextSecondary() = if (MaterialTheme.colorScheme.background == backgroundDark) Color.LightGray else Color.Gray
+
+// SwiftPay Aliases
 val SwiftPayNavy = SwiftPayPrimary
 val SwiftPayBlue = SwiftPayPrimary
-val SwiftPayAccent = SwiftPayPrimary
-val SwiftPayBlack = SwiftPayBackground
-val SwiftPayDarkGray = SwiftPaySurface
-val SwiftPayDarkNavy = SwiftPayBackground
-val SwiftPaySurfaceAlias = SwiftPaySurface
-val SwiftPayTextPrimaryAlias = SwiftPayTextPrimary
-val SwiftPayTextSecondaryAlias = SwiftPayTextSecondary
-val SwiftPayTextDimAlias = SwiftPayTextDim
-val SwiftPaySuccessAlias = SwiftPaySuccess
-val SwiftPayErrorAlias = SwiftPayError
-val SwiftPayWarningAlias = SwiftPayWarning
-val SwiftPayTextField = SwiftPayCard
-val SwiftPayLightGray = SwiftPayBorder
-val SwiftPayMeshBlue = SwiftPayPrimary.copy(alpha = 0.2f)
-val SwiftPayMeshTeal = SwiftPaySuccess.copy(alpha = 0.2f)
-val SwiftPayGradient = listOf(SwiftPayPrimary, SwiftPayPrimary)
 val SwiftPayActionIcon = SwiftPayPrimary

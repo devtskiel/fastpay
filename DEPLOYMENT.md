@@ -1,6 +1,6 @@
 # Deployment Guide for SwiftPay
 
-This project is configured for production deployment on **Render**.
+This project is configured for production deployment on **Render** and **Railway**.
 
 ## 1. Backend Deployment (Node.js Gateway)
 
@@ -9,7 +9,18 @@ The `server/` directory contains a Node.js gateway that handles:
 - Proxying sensitive SwiftPay operations.
 - Merchant settings and profile management.
 
-### Deployment Steps:
+### Option A: Railway (Recommended)
+1. Connect this repository to your **Railway.app** account.
+2. In the Railway Dashboard, go to your Service settings and set the **Root Directory** to `server`.
+3. Railway will then detect the `server/railway.json` file and use the `server/Dockerfile`.
+4. Add a **PostgreSQL** service to your Railway project.
+4. **Environment Variables**: Railway will automatically link `DATABASE_URL`. You MUST manually set:
+   - `APP_SERVER_KEY`: A secure random string.
+   - `JWT_SECRET`: A secure random string.
+   - `SWIFTPAY_PUBLIC_KEY`: Your SwiftPay Public Key.
+   - `SWIFTPAY_SECRET_KEY`: Your SwiftPay Secret Key.
+
+### Option B: Render
 1. Connect this repository to your **Render.com** account.
 2. Render will automatically detect the `render.yaml` file.
 3. It will create:

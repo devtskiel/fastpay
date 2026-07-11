@@ -47,7 +47,7 @@ fun HomeScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = SwiftPayBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = { HomeTopBar(onNavigateToSettings) }
     ) { innerPadding ->
         Column(
@@ -68,7 +68,7 @@ fun HomeScreen(
             Text(
                 text = "ACCEPT COLLECTIONS",
                 style = MaterialTheme.typography.labelMedium,
-                color = SwiftPayTextDim,
+                color = if (MaterialTheme.colorScheme.background == backgroundDark) SwiftPayTextDim else Color.Gray,
                 letterSpacing = 1.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -83,7 +83,7 @@ fun HomeScreen(
             Text(
                 text = "BANKING OPERATIONS",
                 style = MaterialTheme.typography.labelMedium,
-                color = SwiftPayTextDim,
+                color = if (MaterialTheme.colorScheme.background == backgroundDark) SwiftPayTextDim else Color.Gray,
                 letterSpacing = 1.sp
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -101,7 +101,7 @@ fun HomeScreen(
                 Text(
                     text = "TRANSACTION LEDGER",
                     style = MaterialTheme.typography.labelMedium,
-                    color = SwiftPayTextDim,
+                    color = if (MaterialTheme.colorScheme.background == backgroundDark) SwiftPayTextDim else Color.Gray,
                     letterSpacing = 1.sp
                 )
                 TextButton(onClick = onNavigateToWallet) {

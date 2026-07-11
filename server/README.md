@@ -31,9 +31,21 @@ Notes:
 - The server uses APP_SERVER_KEY or API_KEY environment variables. If neither is set it falls back to the default key `dev_key` (useful for quick local testing).
 - The Android app will automatically send the value from BuildConfig.APP_SERVER_KEY as the `x-api-key` header when configured in `app/build.gradle.kts` (set APP_SERVER_KEY in your environment, gradle.properties or local.properties).
 
-# Production recommendations
+## Production Deployment
 
-For production use please follow these steps:
+### Railway (Recommended)
+1. Link your repository to Railway.
+2. Set the **Root Directory** to `server`.
+3. Add a **PostgreSQL** database to your project.
+4. Set the following environment variables:
+   - `APP_SERVER_KEY`: Secure random string.
+   - `JWT_SECRET`: Secure random string.
+   - `SWIFTPAY_PUBLIC_KEY`: Your Public Key.
+   - `SWIFTPAY_SECRET_KEY`: Your Secret Key.
+5. Railway will use the `railway.json` and `Dockerfile` to build and deploy.
+
+### Render
+Follow the instructions in the root `DEPLOYMENT.md`.
 
 - Set `APP_SERVER_KEY` to a strong random value and never commit it to source control.
 - Run the service behind a TLS-terminating reverse proxy (nginx) and do not expose the Node process directly.

@@ -95,9 +95,9 @@ fun DepositApprovalCard(
                 }
                 Text(
                     "₱${"%,.2f".format(deposit.amount ?: 0.0)}",
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
-                    color = SwiftPayPrimary,
-                    fontSize = 18.sp
+                    color = SwiftPayPrimary
                 )
             }
             
