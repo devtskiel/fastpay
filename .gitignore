@@ -24,3 +24,6 @@ server/err.log
 # Android specific
 /app/build/
 .idea/workspace.xml
+
+.android-sdk/
+.kotlin/
