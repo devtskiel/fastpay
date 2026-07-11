@@ -66,5 +66,8 @@ sealed interface Route {
 
     @Serializable
     data object AdminDeposits : Route
+
+    @Serializable
+    data object AuditLogs : Route
 }
 

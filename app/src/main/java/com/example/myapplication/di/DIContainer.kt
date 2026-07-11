@@ -64,6 +64,9 @@ object DIContainer {
     fun provideAuthRepository(): AuthRepository =
         AuthRepository(provideSwiftPayService())
 
+    fun provideSessionManager(): com.example.myapplication.data.SessionManager =
+        com.example.myapplication.data.SessionManager(context ?: throw IllegalStateException("DIContainer not initialized"), provideSettingsManager())
+
     fun provideQrRepository(): QrRepository =
         QrRepository(provideSwiftPayService())
 
@@ -79,6 +82,6 @@ object DIContainer {
         GenerateQrUseCase(provideQrRepository())
 
     fun provideAuthenticateUseCase(): AuthenticateUseCase =
-        AuthenticateUseCase(provideAuthRepository(), provideSettingsManager())
+        AuthenticateUseCase(provideAuthRepository(), provideSettingsManager(), provideSessionManager())
 }
 

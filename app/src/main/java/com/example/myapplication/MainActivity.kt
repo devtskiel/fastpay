@@ -132,10 +132,11 @@ fun SwiftPayApp() {
     val backStack = remember { mutableStateListOf<Route>(if (isLoggedIn) Route.Home else Route.Login) }
     val currentRoute = backStack.lastOrNull() ?: Route.Login
     
+    val restoredEmail = loggedInEmail
     androidx.compose.runtime.LaunchedEffect(Unit) {
         if (!isLoggedIn) {
             val currentSession = sessionManager.getCurrentSessionToken()
-            if (currentSession != null) {
+            if (currentSession != null && System.currentTimeMillis() < currentSession.expiresAt) {
                 settings.setLoggedIn(currentSession.email, true)
                 DebugLogger.logSessionRestored(currentSession.email, currentSession.deviceId)
             }
@@ -361,11 +362,15 @@ fun SwiftPayApp() {
                                 onNavigateToVca = { navController.navigate(Route.Vca) },
                                 onNavigateToMembers = { navController.navigate(Route.Members) },
                                 onNavigateToDashboard = { navController.navigate(Route.Dashboard) },
-                                onNavigateToAdminDeposits = { navController.navigate(Route.AdminDeposits) }
+                                onNavigateToAdminDeposits = { navController.navigate(Route.AdminDeposits) },
+                                onNavigateToAuditLogs = { navController.navigate(Route.AuditLogs) }
                             )
                         }
                         Route.AdminDeposits -> NavEntry(key) {
                             com.example.myapplication.ui.screens.AdminDepositsScreen(onBack = { navController.pop() })
+                        }
+                        Route.AuditLogs -> NavEntry(key) {
+                            com.example.myapplication.ui.screens.AuditLogsScreen(onBack = { navController.pop() })
                         }
                         Route.Members -> NavEntry(key) {
 

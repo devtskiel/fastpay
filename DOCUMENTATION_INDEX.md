@@ -1,6 +1,14 @@
-# SwiftPay Integration Documentation
+# FastPay - Complete Documentation Index
 
-## Overview
+## Quick Links
+
+- [BUILD_GUIDE.md](BUILD_GUIDE.md) - 🔨 **START HERE** for building the APK
+- [BUILD.md](BUILD.md) - Detailed build instructions and troubleshooting
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Deployment and production setup
+- [build.sh](build.sh) - Automated build script
+
+## SwiftPay Integration Documentation
+
 This project is powered by **SwiftPay** (Netbank Infrastructure).
 
 ## Core Components

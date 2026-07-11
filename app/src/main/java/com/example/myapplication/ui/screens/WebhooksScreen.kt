@@ -30,12 +30,10 @@ fun WebhooksScreen(
     var webhookName by remember { mutableStateOf("") }
     var webhookUrl by remember { mutableStateOf("") }
 
-    // Mock data for now, in a real app this would come from viewModel.webhooks
-    val webhooks = remember { 
-        mutableStateListOf(
-            WebhookRequest("Production Server", "https://api.merchant.com/webhooks", "wh_1"),
-            WebhookRequest("Slack Alerts", "https://hooks.slack.com/services/...", "wh_2")
-        )
+    val webhooks by remember { derivedStateOf { viewModel.webhooks } }
+
+    LaunchedEffect(Unit) {
+        viewModel.onWebhooksRequest()
     }
 
     Scaffold(
@@ -68,7 +66,6 @@ fun WebhooksScreen(
         ) {
             items(webhooks) { wh ->
                 WebhookCard(wh) {
-                    webhooks.remove(wh)
                     viewModel.onDeleteWebhookRequest(wh.id ?: "")
                 }
             }
@@ -98,8 +95,9 @@ fun WebhooksScreen(
             confirmButton = {
                 TextButton(onClick = {
                     if (webhookName.isNotBlank() && webhookUrl.isNotBlank()) {
-                        webhooks.add(WebhookRequest(webhookName, webhookUrl, "wh_${System.currentTimeMillis()}"))
                         viewModel.onAddWebhookRequest(webhookName, webhookUrl)
+                        webhookName = ""
+                        webhookUrl = ""
                         showAddDialog = false
                     }
                 }) {

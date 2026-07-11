@@ -43,7 +43,19 @@ fun WalletScreen(
 ) {
     var transactions by remember { mutableStateOf<List<InternalTransaction>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var filterStatus by remember { mutableStateOf("ALL") }
     val scope = rememberCoroutineScope()
+
+    val filteredTransactions = remember(transactions, searchQuery, filterStatus) {
+        transactions.filter { tx ->
+            val matchesSearch = searchQuery.isEmpty() || 
+                tx.transactionId.contains(searchQuery, ignoreCase = true) ||
+                tx.description.contains(searchQuery, ignoreCase = true)
+            val matchesFilter = filterStatus == "ALL" || tx.status.equals(filterStatus, ignoreCase = true)
+            matchesSearch && matchesFilter
+        }
+    }
 
     LaunchedEffect(Unit) {
         try {
@@ -81,21 +93,76 @@ fun WalletScreen(
                             } finally { isLoading = false }
                         }
                     }
+                    IconButton(onClick = {
+                        // CSV Export
+                        scope.launch {
+                            try {
+                                val csvContent = generateTransactionCsv(filteredTransactions)
+                                Log.d("WalletScreen", "CSV Generated: $csvContent")
+                            } catch (e: Exception) {
+                                Log.e("WalletScreen", "Export error", e)
+                            }
+                        }
+                    }) {
+                        Icon(Icons.Rounded.FileDownload, null, tint = SwiftPayPrimary)
+                    }
                 }
             )
         }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.padding(innerPadding).fillMaxSize().padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp)
+        Column(
+            modifier = Modifier.padding(innerPadding).fillMaxSize().padding(horizontal = 20.dp)
         ) {
-            if (transactions.isEmpty()) {
+            // Search and Filter Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search") },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    leadingIcon = { Icon(Icons.Rounded.Search, null) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+                Surface(
+                    modifier = Modifier
+                        .height(48.dp)
+                        .clickable { /* Filter menu */ }
+                        .padding(4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = SwiftPaySurface
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(Icons.Rounded.FilterList, null, modifier = Modifier.size(20.dp))
+                        Text(filterStatus, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp)
+            ) {
+            if (filteredTransactions.isEmpty()) {
                 item { EmptyLedgerState() }
             } else {
-                items(transactions) { tx ->
+                items(filteredTransactions) { tx ->
                     TransactionRow(tx)
                 }
+            }
             }
         }
     }
@@ -166,4 +233,12 @@ fun EmptyLedgerState() {
         Spacer(Modifier.height(16.dp))
         Text("No settlements found", style = MaterialTheme.typography.bodyLarge, color = SwiftPayTextSecondary)
     }
+}
+
+fun generateTransactionCsv(transactions: List<InternalTransaction>): String {
+    val headers = "Transaction ID,Amount,Status,Date,Description"
+    val rows = transactions.map { tx ->
+        "\"${tx.transactionId}\",${tx.amount},\"${tx.status}\",\"${tx.date}\",\"${tx.description}\""
+    }.joinToString("\n")
+    return "$headers\n$rows"
 }

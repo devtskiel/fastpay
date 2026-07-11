@@ -31,11 +31,7 @@ class SettingsManager(private val context: Context) {
         val SESSION_TOKEN = stringPreferencesKey("session_token")
         val JWT_TOKEN = stringPreferencesKey("jwt_token")
         val ADMIN_PASSWORD = stringPreferencesKey("admin_password")
-    }
-
-    val jwtToken: Flow<String?> = context.dataStore.data.map { it[JWT_TOKEN] }
-
-    suspend fun saveJwtToken(token: String) {
+    val ADMIN_EMAIL = stringPreferencesKey("admin_email")
         context.dataStore.edit { it[JWT_TOKEN] = token }
     }
 
@@ -161,6 +157,8 @@ class SettingsManager(private val context: Context) {
         context.dataStore.edit { preferences ->
             preferences[IS_LOGGED_IN] = "false"
             preferences.remove(LOGGED_IN_EMAIL)
+            preferences.remove(SESSION_TOKEN)
+            preferences.remove(JWT_TOKEN)
         }
     }
 
