@@ -254,10 +254,24 @@ fun SwiftPayApp() {
                     }
                     Route.Registration -> NavEntry(key) {
                         com.example.myapplication.ui.screens.RegistrationScreen(
-                            onSuccess = { email, password ->
+                            onSuccess = { email, password, fullName, businessName, businessAddress, businessType, idType, idNumber, selfieCaptured, documentsUploaded, acceptedTerms ->
                                 scope.launch {
-                                    DIContainer.provideAuthenticateUseCase().registerAdmin(email, password)
-                                    navController.navigate(Route.Home)
+                                    val result = DIContainer.provideAuthenticateUseCase().registerAdmin(
+                                        email = email,
+                                        password = password,
+                                        fullName = fullName,
+                                        businessName = businessName,
+                                        businessAddress = businessAddress,
+                                        businessType = businessType,
+                                        idType = idType,
+                                        idNumber = idNumber,
+                                        selfieCaptured = selfieCaptured,
+                                        documentsUploaded = documentsUploaded,
+                                        acceptedTerms = acceptedTerms
+                                    )
+                                    if (result.isSuccess) {
+                                        navController.navigate(Route.Home)
+                                    }
                                 }
                             },
                             onBack = { navController.pop() },

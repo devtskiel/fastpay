@@ -449,5 +449,12 @@ class SwiftPayService(
             if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
         } catch (e: Exception) { Result.failure(e) }
     }
+
+    suspend fun registerMerchant(request: MerchantRegistrationRequest): Result<MerchantRegistrationResponse> {
+        return try {
+            val response = api.registerMerchant(backendUrl + "auth/register", request)
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
 }
 

@@ -1,23 +1,52 @@
 package com.example.myapplication.ui.screens
 
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.OpenInNew
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.shape.CircleShape
-import com.example.myapplication.ui.theme.*
+import androidx.compose.ui.viewinterop.AndroidView
+import com.example.myapplication.BuildConfig
+import com.example.myapplication.ui.theme.SwiftPayBackground
+import com.example.myapplication.ui.theme.SwiftPayBorder
+import com.example.myapplication.ui.theme.SwiftPayPrimary
+import com.example.myapplication.ui.theme.SwiftPaySurface
+import com.example.myapplication.ui.theme.SwiftPayTextDim
+import com.example.myapplication.ui.theme.SwiftPayTextPrimary
+import com.example.myapplication.ui.theme.SwiftPayTextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,17 +54,15 @@ fun DashboardScreen(
     onBack: () -> Unit,
     viewModel: MiniAppViewModel = com.example.myapplication.LocalMiniAppViewModel.current
 ) {
-    val transactions by viewModel.transactions.collectAsState()
-    
-    val totalCollected = transactions.filter { it.amount > 0 && it.status == "SUCCESS" }.sumOf { it.amount }
-    val totalDisbursed = transactions.filter { it.amount < 0 && it.status == "SUCCESS" }.sumOf { Math.abs(it.amount) }
-    val pendingCount = transactions.count { it.status == "PENDING" }
-    val failedCount = transactions.count { it.status == "FAILED" }
+    val dashboardUrl = remember {
+        val configured = BuildConfig.APP_SERVER_URL.takeIf { !it.isNullOrBlank() } ?: "http://10.0.2.2:3000"
+        configured.removeSuffix("/").removeSuffix("/api").trimEnd('/') + "/dashboard"
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Performance & Analytics", fontWeight = FontWeight.Bold) },
+                title = { Text("Management Console", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, null)
@@ -52,121 +79,62 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("SUMMARY CARDS", style = MaterialTheme.typography.labelMedium, color = SwiftPayTextDim)
-            
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                AnalyticsCard(
-                    modifier = Modifier.weight(1f),
-                    label = "Total Collected",
-                    value = "₱${"%,.0f".format(totalCollected)}",
-                    icon = Icons.Rounded.TrendingUp,
-                    color = SwiftPaySuccess
-                )
-                AnalyticsCard(
-                    modifier = Modifier.weight(1f),
-                    label = "Total Disbursed",
-                    value = "₱${"%,.0f".format(totalDisbursed)}",
-                    icon = Icons.Rounded.TrendingDown,
-                    color = Color(0xFFE91E63)
-                )
-            }
-            
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                AnalyticsCard(
-                    modifier = Modifier.weight(1f),
-                    label = "Pending Ops",
-                    value = pendingCount.toString(),
-                    icon = Icons.Rounded.Schedule,
-                    color = SwiftPayPrimary
-                )
-                AnalyticsCard(
-                    modifier = Modifier.weight(1f),
-                    label = "Failed Trans",
-                    value = failedCount.toString(),
-                    icon = Icons.Rounded.ErrorOutline,
-                    color = Color.Gray
-                )
-            }
-            
-            Spacer(Modifier.height(12.dp))
-            Text("VOLUME TREND (7 DAYS)", style = MaterialTheme.typography.labelMedium, color = SwiftPayTextDim)
-            
-            // Mock Chart
-            Surface(
-                modifier = Modifier.fillMaxWidth().height(200.dp),
-                color = SwiftPaySurface,
-                shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(1.dp, SwiftPayBorder)
+            ElevatedCard(
+                colors = CardDefaults.elevatedCardColors(containerColor = SwiftPaySurface),
+                shape = RoundedCornerShape(20.dp)
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Rounded.BarChart, null, modifier = Modifier.size(48.dp), tint = SwiftPayPrimary.copy(alpha = 0.3f))
-                        Text("Volume Visualization", color = SwiftPayTextDim, style = MaterialTheme.typography.bodySmall)
-                    }
-                    // Simple simulated bar chart
-                    Row(
-                        modifier = Modifier.fillMaxSize().padding(24.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
+                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Operations Dashboard", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = SwiftPayTextPrimary)
+                    Text(
+                        "Purpose-built for onboarding, implementation, and administrative control teams to review queues, approvals, and settlement activity.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = SwiftPayTextSecondary
+                    )
+                    Button(
+                        onClick = { /* no-op, the embedded console below is already live */ },
+                        colors = ButtonDefaults.buttonColors(containerColor = SwiftPayPrimary)
                     ) {
-                        listOf(40, 70, 45, 90, 60, 80, 50).forEach { h ->
-                            Box(modifier = Modifier.width(20.dp).height(h.dp).background(SwiftPayPrimary.copy(alpha = 0.6f), RoundedCornerShape(4.dp)))
-                        }
+                        Icon(Icons.Rounded.OpenInNew, null, modifier = Modifier.size(18.dp))
+                        androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+                        Text("Live management console")
                     }
                 }
             }
-            
-            Spacer(Modifier.height(12.dp))
-            Text("REVENUE SPLIT", style = MaterialTheme.typography.labelMedium, color = SwiftPayTextDim)
-            
+
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = SwiftPaySurface,
                 shape = RoundedCornerShape(20.dp),
                 border = BorderStroke(1.dp, SwiftPayBorder)
             ) {
-                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    RevenueRow("SwiftPay Wallet", 0.65f, SwiftPayPrimary)
-                    RevenueRow("Direct Bank Transfer", 0.20f, SwiftPaySuccess)
-                    RevenueRow("Cards / Vault", 0.15f, Color(0xFF6200EE))
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Connected console", style = MaterialTheme.typography.labelMedium, color = SwiftPayTextDim)
+                    Text(dashboardUrl, style = MaterialTheme.typography.bodySmall, color = SwiftPayTextSecondary)
                 }
             }
-        }
-    }
-}
 
-@Composable
-fun AnalyticsCard(label: String, value: String, icon: ImageVector, color: Color, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        color = SwiftPaySurface,
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, SwiftPayBorder)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.height(12.dp))
-            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = SwiftPayTextPrimary)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = SwiftPayTextDim)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = SwiftPaySurface,
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(1.dp, SwiftPayBorder)
+            ) {
+                AndroidView(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(560.dp),
+                    factory = { context ->
+                        WebView(context).apply {
+                            settings.javaScriptEnabled = true
+                            settings.domStorageEnabled = true
+                            webViewClient = WebViewClient()
+                            loadUrl(dashboardUrl)
+                        }
+                    }
+                )
+            }
         }
-    }
-}
-
-@Composable
-fun RevenueRow(label: String, percentage: Float, color: Color) {
-    Column {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, style = MaterialTheme.typography.bodySmall, color = SwiftPayTextPrimary)
-            Text("${(percentage * 100).toInt()}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.height(4.dp))
-        LinearProgressIndicator(
-            progress = percentage,
-            modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
-            color = color,
-            trackColor = SwiftPayBorder
-        )
     }
 }

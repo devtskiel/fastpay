@@ -2,8 +2,10 @@ package com.example.myapplication.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -13,13 +15,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.R
 import com.example.myapplication.ui.theme.*
 import com.example.myapplication.data.SettingsManager
 import kotlinx.coroutines.launch
@@ -84,8 +89,11 @@ fun CashInScreen(
 
             BankDepositCard(
                 bankName = "Security Bank Corporation",
+                bankShortName = "Security Bank",
                 accountNumber = "0000068888173",
                 accountName = "Click Store",
+                logoRes = R.drawable.security_bank_logo,
+                badgeText = "Instant credit",
                 onCopy = {
                     clipboardManager.setText(AnnotatedString("0000068888173"))
                     Toast.makeText(context, "Account number copied", Toast.LENGTH_SHORT).show()
@@ -97,9 +105,12 @@ fun CashInScreen(
             )
 
             BankDepositCard(
-                bankName = "Asia United Bank/Hellomoney",
+                bankName = "Asia United Bank / HelloMoney",
+                bankShortName = "AUB",
                 accountNumber = "934105321485",
                 accountName = "Click Store",
+                logoRes = R.drawable.aub_logo,
+                badgeText = "24/7 e-wallet",
                 onCopy = {
                     clipboardManager.setText(AnnotatedString("934105321485"))
                     Toast.makeText(context, "Account number copied", Toast.LENGTH_SHORT).show()
@@ -167,8 +178,11 @@ fun CashInScreen(
 @Composable
 fun BankDepositCard(
     bankName: String,
+    bankShortName: String,
     accountNumber: String,
     accountName: String,
+    logoRes: Int,
+    badgeText: String,
     onCopy: () -> Unit,
     onSelect: () -> Unit
 ) {
@@ -179,11 +193,38 @@ fun BankDepositCard(
         border = BorderStroke(1.dp, SwiftPayBorder)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(bankName, fontWeight = FontWeight.ExtraBold, color = SwiftPayTextPrimary, fontSize = 18.sp, modifier = Modifier.weight(1f))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Image(
+                        painter = painterResource(id = logoRes),
+                        contentDescription = bankShortName,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(bankName, fontWeight = FontWeight.ExtraBold, color = SwiftPayTextPrimary, fontSize = 16.sp)
+                        Text(bankShortName, style = MaterialTheme.typography.labelMedium, color = SwiftPayTextDim)
+                    }
+                }
                 IconButton(onClick = onCopy) {
                     Icon(Icons.Rounded.ContentCopy, null, tint = SwiftPayPrimary, modifier = Modifier.size(20.dp))
                 }
+            }
+            Spacer(Modifier.height(12.dp))
+            Surface(
+                color = SwiftPayPrimary.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(999.dp),
+                border = BorderStroke(1.dp, SwiftPayPrimary.copy(alpha = 0.2f))
+            ) {
+                Text(
+                    badgeText,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    color = SwiftPayPrimary,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
             Spacer(Modifier.height(16.dp))
             

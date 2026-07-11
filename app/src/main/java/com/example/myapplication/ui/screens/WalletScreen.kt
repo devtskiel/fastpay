@@ -49,9 +49,9 @@ fun WalletScreen(
 
     val filteredTransactions = remember(transactions, searchQuery, filterStatus) {
         transactions.filter { tx ->
-            val matchesSearch = searchQuery.isEmpty() || 
+            val matchesSearch = searchQuery.isEmpty() ||
                 tx.transactionId.contains(searchQuery, ignoreCase = true) ||
-                tx.description.contains(searchQuery, ignoreCase = true)
+                tx.status.contains(searchQuery, ignoreCase = true)
             val matchesFilter = filterStatus == "ALL" || tx.status.equals(filterStatus, ignoreCase = true)
             matchesSearch && matchesFilter
         }
@@ -238,7 +238,7 @@ fun EmptyLedgerState() {
 fun generateTransactionCsv(transactions: List<InternalTransaction>): String {
     val headers = "Transaction ID,Amount,Status,Date,Description"
     val rows = transactions.map { tx ->
-        "\"${tx.transactionId}\",${tx.amount},\"${tx.status}\",\"${tx.date}\",\"${tx.description}\""
+        "\"${tx.transactionId}\",${tx.amount},\"${tx.status}\",\"${tx.date}\",\"${tx.transactionId}\""
     }.joinToString("\n")
     return "$headers\n$rows"
 }

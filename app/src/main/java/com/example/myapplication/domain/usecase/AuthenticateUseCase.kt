@@ -6,6 +6,7 @@ import com.example.myapplication.data.SwiftPayService
 import com.example.myapplication.data.loadSwiftPayCredentials
 import com.example.myapplication.data.createSwiftPayService
 import com.example.myapplication.data.api.LoginResponse
+import com.example.myapplication.data.api.MerchantRegistrationRequest
 import kotlinx.coroutines.flow.first
 
 /**
@@ -125,11 +126,47 @@ class AuthenticateUseCase(
         }
     }
 
-    suspend fun registerAdmin(email: String, password: String) {
-        settingsManager.saveAdminEmail(email)
-        settingsManager.saveAdminPassword(password)
-        settingsManager.setLoggedIn(email, true)
-        sessionManager.createSession(email, true)
+    suspend fun registerAdmin(
+        email: String,
+        password: String,
+        fullName: String = "",
+        businessName: String = "",
+        businessAddress: String = "",
+        businessType: String = "",
+        idType: String = "",
+        idNumber: String = "",
+        selfieCaptured: Boolean = false,
+        documentsUploaded: Boolean = false,
+        acceptedTerms: Boolean = false
+    ): Result<Unit> {
+        return try {
+            val request = MerchantRegistrationRequest(
+                email = email,
+                password = password,
+                fullName = fullName,
+                businessName = businessName,
+                businessAddress = businessAddress,
+                businessType = businessType,
+                idType = idType,
+                idNumber = idNumber,
+                selfieCaptured = selfieCaptured,
+                documentsUploaded = documentsUploaded,
+                acceptedTerms = acceptedTerms
+            )
+            val service = SwiftPayService()
+            service.registerMerchant(request).onSuccess {
+                settingsManager.saveAdminEmail(email)
+                settingsManager.saveAdminPassword(password)
+                settingsManager.setLoggedIn(email, true)
+                sessionManager.createSession(email, true)
+                Result.success(Unit)
+            }.onFailure {
+                return Result.failure(it)
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     /**

@@ -222,6 +222,12 @@ interface SwiftPayApi {
         @Url url: String,
         @Body request: LoginRequest
     ): Response<LoginResponse>
+
+    @POST
+    suspend fun registerMerchant(
+        @Url url: String,
+        @Body request: MerchantRegistrationRequest
+    ): Response<MerchantRegistrationResponse>
 }
 
 

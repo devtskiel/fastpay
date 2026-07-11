@@ -41,7 +41,7 @@ fun AuditLogsScreen(
             AuditLog(
                 id = tx.transactionId,
                 action = if (tx.amount > 0) "Cash-In" else "Payout",
-                description = tx.description,
+                description = "Transaction ${tx.transactionId.take(12)}",
                 timestamp = tx.date,
                 user = "System",
                 status = tx.status

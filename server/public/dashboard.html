@@ -202,8 +202,8 @@
     <main class="main-content">
         <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 48px;">
             <div>
-                <h1 id="merchant-name" style="font-size: 28px;">Merchant Dashboard</h1>
-                <p style="color: var(--text-secondary); font-size: 14px;">Real-time transaction & settlement monitor.</p>
+                <h1 id="merchant-name" style="font-size: 28px;">Management Console</h1>
+                <p style="color: var(--text-secondary); font-size: 14px;">Built for onboarding, implementation, and administrative control teams.</p>
             </div>
             <div style="display: flex; gap: 12px;">
                 <button class="btn btn-ghost" onclick="sync()"><i class="fas fa-sync-alt"></i> Sync</button>
@@ -213,7 +213,7 @@
 
         <!-- Overview Page -->
         <div id="page-overview" class="page active">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
                 <div class="glass-card">
                     <div class="stat-label">Available Balance</div>
                     <div class="stat-value" id="val-bal">₱ 0.00</div>
@@ -222,12 +222,44 @@
                     </div>
                 </div>
                 <div class="glass-card">
-                    <div class="stat-label">Total Volume (30D)</div>
-                    <div class="stat-value" id="val-vol">₱ 0.00</div>
+                    <div class="stat-label">Onboarding Queue</div>
+                    <div class="stat-value" id="val-onboarding">0</div>
                     <div style="margin-top: 12px; font-size: 12px; color: var(--text-dim); font-weight: 600;">
-                        Aggregated Collections
+                        Pending merchant review
                     </div>
                 </div>
+                <div class="glass-card">
+                    <div class="stat-label">Pending Deposits</div>
+                    <div class="stat-value" id="val-deposits">0</div>
+                    <div style="margin-top: 12px; font-size: 12px; color: var(--text-dim); font-weight: 600;">
+                        Manual cash-in approvals
+                    </div>
+                </div>
+                <div class="glass-card">
+                    <div class="stat-label">Active Team Members</div>
+                    <div class="stat-value" id="val-members">0</div>
+                    <div style="margin-top: 12px; font-size: 12px; color: var(--text-dim); font-weight: 600;">
+                        Access roles and operations
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 16px;">Onboarding Review Queue</h3>
+                    <span class="badge badge-pending">Management Team</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Merchant</th>
+                            <th>Business</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                        </tr>
+                    </thead>
+                    <tbody id="registrations-list"></tbody>
+                </table>
             </div>
 
             <div class="table-container">
@@ -480,6 +512,23 @@
                 const balRes = await fetch('/api/swiftpay/balance', { headers: { 'Authorization': 'Bearer '+t } });
                 const bal = await balRes.json();
                 document.getElementById('val-bal').innerText = '₱ ' + (bal.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+                const metricsRes = await fetch('/api/admin/metrics', { headers: { 'Authorization': 'Bearer '+t } });
+                const metrics = await metricsRes.json().catch(() => ({}));
+                document.getElementById('val-onboarding').innerText = metrics.pendingRegistrations ?? 0;
+                document.getElementById('val-deposits').innerText = metrics.pendingDeposits ?? 0;
+                document.getElementById('val-members').innerText = metrics.activeMembers ?? 0;
+
+                const regsRes = await fetch('/api/admin/registrations', { headers: { 'Authorization': 'Bearer '+t } });
+                const regs = await regsRes.json().catch(() => []);
+                document.getElementById('registrations-list').innerHTML = regs.map(r => `
+                    <tr>
+                        <td>${r.fullName || r.email}</td>
+                        <td>${r.businessName || r.businessType || '—'}</td>
+                        <td><span class="badge ${r.status === 'APPROVED' ? 'badge-success' : 'badge-pending'}">${r.status || 'PENDING'}</span></td>
+                        <td>${new Date(r.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
 
                 // Collections
                 const txRes = await fetch('/api/swiftpay/transactions', { headers: { 'Authorization': 'Bearer '+t } });

@@ -18,7 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.flow.collectAsState
+import com.example.myapplication.ui.theme.*
+import kotlinx.coroutines.flow.collect
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MembersScreen(
@@ -32,11 +33,14 @@ fun MembersScreen(
 
     val context = LocalContext.current
     val members = remember { mutableStateListOf<MemberItem>() }
+    val memberStore = remember(context) { com.example.myapplication.data.MemberStore(context) }
 
-    LaunchedEffect(Unit) {
-        val memberStore = com.example.myapplication.data.MemberStore(context)
-        memberStore.members.collectAsState(initial = emptyList()).value.forEach { member ->
-            members.add(MemberItem(member.name, member.email, member.role, member.status))
+    LaunchedEffect(memberStore) {
+        memberStore.members.collect { memberList ->
+            members.clear()
+            members.addAll(memberList.map { member ->
+                MemberItem(member.name, member.email, member.role, member.status)
+            })
         }
     }
 

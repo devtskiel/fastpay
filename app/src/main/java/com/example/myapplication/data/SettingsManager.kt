@@ -31,15 +31,27 @@ class SettingsManager(private val context: Context) {
         val SESSION_TOKEN = stringPreferencesKey("session_token")
         val JWT_TOKEN = stringPreferencesKey("jwt_token")
         val ADMIN_PASSWORD = stringPreferencesKey("admin_password")
-    val ADMIN_EMAIL = stringPreferencesKey("admin_email")
-        context.dataStore.edit { it[JWT_TOKEN] = token }
+        val ADMIN_EMAIL = stringPreferencesKey("admin_email")
     }
-
 
     val adminPassword: Flow<String?> = context.dataStore.data.map { it[ADMIN_PASSWORD] }
 
+    val adminEmail: Flow<String?> = context.dataStore.data.map { it[ADMIN_EMAIL] }
+
     suspend fun saveAdminPassword(password: String) {
         context.dataStore.edit { it[ADMIN_PASSWORD] = password }
+    }
+
+    suspend fun saveAdminEmail(email: String) {
+        context.dataStore.edit { it[ADMIN_EMAIL] = email }
+    }
+
+    suspend fun saveJwtToken(token: String) {
+        context.dataStore.edit { it[JWT_TOKEN] = token }
+    }
+
+    val jwtToken: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[JWT_TOKEN]
     }
 
     val secretKey: Flow<String?> = context.dataStore.data.map { preferences ->

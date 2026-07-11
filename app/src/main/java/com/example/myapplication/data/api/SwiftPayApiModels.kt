@@ -503,6 +503,28 @@ data class LoginRequest(
 )
 
 @Serializable
+data class MerchantRegistrationRequest(
+    val email: String,
+    val password: String,
+    val fullName: String = "",
+    val businessName: String = "",
+    val businessAddress: String = "",
+    val businessType: String = "",
+    val idType: String = "",
+    val idNumber: String = "",
+    val selfieCaptured: Boolean = false,
+    val documentsUploaded: Boolean = false,
+    val acceptedTerms: Boolean = false
+)
+
+@Serializable
+data class MerchantRegistrationResponse(
+    val status: String,
+    val registrationId: String? = null,
+    val email: String? = null
+)
+
+@Serializable
 data class LoginResponse(
     val token: String,
     val user: UserInfo
