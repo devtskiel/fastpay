@@ -50,25 +50,17 @@ class AuthenticateUseCase(
                 return Result.failure(Exception("Invalid Email or Password"))
             }
 
-            // Step 1.5: Backend Login & JWT
+            // Step 1.5: Backend Pre-Login Check
             val service = settingsManager.createSwiftPayService()
-            service.login(email, password).onSuccess {
-                settingsManager.saveJwtToken(it.token)
-            }.onFailure {
-                return Result.failure(it)
-            }
-
-            // Step 2: Trigger OTP
-            val refNo = "AUTH${System.currentTimeMillis()}"
-
-            val tempService = SwiftPayService(customSecretKey = masterSecret)
-            val result = tempService.requestEmailOtp(email, refNo)
+            // In the new flow, we just verify pass first if we want, or jump to OTP
+            // But let's keep it simple: call requestBackendOtp
+            
+            val result = service.requestBackendOtp(email)
             
             if (result.isSuccess) {
                 Result.success(Unit)
             } else {
-                // Fallback for demo if SMTP is not configured
-                Result.success(Unit)
+                Result.failure(result.exceptionOrNull() ?: Exception("Failed to send OTP"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -76,7 +68,7 @@ class AuthenticateUseCase(
     }
 
     /**
-     * Step 3: Verify the OTP code sent to the email
+     * Step 3: Verify the OTP code sent to the email via Backend (Resend)
      */
     suspend fun verifyAccess(email: String, code: String): Result<Boolean> {
         return try {
@@ -84,21 +76,12 @@ class AuthenticateUseCase(
                 return Result.failure(Exception("Invalid OTP format (6 digits required)"))
             }
 
-            // In production, we call SwiftPay verifyEmailOtp
-            val credentials = settingsManager.loadSwiftPayCredentials()
-            val tempService = SwiftPayService(customSecretKey = credentials.secretKey)
-            val refNo = "VERIFY${System.currentTimeMillis()}"
-
-            // For testing, we allow 123456 as a bypass if the real service is pending
-            if (code == "123456") {
-                settingsManager.setLoggedIn(email, true)
-                sessionManager.createSession(email, true)
-                return Result.success(true)
-            }
-
-            val result = tempService.verifyEmailOtp(email, code, refNo)
+            val service = settingsManager.createSwiftPayService()
+            val result = service.verifyBackendOtp(email, code)
             
             if (result.isSuccess) {
+                val loginData = result.getOrNull()!!
+                settingsManager.saveJwtToken(loginData.token)
                 settingsManager.setLoggedIn(email, true)
                 sessionManager.createSession(email, true)
                 Result.success(true)

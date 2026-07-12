@@ -125,6 +125,69 @@ app.get('/api/auth/compliance', (_req, res) => res.json({
     content: `1. BSP REGULATION: SwiftPay operates in compliance with Bangko Sentral ng Pilipinas (BSP) regulations for Electronic Money Operations and Payment Systems.\n2. KYC/AML POLICY: Robust Know-Your-Customer (KYC) process implemented.\n3. DATA PRIVACY: Compliance with the Data Privacy Act of 2012 (RA 10173).\n4. SECURITY STANDARDS: Industry-standard encryption (AES-256).`
 }))
 
+const sendEmail = async (to, subject, html) => {
+    const resendKey = process.env.RESEND_API_KEY;
+    if (!resendKey) {
+        console.warn('⚠️ RESEND_API_KEY missing. Email not sent.');
+        return false;
+    }
+    try {
+        await axios.post('https://api.resend.com/emails', {
+            from: process.env.OTP_SENDER_EMAIL || 'onboarding@resend.dev',
+            to: [to],
+            subject,
+            html
+        }, {
+            headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' }
+        });
+        return true;
+    } catch (e) {
+        console.error('📧 Email Error:', e.response?.data || e.message);
+        return false;
+    }
+};
+
+app.post('/api/auth/request-otp', async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    const normalizedEmail = email.toLowerCase().trim();
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60000); // 10 mins
+
+    try {
+        await pgPool.query(
+            'INSERT INTO verification_codes(email, code, expires_at) VALUES($1, $2, $3) ON CONFLICT (email) DO UPDATE SET code = $2, expires_at = $3',
+            [normalizedEmail, code, expiresAt]
+        );
+        const sent = await sendEmail(
+            normalizedEmail,
+            'Your SwiftPay Verification Code',
+            `<strong>${code}</strong> is your SwiftPay access code. It expires in 10 minutes.`
+        );
+        if (sent) res.json({ status: 'success', message: 'OTP sent' });
+        else res.status(500).json({ error: 'Failed to send email' });
+    } catch (e) { res.status(500).json({ error: 'Internal error' }); }
+});
+
+app.post('/api/auth/verify-otp', async (req, res) => {
+    const { email, code } = req.body;
+    const normalizedEmail = (email || '').toLowerCase().trim();
+    try {
+        const { rows } = await pgPool.query('SELECT * FROM verification_codes WHERE email = $1', [normalizedEmail]);
+        const record = rows[0];
+        if (!record || record.code !== code || new Date() > record.expires_at) {
+            return res.status(401).json({ error: 'Invalid or expired code' });
+        }
+        await pgPool.query('DELETE FROM verification_codes WHERE email = $1', [normalizedEmail]);
+
+        // Return login success data
+        const userRes = await pgPool.query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
+        const user = userRes.rows[0];
+        const token = jwt.sign({ id: user.id, email: user.email, businessName: user.business_name, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+        res.json({ token, user: { id: user.id, email: user.email, businessName: user.business_name || 'Merchant', role: user.role } });
+    } catch (e) { res.status(500).json({ error: 'Verification failed' }); }
+});
+
 // Admin Routes
 app.get('/api/admin/metrics', requireAuth, async (req, res) => {
     if (req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Super Admin only' })
@@ -341,10 +404,14 @@ app.post('/api/admin/disbursements/:id/reject', requireAuth, async (req, res) =>
 app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
     try {
         const u = await getClient(req.user.id)
-        const auth = Buffer.from(`${u.pub}:${u.sec}`).toString('base64')
+        // Correct Auth Format for Netbank Balance: sk_...:
+        const auth = Buffer.from(`${u.sec}:`).toString('base64')
         const resp = await axios.get('https://api.netbank.ph/v1/account/balance', { headers: { 'Authorization': `Basic ${auth}` } })
         res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: 'Balance Error' }) }
+    } catch (e) {
+        console.error('Balance Error:', e.response?.data || e.message);
+        res.status(500).json({ error: 'Balance Error' })
+    }
 })
 
 app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {

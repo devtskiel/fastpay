@@ -28,6 +28,10 @@ services:
         sync: false
       - key: MAGPIE_SECRET_KEY
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: OTP_SENDER_EMAIL
+        value: onboarding@resend.dev
 
 
 databases:

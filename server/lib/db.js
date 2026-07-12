@@ -133,6 +133,12 @@ async function initDatabase() {
             updated_at TIMESTAMPTZ DEFAULT NOW()
         )`);
 
+        await pgPool.query(`CREATE TABLE IF NOT EXISTS verification_codes (
+            email TEXT PRIMARY KEY,
+            code TEXT NOT NULL,
+            expires_at TIMESTAMPTZ NOT NULL
+        )`);
+
         console.log('✅ Database Schema Verified & Connected to Live Route');
     } catch (e) {
         console.error('❌ LIVE DB CONNECTION ERROR:', e.message);

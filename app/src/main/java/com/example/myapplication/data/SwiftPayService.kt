@@ -468,5 +468,19 @@ class SwiftPayService(
             if (response.isSuccessful) Result.success(Unit) else Result.failure(Exception(parseError(response)))
         } catch (e: Exception) { Result.failure(e) }
     }
+
+    suspend fun requestBackendOtp(email: String): Result<Unit> {
+        return try {
+            val response = api.requestOtp(backendUrl + "auth/request-otp", mapOf("email" to email))
+            if (response.isSuccessful) Result.success(Unit) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
+
+    suspend fun verifyBackendOtp(email: String, code: String): Result<LoginResponse> {
+        return try {
+            val response = api.verifyOtp(backendUrl + "auth/verify-otp", mapOf("email" to email, "code" to code))
+            if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
 }
 

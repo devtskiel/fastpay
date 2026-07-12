@@ -234,6 +234,18 @@ interface SwiftPayApi {
         @Url url: String,
         @Body request: Map<String, String>
     ): Response<Unit>
+
+    @POST
+    suspend fun requestOtp(
+        @Url url: String,
+        @Body request: Map<String, String>
+    ): Response<Unit>
+
+    @POST
+    suspend fun verifyOtp(
+        @Url url: String,
+        @Body request: Map<String, String>
+    ): Response<LoginResponse>
 }
 
 
