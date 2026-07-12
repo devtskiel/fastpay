@@ -76,7 +76,7 @@ app.post('/api/auth/login', async (req, res) => {
         const user = r.rows[0]
         if (!user || !(await bcrypt.compare(password, user.password_hash))) return res.status(401).json({ error: 'Invalid keys' })
         const token = jwt.sign({ id: user.id, email: user.email, businessName: user.business_name, role: user.role }, JWT_SECRET, { expiresIn: '24h' })
-        res.json({ token, user: { businessName: user.business_name || 'Merchant', role: user.role } })
+        res.json({ token, user: { id: user.id, email: user.email, businessName: user.business_name || 'Merchant', role: user.role } })
     } catch (e) { res.status(500).json({ error: 'System Error' }) }
 })
 
