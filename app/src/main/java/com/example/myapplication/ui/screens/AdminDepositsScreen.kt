@@ -63,7 +63,7 @@ fun AdminDepositsScreen(
                 contentPadding = PaddingValues(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(deposits) { deposit ->
+                items(items = deposits) { deposit ->
                     DepositApprovalCard(
                         deposit = deposit,
                         onApprove = { viewModel.onUpdateDepositStatus(deposit.id ?: "", "APPROVED") },

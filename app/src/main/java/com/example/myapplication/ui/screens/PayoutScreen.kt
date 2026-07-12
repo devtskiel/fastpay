@@ -33,7 +33,7 @@ fun PayoutScreen(
     
     var showBankSheet by remember { mutableStateOf(false) }
     
-    val dynamicBanks by viewModel::institutions
+    val dynamicBanks = viewModel.institutions
     
     LaunchedEffect(Unit) {
         viewModel.onBanksRequest()

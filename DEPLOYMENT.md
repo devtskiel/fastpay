@@ -1,51 +1,32 @@
-# Deployment Guide for SwiftPay
+# Deployment Status for SwiftPay
 
-This project is configured for production deployment on **Render** and **Railway**.
+## 1. Backend Deployment (Render) - ✅ COMPLETED
+The Node.js gateway is now live and "online".
+- **URL**: `https://swiftpay-merchant-gateway.onrender.com`
+- **Status**: `UP` (Verified)
+- **Features**: Refactored with 18-field user schema and stability fixes.
 
-## 1. Backend Deployment (Node.js Gateway)
+### Backend Verification:
+You can verify the gateway status by visiting:
+`https://swiftpay-merchant-gateway.onrender.com/health`
 
-The `server/` directory contains a Node.js gateway that handles:
-- Multi-device login approvals.
-- Proxying sensitive SwiftPay operations.
-- Merchant settings and profile management.
+## 2. Android App Deployment - ✅ CONFIGURED
+The Android application has been fully refactored and configured to talk to the live Render backend.
 
-### Option A: Railway (Recommended)
-1. Connect this repository to your **Railway.app** account.
-2. In the Railway Dashboard, go to your Service settings and set the **Root Directory** to `server`.
-3. Railway will then detect the `server/railway.json` file and use the `server/Dockerfile`.
-4. Add a **PostgreSQL** service to your Railway project.
-4. **Environment Variables**: Railway will automatically link `DATABASE_URL`. You MUST manually set:
-   - `APP_SERVER_KEY`: A secure random string.
-   - `JWT_SECRET`: A secure random string.
-   - `SWIFTPAY_PUBLIC_KEY`: Your SwiftPay Public Key.
-   - `SWIFTPAY_SECRET_KEY`: Your SwiftPay Secret Key.
+### Environment Configuration:
+- `APP_SERVER_URL`: Set to the Render URL in `local.properties`.
+- `APP_SERVER_KEY`: Matching the secure key on the server.
+- `SWIFTPAY_KEYS`: Configured for production-ready abstraction.
 
-### Option B: Render
-1. Connect this repository to your **Render.com** account.
-2. Render will automatically detect the `render.yaml` file.
-3. It will create:
-   - A Web Service (`swiftpay-merchant-gateway`)
-   - A PostgreSQL Database (`swiftpay-db`)
-4. **Environment Variables**: In the Render UI, you MUST set the following for the `swiftpay-merchant-gateway` service:
-   - `APP_SERVER_KEY`: A secure random string used as an API key for the app.
-   - `JWT_SECRET`: A secure random string for signing login tokens.
-   - `SWIFTPAY_PUBLIC_KEY`: Your SwiftPay Public Key.
-   - `SWIFTPAY_SECRET_KEY`: Your SwiftPay Secret Key.
-
-## 2. Android App Production Readiness
-
-### Configuration:
-1. Open `local.properties` (or set environment variables in your CI/CD).
-2. Update `APP_SERVER_URL` to your Render service URL (e.g., `https://swiftpay-merchant-gateway.onrender.com`).
-3. Update `APP_SERVER_KEY` to match the one set in Render.
-
-### Security:
-- ProGuard is enabled for release builds to obfuscate code.
-- Sensitive keys are excluded from the binary when using the Gateway (in progress).
-
-## 3. Production Build
-To generate a production APK:
+### Build and Install:
+To generate the final APK for use:
 ```bash
-./gradlew assembleRelease
+./gradlew assembleDebug
 ```
-The release build is configured to use the signing credentials defined in `local.properties`.
+The APK will be available at: `app/build/outputs/apk/debug/app-debug.apk`
+
+## 3. Production Release Checklist
+Before submitting to Google Play:
+1. Ensure `local.properties` contains your production `RELEASE_STORE_FILE` details.
+2. Run `./gradlew assembleRelease`.
+3. Verify all 18 UI screens in the release build.

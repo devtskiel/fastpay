@@ -30,6 +30,7 @@ import com.example.myapplication.util.DeepLinkExtractor
 import com.example.myapplication.util.DebugLogger
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 

@@ -64,7 +64,7 @@ fun WebhooksScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp)
         ) {
-            items(webhooks) { wh ->
+            items(items = webhooks) { wh ->
                 WebhookCard(wh) {
                     viewModel.onDeleteWebhookRequest(wh.id ?: "")
                 }
