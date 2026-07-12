@@ -54,7 +54,7 @@
             cursor: pointer; transition: var(--transition); border: none; font-size: 14px;
         }
         .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(244, 97, 25, 0.3); }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(31, 75, 168, 0.3); }
         .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
         .btn-ghost:hover { background: var(--border); }
 
@@ -85,7 +85,7 @@
             text-decoration: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: var(--transition);
         }
         .nav-item:hover { color: var(--text-primary); background: rgba(255,255,255,0.03); }
-        .nav-item.active { color: var(--primary); background: rgba(244, 97, 25, 0.08); font-weight: 600; border-right: 3px solid var(--primary); }
+        .nav-item.active { color: var(--primary); background: rgba(31, 75, 168, 0.08); font-weight: 600; border-right: 3px solid var(--primary); }
 
         .main-content { margin-left: var(--sidebar-width); padding: 40px; min-height: 100vh; display: none; }
         body.logged-in .main-content { display: block; }
@@ -116,7 +116,7 @@
             width: 100%; padding: 12px 16px; background: var(--bg-deep); border: 1px solid var(--border);
             border-radius: var(--radius-md); color: white; font-family: var(--font-main); transition: var(--transition);
         }
-        .input-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(244, 97, 25, 0.2); }
+        .input-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(31, 75, 168, 0.2); }
 
         /* --- Toast Notifications --- */
         #toast-container { position: fixed; bottom: 32px; right: 32px; z-index: 3000; display: flex; flex-direction: column; gap: 12px; }
@@ -379,7 +379,7 @@
     <main class="main-content">
         <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 48px;">
             <div>
-                <h1 id="merchant-name" style="font-size: 28px;">Management Console</h1>
+                <h1 id="merchant-name" style="font-size: 28px;">SwiftPay Store</h1>
                 <p style="color: var(--text-secondary); font-size: 14px;">Built for onboarding, implementation, and administrative control teams.</p>
             </div>
             <div style="display: flex; gap: 12px;">
@@ -428,7 +428,7 @@
                 </div>
             </div>
 
-            <div class="table-container">
+            <div class="table-container" id="onboarding-review-queue">
                 <div style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="font-size: 16px;">Onboarding Review Queue</h3>
                     <span class="badge badge-pending">Management Team</span>
@@ -449,7 +449,7 @@
             <div class="table-container">
                 <div style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="font-size: 16px;">Recent Activity</h3>
-                    <a href="#" style="font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 700;">View Ledger</a>
+                    <a href="#" onclick="showPage('settlements')" style="font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 700;">View Ledger</a>
                 </div>
                 <table>
                     <thead>
@@ -520,7 +520,7 @@
                 </div>
             </div>
 
-            <div style="margin-top: 40px; padding: 24px; background: rgba(244, 97, 25, 0.05); border-radius: 16px; border: 1px solid rgba(244, 97, 25, 0.2);">
+            <div style="margin-top: 40px; padding: 24px; background: rgba(31, 75, 168, 0.05); border-radius: 16px; border: 1px solid rgba(31, 75, 168, 0.2);">
                 <div style="display: flex; gap: 16px; align-items: center;">
                     <i class="fas fa-info-circle" style="color: var(--primary); font-size: 24px;"></i>
                     <p style="font-size: 13px; color: var(--text-secondary);">
@@ -555,7 +555,24 @@
 
         <!-- Team Management Page -->
         <div id="page-team" class="page">
-            ...
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+                <h2>Team Access Control</h2>
+                <button class="btn btn-primary" onclick="openModal('modal-invite')"><i class="fas fa-user-plus"></i> Add Team Member</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Email</th>
+                            <th>Role & Permissions</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="members-list"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Collections Page -->
@@ -1085,7 +1102,6 @@
 
         async function syncAdminData(t) {
             try {
-                // Admin Registrations
                 const regsRes = await fetch('/api/admin/registrations', { headers: { 'Authorization': 'Bearer '+t } });
                 const regs = await regsRes.json();
                 document.getElementById('admin-regs-list').innerHTML = regs.map(r => `
@@ -1112,7 +1128,6 @@
                     </tr>
                 `).join('');
 
-                // Admin Treasury (Deposits)
                 const depsRes = await fetch('/api/admin/deposits', { headers: { 'Authorization': 'Bearer '+t } });
                 const deps = await depsRes.json();
                 document.getElementById('admin-deposits-list').innerHTML = deps.filter(d => d.status === 'PENDING').map(d => `
@@ -1138,7 +1153,6 @@
                     </div>
                 `).join('') || '<p style="font-size: 13px; color: var(--text-dim); text-align: center; padding: 20px;">No pending deposits</p>';
 
-                // Admin Compliance (Payment Events)
                 const eventsRes = await fetch('/api/payments/events', { headers: { 'Authorization': 'Bearer '+t } });
                 const events = await eventsRes.json();
                 document.getElementById('admin-compliance-logs').innerHTML = events.map(ev => `
@@ -1151,7 +1165,6 @@
                     </tr>
                 `).join('');
 
-                // Admin Disbursements Approval
                 const disburseRes = await fetch('/api/admin/disbursements', { headers: { 'Authorization': 'Bearer '+t } });
                 const pendingDisb = await disburseRes.json();
                 const disbContainer = document.getElementById('admin-payouts-list');
@@ -1178,7 +1191,6 @@
                         </div>
                     `).join('') || '<p style="font-size: 12px; color: var(--text-dim); text-align: center;">No pending payout requests</p>';
                 }
-
             } catch (e) { console.error('Admin sync failed:', e); }
         }
 
@@ -1233,41 +1245,24 @@
             const u = JSON.parse(localStorage.getItem('sp_user'));
             if (!u) return;
 
-            document.getElementById('merchant-name').innerText = u.businessName;
+            document.getElementById('merchant-name').innerText = u.businessName || 'SwiftPay Store';
 
-            // Role-based UI visibility
             const isDev = u.role === 'DEVELOPER';
             const isAdmin = u.role === 'SUPER_ADMIN' || u.role === 'ADMIN';
 
-            // Show/Hide sidebar items based on role
-            document.querySelectorAll('.nav-item').forEach(item => {
-                const text = item.innerText.toLowerCase();
-                if (isDev) {
-                    const allowed = ['documentation', 'config', 'overview', 'session'];
-                    const isAllowed = allowed.some(a => text.includes(a));
-                    item.style.display = isAllowed ? 'flex' : 'none';
-                }
-            });
-
             if (isAdmin) {
                 document.getElementById('nav-admin').style.display = 'block';
+                document.getElementById('onboarding-review-queue').style.display = 'block';
                 syncAdminData(t);
             }
 
             try {
-                // Balance
                 const balRes = await fetch('/api/swiftpay/balance', { headers: { 'Authorization': 'Bearer '+t } });
                 const bal = await balRes.json();
                 document.getElementById('val-bal').innerText = '₱ ' + (bal.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
 
                 const metricsRes = await fetch('/api/admin/metrics', { headers: { 'Authorization': 'Bearer '+t } });
                 const metrics = await metricsRes.json().catch(() => ({}));
-                document.getElementById('val-onboarding').innerText = metrics.pendingRegistrations ?? 0;
-                document.getElementById('val-deposits').innerText = metrics.pendingDeposits ?? 0;
-                document.getElementById('val-members').innerText = metrics.activeMembers ?? 0;
-                if (document.getElementById('val-payouts-pending')) {
-                    document.getElementById('val-payouts-pending').innerText = metrics.pendingDisbursements ?? 0;
-                }
 
                 const regsRes = await fetch('/api/admin/registrations', { headers: { 'Authorization': 'Bearer '+t } });
                 const regs = await regsRes.json().catch(() => []);
@@ -1280,7 +1275,6 @@
                     </tr>
                 `).join('');
 
-                // Collections
                 const txRes = await fetch('/api/swiftpay/transactions', { headers: { 'Authorization': 'Bearer '+t } });
                 const txs = await txRes.json();
                 document.getElementById('tx-ledger').innerHTML = txs.map(tx => `
@@ -1293,7 +1287,6 @@
                     </tr>
                 `).join('');
 
-                // Payouts
                 const disRes = await fetch('/api/swiftpay/disbursements', { headers: { 'Authorization': 'Bearer '+t } });
                 const dis = await disRes.json();
                 document.getElementById('payout-ledger').innerHTML = dis.map(d => `
@@ -1306,7 +1299,6 @@
                     </tr>
                 `).join('');
 
-                // Members
                 const memRes = await fetch('/api/admin/members', { headers: { 'Authorization': 'Bearer '+t } });
                 const mems = await memRes.json();
                 document.getElementById('members-list').innerHTML = mems.map(m => `
@@ -1331,7 +1323,6 @@
                     </tr>
                 `).join('');
 
-                // Settings
                 const setRes = await fetch('/api/swiftpay/settings', { headers: { 'Authorization': 'Bearer '+t } });
                 const s = await setRes.json();
                 document.getElementById('p-biz').value = s.business_name || '';
@@ -1340,8 +1331,6 @@
                 document.getElementById('p-url').value = s.shop_url || '';
                 document.getElementById('p-source').value = s.source_account_number || '';
                 document.getElementById('p-logo-url').value = s.logo_url || '';
-
-                // New API Settings
                 document.getElementById('p-sp-pub').value = s.sp_public_key || '';
                 document.getElementById('p-sp-sec').value = s.sp_secret_key || '';
                 document.getElementById('p-mg-pub').value = s.magpie_public_key || '';
@@ -1356,14 +1345,11 @@
                     document.getElementById('p-logo-icon').style.display = 'none';
                 }
 
-                // Balance Summary Page Extra Sync
                 document.getElementById('set-val-bal').innerText = document.getElementById('val-bal').innerText;
 
-                // Merchant's own deposits
                 const depRes = await fetch('/api/swiftpay/deposits', { headers: { 'Authorization': 'Bearer '+t } });
                 const deps = await depRes.json();
 
-                // Store for filtering
                 allTransactions = [
                     ...txs.map(tx => ({ type: 'COLLECTION', desc: 'SwiftPay QR/Link', amt: tx.amount, status: 'Success', date: tx.date, id: tx.id })),
                     ...dis.map(d => ({ type: 'PAYOUT', desc: `${d.recipientInformation?.firstName} ${d.recipientInformation?.lastName}`, amt: -parseFloat(d.creditInformation?.amount), status: d.status, date: d.createdAt || Date.now(), id: d.id })),
@@ -1373,7 +1359,6 @@
                 renderLedger(allTransactions);
                 updateAnalytics(allTransactions);
 
-                // Webhook Event Logs
                 const eventRes = await fetch('/api/payments/events', { headers: { 'Authorization': 'Bearer '+t } });
                 const events = await eventRes.json();
                 document.getElementById('event-logs').innerHTML = events.map(ev => `
@@ -1387,6 +1372,7 @@
                     </tr>
                 `).join('');
 
+                showToast('Synchronized with gateway', 'success');
             } catch (e) {
                 showToast('Failed to synchronize data', 'error');
             }
@@ -1412,7 +1398,6 @@
             let totalDisbursed = 0;
             let pendingVol = 0;
             let failedCount = 0;
-
             const chartData = {};
 
             data.forEach(t => {
@@ -1429,7 +1414,6 @@
                     failedCount++;
                 }
 
-                // Chart grouping by date
                 const dateKey = new Date(t.date).toLocaleDateString();
                 if (!chartData[dateKey]) chartData[dateKey] = { collected: 0, disbursed: 0 };
                 if (isSuccess) {
@@ -1681,8 +1665,8 @@
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
-                if (data.status === 'success') {
-                    showToast('Payout initiated successfully', 'success');
+                if (data.status === 'success' || data.status === 'submitted') {
+                    showToast(data.message || 'Payout initiated successfully', 'success');
                     closeModal('modal-disburse');
                     sync();
                 } else {
@@ -1744,7 +1728,6 @@
         }
 
         function simulateLogoUpload() {
-            // In a real app, this would open a file picker and upload to S3/Storage
             const demoLogos = [
                 'https://cdn-icons-png.flaticon.com/512/10507/10507029.png',
                 'https://cdn-icons-png.flaticon.com/512/6062/6062646.png',
@@ -1798,7 +1781,6 @@
                     showToast(payload.id ? 'Member updated' : 'Member invited', 'success');
                     closeModal('modal-invite');
                     sync();
-                    // Reset form
                     document.getElementById('i-id').value = '';
                     document.getElementById('invite-title').innerText = 'Invite Team Member';
                 }
@@ -1850,7 +1832,6 @@
 
         function logout() { localStorage.clear(); location.reload(); }
 
-        // --- Registration Flow ---
         let currentRegStep = 1;
         let selfieCaptured = false;
         let docsUploaded = false;
@@ -1893,7 +1874,6 @@
             document.querySelectorAll('.reg-step').forEach(s => s.classList.remove('active'));
             document.getElementById('step-' + step).classList.add('active');
 
-            // Update dots
             for (let i = 1; i <= 5; i++) {
                 const dot = document.getElementById('dot-' + i);
                 dot.classList.remove('active', 'completed');

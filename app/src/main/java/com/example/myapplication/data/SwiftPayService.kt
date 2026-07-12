@@ -35,8 +35,8 @@ class SwiftPayService(
     private val pgBaseUrl = if (isSandbox) "https://api-sandbox.netbank.ph/" else "https://api.netbank.ph/"
     private val payBaseUrl = if (isSandbox) "https://api.pay.sandbox.live.swiftpay.ph/api/" else "https://api.pay.live.swiftpay.ph/api/"
     private val backendUrl = if (BuildConfig.APP_SERVER_URL.isNotBlank()) {
-        val url = BuildConfig.APP_SERVER_URL
-        if (url.endsWith("/")) url else "$url/"
+        val root = BuildConfig.APP_SERVER_URL.let { if (it.endsWith("/")) it else "$it/" }
+        "${root}api/"
     } else "http://10.0.2.2:3000/api/"
 
     private var activeMid: String? = customMid ?: BuildConfig.SWIFTPAY_QR_MID
@@ -86,11 +86,13 @@ class SwiftPayService(
         get() = "Basic " + Base64.encodeToString("${publicKey?.trim().orEmpty()}:${secretKey?.trim().orEmpty()}".toByteArray(), Base64.NO_WRAP)
 
     private fun <T> parseError(response: retrofit2.Response<T>): String {
+        val code = response.code()
         return try {
-            val errorBody = response.errorBody()?.string() ?: return "Unknown error (${response.code()})"
+            val errorBody = response.errorBody()?.string() ?: return "Unknown error ($code)"
+            Log.e("SwiftPayService", "API Error $code: $errorBody")
             val error = try { json.decodeFromString<SwiftPayError>(errorBody) } catch (e: Exception) { null }
-            error?.message ?: error?.code ?: "Error ${response.code()}"
-        } catch (e: Exception) { "Error ${response.code()}" }
+            error?.message ?: error?.code ?: "Error $code"
+        } catch (e: Exception) { "Error $code" }
     }
 
     private fun missingSecretKey() = Result.failure<Nothing>(Exception("Configuration Error: SwiftPay Secret Key is missing."))
