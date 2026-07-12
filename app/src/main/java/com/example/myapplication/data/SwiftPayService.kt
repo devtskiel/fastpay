@@ -197,26 +197,24 @@ class SwiftPayService(
         address: AddressV2? = null
     ): Result<Boolean> {
         return try {
-            if (!hasSecretKey || !hasPublicKey) return missingSecretKey()
-            val request = DisbursementRequest(
-                merchantReferenceNo = "P${System.currentTimeMillis()}",
-                institutionCode = bankCode ?: "",
-                creditInformation = CreditInformation(
-                    amount = "%.2f".format(amount),
-                    remarks = remarks ?: "Payout"
-                ),
-                recipientInformation = RecipientInformation(
-                    accountNumber = accountNumber,
-                    firstName = firstName,
-                    middleName = middleName,
-                    lastName = lastName,
-                    email = email,
-                    mobileNumber = mobileNumber,
-                    address = address
+            val response = api.createBackendDisbursement(
+                backendUrl + "swiftpay/disburse",
+                "Bearer $jwtToken",
+                mapOf(
+                    "amount" to amount,
+                    "accountNumber" to accountNumber,
+                    "firstName" to firstName,
+                    "lastName" to lastName,
+                    "institutionCode" to (bankCode ?: ""),
+                    "bankCode" to (bankCode ?: ""),
+                    "remarks" to (remarks ?: "Payout")
                 )
             )
-            val response = api.sendDisbursement(payBaseUrl + "disbursements/send", v2AuthHeader, request)
-            if (response.isSuccessful) Result.success(true) else Result.failure(Exception(parseError(response)))
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(true)
+            } else {
+                Result.failure(Exception(parseError(response)))
+            }
         } catch (e: Exception) { Result.failure(e) }
     }
 
@@ -332,10 +330,13 @@ class SwiftPayService(
     // --- Infrastructure & Utilities ---
 
     suspend fun getWalletBalance(): Double {
-        if (!hasSecretKey) return 0.0
         return try {
-            val response = api.getWalletBalance(authHeader, "BAL${System.currentTimeMillis()}")
-            if (response.isSuccessful) response.body()?.balance ?: 0.0 else 0.0
+            val response = api.getBackendWalletBalance(backendUrl + "swiftpay/balance", "Bearer $jwtToken")
+            if (response.isSuccessful && response.body() != null) {
+                response.body()!!.balance ?: response.body()!!.availableBalance ?: response.body()!!.totalBalance ?: 0.0
+            } else {
+                0.0
+            }
         } catch (e: Exception) { 0.0 }
     }
 

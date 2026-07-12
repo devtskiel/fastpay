@@ -52,7 +52,22 @@ const normalizeMagpieChargeResponse = (response = {}, { paymentMethod = 'qrph' }
     }
 }
 
+const normalizeWalletBalanceResponse = (response = {}) => {
+    const payload = response?.data ?? response ?? {}
+    const balanceValue = Number(payload.balance ?? payload.availableBalance ?? payload.totalBalance ?? payload.amount ?? 0)
+    const availableBalanceValue = Number(payload.availableBalance ?? payload.balance ?? payload.totalBalance ?? balanceValue)
+    const totalBalanceValue = Number(payload.totalBalance ?? payload.availableBalance ?? payload.balance ?? availableBalanceValue)
+
+    return {
+        balance: Number.isFinite(balanceValue) ? balanceValue : 0,
+        availableBalance: Number.isFinite(availableBalanceValue) ? availableBalanceValue : balanceValue,
+        totalBalance: Number.isFinite(totalBalanceValue) ? totalBalanceValue : availableBalanceValue,
+        currency: payload.currency || 'PHP'
+    }
+}
+
 module.exports = {
     buildMagpieChargePayload,
-    normalizeMagpieChargeResponse
+    normalizeMagpieChargeResponse,
+    normalizeWalletBalanceResponse
 }

@@ -10,7 +10,7 @@ const path = require('path')
 const { pgPool, initDatabase, cleanKey } = require('./lib/db')
 const { requireAuth, requireApiKey, JWT_SECRET } = require('./lib/auth')
 const { computeHmacSha256, verifyHmacSignature, normalizeTransactionStatus } = require('./lib/merchant')
-const { buildMagpieChargePayload, normalizeMagpieChargeResponse } = require('./lib/magpie')
+const { buildMagpieChargePayload, normalizeMagpieChargeResponse, normalizeWalletBalanceResponse } = require('./lib/magpie')
 
 const app = express()
 app.set('trust proxy', 1) // Required for Render/Railway HTTPS detection
@@ -64,7 +64,7 @@ const getClient = async (uid) => {
         mgPub: cleanKey(u.magpie_public_key),
         mgSec: cleanKey(u.magpie_secret_key),
         biz: u.business_name,
-        isProd: !!u.is_production
+        isProd: !!(u.is_production || u.sp_public_key?.startsWith('pk_live') || u.sp_secret_key?.startsWith('sk_live') || u.magpie_public_key?.startsWith('pk_live') || u.magpie_secret_key?.startsWith('sk_live'))
     }
 }
 
@@ -351,7 +351,21 @@ app.post('/api/payments/checkout', requireAuth, async (req, res) => {
         const webhookUrl = process.env.SWIFTPAY_WEBHOOK_URL || `${serverUrl}/api/payments/callback`
 
         if (u.isProd) {
-            return res.status(400).json({ error: 'Please use /api/payments/magpie/checkout for production collections' })
+            const MAGPIE_SECRET = u.mgSec || process.env.MAGPIE_SECRET_KEY
+            const magpiePayload = buildMagpieChargePayload({
+                amount,
+                description,
+                referenceNo: reference,
+                paymentMethod: 'qrph',
+                metadata: { source: 'swiftpay_backend_checkout' }
+            })
+
+            const magpieResp = await axios.post('https://api.magpie.im/v1/charges', magpiePayload, {
+                auth: { username: MAGPIE_SECRET, password: '' },
+                headers: { 'Content-Type': 'application/json' }
+            })
+
+            return res.json(normalizeMagpieChargeResponse(magpieResp.data, { paymentMethod: 'qrph' }))
         }
 
         // [SANDBOX] SwiftPay Collection Integration
@@ -413,20 +427,17 @@ app.post('/api/payments/magpie/checkout', requireAuth, async (req, res) => {
 app.post('/api/swiftpay/disburse', requireAuth, async (req, res) => {
     try {
         const u = await getClient(req.user.id)
-        const { amount, accountNumber, firstName, lastName, institutionCode } = req.body
+        const { amount, accountNumber, firstName, lastName, institutionCode, bankCode } = req.body
+        const resolvedInstitutionCode = institutionCode || bankCode || ''
         const internalId = 'DISB' + Date.now()
         const referenceNo = 'P' + Date.now()
 
         await pgPool.query(
             'INSERT INTO disbursements(id, merchant_id, amount, account_number, bank_code, beneficiary_name, status, external_reference) VALUES($1, $2, $3, $4, $5, $6, $7, $8)',
-            [internalId, req.user.id, amount, accountNumber, institutionCode, `${firstName} ${lastName}`, 'PENDING', referenceNo]
+            [internalId, req.user.id, amount, accountNumber, resolvedInstitutionCode, `${firstName} ${lastName}`, 'PENDING', referenceNo]
         )
 
-        if (u.isProd) {
-            return res.json({ status: 'submitted', disbursementId: internalId, message: 'Payout request sent for admin approval' })
-        }
-
-        // [SANDBOX] Swiftpay Disbursement Integration
+        // [SANDBOX/PRODUCTION] Swiftpay Disbursement Integration
         const baseUrl = u.isProd ? 'https://api.pay.live.swiftpay.ph' : 'https://api.pay.sandbox.live.swiftpay.ph'
         const auth = Buffer.from(`${u.pub}:${u.sec}`).toString('base64')
 
@@ -434,7 +445,7 @@ app.post('/api/swiftpay/disburse', requireAuth, async (req, res) => {
         const callbackUrl = process.env.DISBURSEMENT_CALLBACK_URL || `${serverUrl}/api/swiftpay/disbursement-callback`
 
         const payload = {
-            merchantReferenceNo: referenceNo, channel: 'INSTAPAY', institutionCode,
+            merchantReferenceNo: referenceNo, channel: 'INSTAPAY', institutionCode: resolvedInstitutionCode,
             creditInformation: { amount: parseFloat(amount).toFixed(2), remarks: 'Payout' },
             recipientInformation: { accountNumber, firstName, lastName },
             callbackUrl
@@ -497,7 +508,7 @@ app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
         // Correct Auth Format for Netbank Balance: sk_...:
         const auth = Buffer.from(`${u.sec}:`).toString('base64')
         const resp = await axios.get('https://api.netbank.ph/v1/account/balance', { headers: { 'Authorization': `Basic ${auth}` } })
-        res.json(resp.data)
+        res.json(normalizeWalletBalanceResponse(resp.data))
     } catch (e) {
         console.error('Balance Error:', e.response?.data || e.message);
         res.status(500).json({ error: 'Balance Error' })

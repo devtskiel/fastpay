@@ -176,6 +176,12 @@ interface SwiftPayApi {
         @Header("Request-Reference-No") refNo: String? = null
     ): Response<BalanceResponse>
 
+    @GET
+    suspend fun getBackendWalletBalance(
+        @Url url: String,
+        @Header("Authorization") auth: String
+    ): Response<BalanceResponse>
+
     @GET("v1/collect/payments")
     suspend fun getPaymentsList(
         @Header("Authorization") auth: String
@@ -217,6 +223,13 @@ interface SwiftPayApi {
         @Header("Authorization") auth: String,
         @Body request: DepositRequest
     ): Response<Unit>
+
+    @POST
+    suspend fun createBackendDisbursement(
+        @Url url: String,
+        @Header("Authorization") auth: String,
+        @Body request: Map<String, Any>
+    ): Response<Map<String, Any>>
 
     @GET
     suspend fun getAdminDeposits(

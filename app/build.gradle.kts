@@ -90,8 +90,10 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Disable resource shrinking/minification for local release APK generation to avoid
+            // environment-specific R8 packaging failures while still producing a usable artifact.
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // Enforce presence of critical server config only when release artifacts are actually being built
             val isBuildingRelease = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
