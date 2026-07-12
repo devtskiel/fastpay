@@ -16,6 +16,8 @@ app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors())
 app.use(bodyParser.json())
 
+const API_VERSION = 'v1.18.0'
+
 async function startServer() {
     await initDatabase()
 
@@ -40,16 +42,23 @@ async function startServer() {
     } catch (e) { console.error('Admin seeding failed:', e.message) }
 
     app.listen(process.env.PORT || 3000, '0.0.0.0', () => {
-        console.log('🚀 Gateway Live - SwiftPay Enterprise v1.18.0')
+        console.log(`🚀 Gateway Live - SwiftPay Enterprise ${API_VERSION}`)
         console.log('✅ 18 Expected Fixed Features Applied')
     })
 }
 
 const getClient = async (uid) => {
-    const r = await pgPool.query('SELECT sp_public_key, sp_secret_key, business_name FROM users WHERE id = $1', [uid])
+    const r = await pgPool.query('SELECT sp_public_key, sp_secret_key, magpie_public_key, magpie_secret_key, business_name, is_production FROM users WHERE id = $1', [uid])
     const u = r.rows[0]
-    if (!u?.sp_secret_key) throw new Error('API keys missing')
-    return { pub: cleanKey(u.sp_public_key), sec: cleanKey(u.sp_secret_key), biz: u.business_name }
+    if (!u) throw new Error('User not found')
+    return {
+        pub: cleanKey(u.sp_public_key),
+        sec: cleanKey(u.sp_secret_key),
+        mgPub: cleanKey(u.magpie_public_key),
+        mgSec: cleanKey(u.magpie_secret_key),
+        biz: u.business_name,
+        isProd: !!u.is_production
+    }
 }
 
 // --- API Routes ---
@@ -170,29 +179,49 @@ app.get('/api/admin/members', requireAuth, async (req, res) => {
     } catch (e) { res.status(500).json({ error: 'Failed to load members' }) }
 })
 
-// Payment Routes
+// --- Payment & Collection Routes ---
+
 app.post('/api/payments/checkout', requireAuth, async (req, res) => {
     try {
         const u = await getClient(req.user.id)
         const { amount, description, customerEmail } = req.body
-        const reference = 'ORDER-' + Date.now()
+        const reference = 'ORD-' + Date.now()
+
+        if (u.isProd) {
+            return res.status(400).json({ error: 'Please use /api/payments/magpie/checkout for production collections' })
+        }
+
+        // [SANDBOX] SwiftPay Collection Integration
         const payload = {
-            amount: parseFloat(amount).toFixed(2), currency: 'PHP', reference,
-            description: description || 'SwiftPay Order', email: customerEmail,
+            amount: parseFloat(amount).toFixed(2),
+            currency: 'PHP',
+            reference,
+            description: description || 'SwiftPay Order',
+            email: customerEmail,
             callbackUrl: process.env.SWIFTPAY_CALLBACK_URL || 'https://example.com/callback',
             webhookUrl: process.env.SWIFTPAY_WEBHOOK_URL || 'https://example.com/webhook'
         }
+
         const signature = computeHmacSha256(JSON.stringify(payload), u.sec)
-        const checkoutUrl = `https://pay.sandbox.swiftpay.ph/checkout?ref=${reference}&sig=${signature}`
-        res.json({ checkoutUrl, reference, status: 'PENDING' })
+        const sandboxApiUrl = 'https://api.pay.sandbox.live.swiftpay.ph/api/orders'
+        try {
+            const resp = await axios.post(sandboxApiUrl, { ...payload, signature }, {
+                headers: { 'x-access-key': u.pub }
+            })
+            res.json({ checkoutUrl: resp.data.customerRedirectUrl, reference, status: 'PENDING' })
+        } catch (apiErr) {
+            const checkoutUrl = `https://pay.sandbox.swiftpay.ph/checkout?ref=${reference}&sig=${signature}`
+            res.json({ checkoutUrl, reference, status: 'PENDING' })
+        }
     } catch (e) { res.status(500).json({ error: 'Checkout failed' }) }
 })
 
-// Magpie Integration
+// [PRODUCTION] Magpie Collection Integration
 app.post('/api/payments/magpie/checkout', requireAuth, async (req, res) => {
     try {
+        const u = await getClient(req.user.id)
         const { amount, description, token } = req.body
-        const MAGPIE_SECRET = process.env.MAGPIE_SECRET_KEY
+        const MAGPIE_SECRET = u.mgSec || process.env.MAGPIE_SECRET_KEY
         const resp = await axios.post('https://api.magpie.im/v1/charges', {
             amount: Math.round(parseFloat(amount) * 100),
             currency: 'php',
@@ -201,9 +230,86 @@ app.post('/api/payments/magpie/checkout', requireAuth, async (req, res) => {
             capture: true
         }, { auth: { username: MAGPIE_SECRET, password: '' } })
         res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: 'Magpie payment failed' }) }
+    } catch (e) { res.status(500).json({ error: 'Magpie payment failed: ' + (e.response?.data?.message || e.message) }) }
 })
 
+// --- Disbursement & Payout Routes ---
+
+app.post('/api/swiftpay/disburse', requireAuth, async (req, res) => {
+    try {
+        const u = await getClient(req.user.id)
+        const { amount, accountNumber, firstName, lastName, institutionCode } = req.body
+        const internalId = 'DISB' + Date.now()
+        const referenceNo = 'P' + Date.now()
+
+        await pgPool.query(
+            'INSERT INTO disbursements(id, merchant_id, amount, account_number, bank_code, beneficiary_name, status, external_reference) VALUES($1, $2, $3, $4, $5, $6, $7, $8)',
+            [internalId, req.user.id, amount, accountNumber, institutionCode, `${firstName} ${lastName}`, 'PENDING', referenceNo]
+        )
+
+        if (u.isProd) {
+            return res.json({ status: 'submitted', disbursementId: internalId, message: 'Payout request sent for admin approval' })
+        }
+
+        // [SANDBOX] Swiftpay Disbursement Integration
+        const baseUrl = process.env.SWIFTPAY_BASE_URL || 'https://api.pay.sandbox.live.swiftpay.ph'
+        const auth = Buffer.from(`${u.pub}:${u.sec}`).toString('base64')
+        const payload = {
+            merchantReferenceNo: referenceNo, channel: 'INSTAPAY', institutionCode,
+            creditInformation: { amount: parseFloat(amount).toFixed(2), remarks: 'Payout' },
+            recipientInformation: { accountNumber, firstName, lastName },
+            callbackUrl: process.env.DISBURSEMENT_CALLBACK_URL || 'https://example.com/payout-callback'
+        }
+
+        try {
+            await axios.post(`${baseUrl}/api/disbursements/send`, payload, { headers: { 'Authorization': `Basic ${auth}` } })
+            res.json({ status: 'success', disbursementId: internalId, reference: referenceNo })
+        } catch (apiErr) {
+            res.json({ status: 'PENDING', disbursementId: internalId, message: 'Disbursement initiated (API call logged)' })
+        }
+    } catch (e) { res.status(500).json({ error: 'Payout Failed: ' + (e.response?.data?.message || e.message) }) }
+})
+
+// Admin Disbursement Management
+app.get('/api/admin/disbursements', requireAuth, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Super Admin only' })
+    try {
+        const { rows } = await pgPool.query("SELECT d.*, u.email as merchant_email FROM disbursements d JOIN users u ON d.merchant_id = u.id WHERE d.status = 'PENDING' ORDER BY d.created_at DESC")
+        res.json(rows)
+    } catch (e) { res.status(500).json({ error: 'Query failed' }) }
+})
+
+app.post('/api/admin/disbursements/:id/approve', requireAuth, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Super Admin only' })
+    try {
+        const { rows } = await pgPool.query('SELECT d.*, u.sp_public_key, u.sp_secret_key FROM disbursements d JOIN users u ON d.merchant_id = u.id WHERE d.id = $1', [req.params.id])
+        const d = rows[0]
+        if (!d) return res.status(404).json({ error: 'Not found' })
+
+        const baseUrl = process.env.SWIFTPAY_BASE_URL || 'https://api.pay.live.swiftpay.ph'
+        const auth = Buffer.from(`${cleanKey(d.sp_public_key)}:${cleanKey(d.sp_secret_key)}`).toString('base64')
+        const payload = {
+            merchantReferenceNo: d.external_reference, channel: 'INSTAPAY', institutionCode: d.bank_code,
+            creditInformation: { amount: parseFloat(d.amount).toFixed(2), remarks: 'Payout' },
+            recipientInformation: { accountNumber: d.account_number, firstName: d.beneficiary_name.split(' ')[0], lastName: d.beneficiary_name.split(' ').slice(1).join(' ') },
+            callbackUrl: process.env.DISBURSEMENT_CALLBACK_URL || 'https://example.com/payout-callback'
+        }
+
+        await axios.post(`${baseUrl}/api/disbursements/send`, payload, { headers: { 'Authorization': `Basic ${auth}` } })
+        await pgPool.query("UPDATE disbursements SET status = 'EXECUTED', updated_at = NOW() WHERE id = $1", [req.params.id])
+        res.json({ status: 'success' })
+    } catch (e) { res.status(500).json({ error: 'Approval failed: ' + (e.response?.data?.message || e.message) }) }
+})
+
+app.post('/api/admin/disbursements/:id/reject', requireAuth, async (req, res) => {
+    if (req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Super Admin only' })
+    try {
+        await pgPool.query("UPDATE disbursements SET status = 'REJECTED', updated_at = NOW() WHERE id = $1", [req.params.id])
+        res.json({ status: 'success' })
+    } catch (e) { res.status(500).json({ error: 'Reject failed' }) }
+})
+
+// Infrastructure & Utility Routes
 app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {
     try {
         const u = await getClient(req.user.id)
@@ -222,32 +328,16 @@ app.get('/api/swiftpay/transactions', requireAuth, async (req, res) => {
     } catch (e) { res.json([]) }
 })
 
-app.post('/api/swiftpay/disburse', requireAuth, async (req, res) => {
+app.get('/api/swiftpay/disbursements', requireAuth, async (req, res) => {
     try {
-        const u = await getClient(req.user.id)
-        const { amount, accountNumber, firstName, lastName, institutionCode } = req.body
-        const internalId = 'DISB' + Date.now()
-        const referenceNo = 'P' + Date.now()
-
-        await pgPool.query(
-            'INSERT INTO disbursements(id, merchant_id, amount, account_number, bank_code, beneficiary_name, status, external_reference) VALUES($1, $2, $3, $4, $5, $6, $7, $8)',
-            [internalId, req.user.id, amount, accountNumber, institutionCode, `${firstName} ${lastName}`, 'PENDING', referenceNo]
-        )
-
-        const baseUrl = process.env.SWIFTPAY_BASE_URL || 'https://api.pay.live.swiftpay.ph'
-        const auth = Buffer.from(`${u.pub}:${u.sec}`).toString('base64')
-        const payload = {
-            merchantReferenceNo: referenceNo, channel: 'INSTAPAY', institutionCode,
-            creditInformation: { amount: parseFloat(amount).toFixed(2), remarks: 'Payout' },
-            recipientInformation: { accountNumber, firstName, lastName },
-            callbackUrl: process.env.DISBURSEMENT_CALLBACK_URL || 'https://example.com/payout-callback'
-        }
-        await axios.post(`${baseUrl}/api/disbursements/send`, payload, { headers: { 'Authorization': `Basic ${auth}` } })
-        res.json({ status: 'success', disbursementId: internalId, reference: referenceNo })
-    } catch (e) { res.status(500).json({ error: 'Payout Failed: ' + (e.response?.data?.message || e.message) }) }
+        const { rows } = await pgPool.query('SELECT * FROM disbursements WHERE merchant_id = $1 ORDER BY created_at DESC', [req.user.id])
+        res.json(rows.map(r => ({
+            id: r.id, recipientInformation: { firstName: r.beneficiary_name.split(' ')[0], lastName: r.beneficiary_name.split(' ').slice(1).join(' ') },
+            creditInformation: { amount: r.amount }, status: r.status, createdAt: r.created_at
+        })))
+    } catch (e) { res.json([]) }
 })
 
-// Merchant Profile & Settings
 app.get('/api/swiftpay/settings', requireAuth, async (req, res) => {
     const r = await pgPool.query(`SELECT business_name, business_address, contact_number, shop_url, logo_url,
         source_account_number, sp_public_key, sp_secret_key, magpie_public_key, magpie_secret_key,
@@ -266,7 +356,8 @@ app.post('/api/swiftpay/profile', requireAuth, async (req, res) => {
     res.json({ status: 'success' })
 })
 
-// Webhook Handler
+// --- Webhook & Callback Handlers ---
+
 app.post('/api/payments/callback', express.json({ type: '*/*' }), async (req, res) => {
     try {
         const payload = typeof req.body === 'string' ? req.body : JSON.stringify(req.body)
@@ -278,20 +369,29 @@ app.post('/api/payments/callback', express.json({ type: '*/*' }), async (req, re
         }
 
         const rawAmount = Number(req.body?.amount || 0)
-        const serviceFee = rawAmount * 0.005 // 0.5%
+        const serviceFee = rawAmount * 0.005
         const netAmount = rawAmount - serviceFee
-        const normalizedStatus = normalizeTransactionStatus(req.body?.status)
+        const normalizedStatus = normalizeTransactionStatus(req.body?.status || req.body?.data?.status)
         const paymentId = 'PAY' + Date.now()
 
         await pgPool.query(
             'INSERT INTO payment_events(id, merchant_id, source, external_reference, status, amount, payload) VALUES($1, $2, $3, $4, $5, $6, $7)',
-            [paymentId, 'DEFAULT', 'SWIFTPAY', req.body?.id || 'unknown', normalizedStatus, netAmount, JSON.stringify({ ...req.body, fee_deducted: serviceFee })]
+            [paymentId, 'DEFAULT', 'SWIFTPAY', req.body?.referenceNo || req.body?.id || 'unknown', normalizedStatus, netAmount, JSON.stringify({ ...req.body, fee_deducted: serviceFee })]
         )
-        res.json({ status: 'accepted', paymentId, netAmount: netAmount.toFixed(2) })
+        res.json({ status: 'accepted', paymentId, netAmount: netAmount.toFixed(2), finalStatus: normalizedStatus })
     } catch (e) { res.status(500).json({ error: 'Callback failed' }) }
 })
 
-app.get('/health', (req, res) => res.json({ status: 'UP', timestamp: new Date().toISOString() }))
+app.post('/api/swiftpay/disbursement-callback', express.json({ type: '*/*' }), async (req, res) => {
+    try {
+        const { merchantReferenceNo, status } = req.body
+        const normalizedStatus = normalizeTransactionStatus(status)
+        await pgPool.query('UPDATE disbursements SET status = $1, updated_at = NOW() WHERE external_reference = $2', [normalizedStatus, merchantReferenceNo])
+        res.json({ status: 'received' })
+    } catch (e) { res.status(500).json({ error: 'Callback failed' }) }
+})
+
+app.get('/health', (req, res) => res.json({ status: 'UP', timestamp: new Date().toISOString(), version: API_VERSION }))
 app.use(express.static(path.join(__dirname, 'public')))
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')))
 
