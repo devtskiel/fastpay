@@ -532,8 +532,8 @@ data class LoginResponse(
 
 @Serializable
 data class UserInfo(
-    val id: String,
-    val email: String,
+    val id: String = "",
+    val email: String = "",
     @SerialName("businessName") val businessName: String? = null
 )
 
