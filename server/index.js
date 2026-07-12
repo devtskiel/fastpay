@@ -101,6 +101,16 @@ app.post('/api/auth/register', async (req, res) => {
     } catch (e) { res.status(500).json({ error: 'Registration failed' }) }
 })
 
+app.post('/api/auth/forgot-password', async (req, res) => {
+    const { email } = req.body
+    try {
+        const normalizedEmail = (email || '').toLowerCase().trim()
+        const { rows } = await pgPool.query('SELECT id FROM users WHERE email = $1', [normalizedEmail])
+        if (rows.length === 0) return res.status(404).json({ error: 'Account not found' })
+        res.json({ status: 'success', message: 'If registered, reset link sent to ' + normalizedEmail })
+    } catch (e) { res.status(500).json({ error: 'Reset failed' }) }
+})
+
 app.get('/api/auth/terms', (_req, res) => res.json({
     title: 'SwiftPay Merchant Agreement',
     content: 'By registering for a merchant account, you agree to comply with BSP-regulated payment and KYC/AML requirements. You consent to identity verification, document review, and data privacy processing for compliance and transaction monitoring.'

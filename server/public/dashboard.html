@@ -1068,6 +1068,21 @@
             }
         }
 
+        async function forgotPassword() {
+            const email = prompt('Enter your registered merchant email:');
+            if (!email) return;
+            try {
+                const res = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                if (res.ok) showToast(data.message, 'success');
+                else showToast(data.error, 'error');
+            } catch (e) { showToast('Request failed', 'error'); }
+        }
+
         async function syncAdminData(t) {
             try {
                 // Admin Registrations

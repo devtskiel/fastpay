@@ -459,5 +459,12 @@ class SwiftPayService(
             if (response.isSuccessful && response.body() != null) Result.success(response.body()!!) else Result.failure(Exception(parseError(response)))
         } catch (e: Exception) { Result.failure(e) }
     }
+
+    suspend fun forgotPassword(email: String): Result<Unit> {
+        return try {
+            val response = api.forgotPassword(backendUrl + "auth/forgot-password", mapOf("email" to email))
+            if (response.isSuccessful) Result.success(Unit) else Result.failure(Exception(parseError(response)))
+        } catch (e: Exception) { Result.failure(e) }
+    }
 }
 

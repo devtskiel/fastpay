@@ -228,6 +228,12 @@ interface SwiftPayApi {
         @Url url: String,
         @Body request: MerchantRegistrationRequest
     ): Response<MerchantRegistrationResponse>
+
+    @POST
+    suspend fun forgotPassword(
+        @Url url: String,
+        @Body request: Map<String, String>
+    ): Response<Unit>
 }
 
 

@@ -115,12 +115,7 @@ class AuthenticateUseCase(
             if (!isValidEmail(email)) {
                 return Result.failure(Exception("Invalid email format"))
             }
-            val storedAdminEmail = settingsManager.adminEmail.first()
-            if (!storedAdminEmail.isNullOrBlank() && !storedAdminEmail.equals(email, ignoreCase = true)) {
-                return Result.failure(Exception("No account found for this email"))
-            }
-            // Placeholder flow for forgot password. In production, send reset instructions.
-            Result.success(Unit)
+            SwiftPayService().forgotPassword(email)
         } catch (e: Exception) {
             Result.failure(e)
         }
