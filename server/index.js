@@ -48,6 +48,8 @@ async function startServer() {
     app.listen(process.env.PORT || 3000, '0.0.0.0', () => {
         console.log(`🚀 Gateway Live - SwiftPay Enterprise ${API_VERSION}`)
         console.log('✅ 18 Expected Fixed Features Applied')
+        console.log(`📧 Resend API Key: ${process.env.RESEND_API_KEY ? 'CONFIGURED' : 'MISSING'}`)
+        console.log(`📧 Sender Email: ${process.env.OTP_SENDER_EMAIL || 'onboarding@resend.dev'}`)
     })
 }
 
@@ -71,13 +73,29 @@ const getClient = async (uid) => {
 app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body
     try {
+        console.log(`🔐 Login attempt for: ${email}`);
         const normalizedEmail = (email || '').toLowerCase().trim()
         const r = await pgPool.query('SELECT * FROM users WHERE email = $1', [normalizedEmail])
         const user = r.rows[0]
-        if (!user || !(await bcrypt.compare(password, user.password_hash))) return res.status(401).json({ error: 'Invalid keys' })
+
+        if (!user) {
+            console.warn(`❌ Login failed: User ${normalizedEmail} not found`);
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) {
+            console.warn(`❌ Login failed: Password mismatch for ${normalizedEmail}`);
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+
         const token = jwt.sign({ id: user.id, email: user.email, businessName: user.business_name, role: user.role }, JWT_SECRET, { expiresIn: '24h' })
+        console.log(`✅ Login successful for: ${normalizedEmail}`);
         res.json({ token, user: { id: user.id, email: user.email, businessName: user.business_name || 'Merchant', role: user.role } })
-    } catch (e) { res.status(500).json({ error: 'System Error' }) }
+    } catch (e) {
+        console.error('🔥 Login Controller Error:', e);
+        res.status(500).json({ error: 'System Error: ' + e.message })
+    }
 })
 
 app.post('/api/auth/register', async (req, res) => {
@@ -150,42 +168,87 @@ const sendEmail = async (to, subject, html) => {
 app.post('/api/auth/request-otp', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email required' });
-    const normalizedEmail = email.toLowerCase().trim();
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60000); // 10 mins
 
+    console.log(`📩 OTP Request for: ${email}`);
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Check if user exists before sending OTP
     try {
+        const userCheck = await pgPool.query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
+        if (userCheck.rows.length === 0) {
+            console.warn(`⚠️ OTP Request failed: ${normalizedEmail} is not registered`);
+            return res.status(404).json({ error: 'Account not found' });
+        }
+
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 10 * 60000); // 10 mins
+
         await pgPool.query(
             'INSERT INTO verification_codes(email, code, expires_at) VALUES($1, $2, $3) ON CONFLICT (email) DO UPDATE SET code = $2, expires_at = $3',
             [normalizedEmail, code, expiresAt]
         );
+
         const sent = await sendEmail(
             normalizedEmail,
             'Your SwiftPay Verification Code',
             `<strong>${code}</strong> is your SwiftPay access code. It expires in 10 minutes.`
         );
-        if (sent) res.json({ status: 'success', message: 'OTP sent' });
-        else res.status(500).json({ error: 'Failed to send email' });
-    } catch (e) { res.status(500).json({ error: 'Internal error' }); }
+
+        if (sent) {
+            console.log(`✅ OTP sent to: ${normalizedEmail}`);
+            res.json({ status: 'success', message: 'OTP sent' });
+        } else {
+            console.error(`❌ SMTP Failure for: ${normalizedEmail}`);
+            res.status(500).json({ error: 'Failed to deliver email. Please try again later.' });
+        }
+    } catch (e) {
+        console.error('🔥 OTP Request Error:', e);
+        res.status(500).json({ error: 'Internal error: ' + e.message });
+    }
 });
 
 app.post('/api/auth/verify-otp', async (req, res) => {
     const { email, code } = req.body;
     const normalizedEmail = (email || '').toLowerCase().trim();
+    console.log(`🔑 Verifying OTP for: ${normalizedEmail}`);
+
     try {
         const { rows } = await pgPool.query('SELECT * FROM verification_codes WHERE email = $1', [normalizedEmail]);
         const record = rows[0];
-        if (!record || record.code !== code || new Date() > record.expires_at) {
-            return res.status(401).json({ error: 'Invalid or expired code' });
+
+        if (!record) {
+            console.warn(`❌ OTP Verify failed: No code found for ${normalizedEmail}`);
+            return res.status(401).json({ error: 'No verification session found' });
         }
+
+        if (record.code !== code) {
+            console.warn(`❌ OTP Verify failed: Incorrect code for ${normalizedEmail}`);
+            return res.status(401).json({ error: 'Invalid verification code' });
+        }
+
+        if (new Date() > record.expires_at) {
+            console.warn(`❌ OTP Verify failed: Expired code for ${normalizedEmail}`);
+            return res.status(401).json({ error: 'Verification code expired' });
+        }
+
         await pgPool.query('DELETE FROM verification_codes WHERE email = $1', [normalizedEmail]);
 
         // Return login success data
         const userRes = await pgPool.query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
         const user = userRes.rows[0];
+
+        if (!user) {
+            console.error(`🔥 Critical Error: User ${normalizedEmail} disappeared after verification`);
+            return res.status(404).json({ error: 'User account not found' });
+        }
+
         const token = jwt.sign({ id: user.id, email: user.email, businessName: user.business_name, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+        console.log(`✅ OTP verified. Session created for: ${normalizedEmail}`);
         res.json({ token, user: { id: user.id, email: user.email, businessName: user.business_name || 'Merchant', role: user.role } });
-    } catch (e) { res.status(500).json({ error: 'Verification failed' }); }
+    } catch (e) {
+        console.error('🔥 OTP Verification Error:', e);
+        res.status(500).json({ error: 'Verification failed: ' + e.message });
+    }
 });
 
 // Admin Routes
