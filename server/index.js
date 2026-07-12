@@ -27,14 +27,14 @@ async function startServer() {
 
         if (rows.length === 0) {
             await pgPool.query(
-                `INSERT INTO users(id, email, password_hash, business_name, sp_public_key, sp_secret_key, role, is_production)
-                 VALUES($1, $2, $3, $4, $5, $6, $7, $8)`,
-                ['ADMIN_01', adminEmail, hash, 'SwiftPay Store', cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY), 'SUPER_ADMIN', false]
+                `INSERT INTO users(id, email, password_hash, business_name, sp_public_key, sp_secret_key, magpie_public_key, magpie_secret_key, role, is_production)
+                 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                ['ADMIN_01', adminEmail, hash, 'SwiftPay Store', cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY), cleanKey(process.env.MAGPIE_PUBLIC_KEY), cleanKey(process.env.MAGPIE_SECRET_KEY), 'SUPER_ADMIN', false]
             )
         } else {
             await pgPool.query(
-                'UPDATE users SET sp_public_key = COALESCE($1, sp_public_key), sp_secret_key = COALESCE($2, sp_secret_key), role = $3 WHERE email = $4',
-                [cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY), 'SUPER_ADMIN', adminEmail]
+                'UPDATE users SET sp_public_key = COALESCE($1, sp_public_key), sp_secret_key = COALESCE($2, sp_secret_key), magpie_public_key = COALESCE($3, magpie_public_key), magpie_secret_key = COALESCE($4, magpie_secret_key), role = $5 WHERE email = $6',
+                [cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY), cleanKey(process.env.MAGPIE_PUBLIC_KEY), cleanKey(process.env.MAGPIE_SECRET_KEY), 'SUPER_ADMIN', adminEmail]
             )
         }
     } catch (e) { console.error('Admin seeding failed:', e.message) }
@@ -186,6 +186,22 @@ app.post('/api/payments/checkout', requireAuth, async (req, res) => {
         const checkoutUrl = `https://pay.sandbox.swiftpay.ph/checkout?ref=${reference}&sig=${signature}`
         res.json({ checkoutUrl, reference, status: 'PENDING' })
     } catch (e) { res.status(500).json({ error: 'Checkout failed' }) }
+})
+
+// Magpie Integration
+app.post('/api/payments/magpie/checkout', requireAuth, async (req, res) => {
+    try {
+        const { amount, description, token } = req.body
+        const MAGPIE_SECRET = process.env.MAGPIE_SECRET_KEY
+        const resp = await axios.post('https://api.magpie.im/v1/charges', {
+            amount: Math.round(parseFloat(amount) * 100),
+            currency: 'php',
+            description: description || 'Magpie Order',
+            source: token,
+            capture: true
+        }, { auth: { username: MAGPIE_SECRET, password: '' } })
+        res.json(resp.data)
+    } catch (e) { res.status(500).json({ error: 'Magpie payment failed' }) }
 })
 
 app.get('/api/swiftpay/balance', requireAuth, async (req, res) => {

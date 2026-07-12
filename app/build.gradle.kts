@@ -62,6 +62,8 @@ android {
         val vaultFailure = optionalProperty("VAULT_FAILURE_REDIRECT_URL").takeUnless { it.isBlank() } ?: "https://api.netbank.ph/failure"
         val vaultCancel = optionalProperty("VAULT_CANCEL_REDIRECT_URL").takeUnless { it.isBlank() } ?: "https://api.netbank.ph/cancel"
         val appServerKey = optionalProperty("APP_SERVER_KEY")
+        val magpiePubKey = optionalProperty("MAGPIE_PUBLIC_KEY")
+        val magpieSecKey = optionalProperty("MAGPIE_SECRET_KEY")
 
         buildConfigField("String", "SWIFTPAY_SECRET_KEY", "\"$secretKey\"")
         buildConfigField("String", "SWIFTPAY_PUBLIC_KEY", "\"$publicKey\"")
@@ -76,6 +78,8 @@ android {
         buildConfigField("String", "VAULT_CANCEL_REDIRECT_URL", "\"$vaultCancel\"")
         buildConfigField("String", "APP_SERVER_URL", "\"${optionalProperty("APP_SERVER_URL")}\"")
         buildConfigField("String", "APP_SERVER_KEY", "\"${appServerKey}\"")
+        buildConfigField("String", "MAGPIE_PUBLIC_KEY", "\"$magpiePubKey\"")
+        buildConfigField("String", "MAGPIE_SECRET_KEY", "\"$magpieSecKey\"")
     }
 
     signingConfigs {
