@@ -1,0 +1,15 @@
+# Android local.properties example
+sdk.dir=/path/to/android/sdk
+
+# Android build configuration for server connectivity
+ANDROID_APP_SERVER_URL=https://swiftpay-merchant-gateway.onrender.com
+ANDROID_APP_SERVER_KEY=change_this_to_a_strong_random_value
+
+# Alternate supported names
+# APP_SERVER_URL=https://swiftpay-merchant-gateway.onrender.com
+# APP_SERVER_KEY=change_this_to_a_strong_random_value
+
+# SwiftPay integration keys
+SWIFTPAY_PUBLIC_KEY=your_swiftpay_public_key
+SWIFTPAY_SECRET_KEY=your_swiftpay_secret_key
+SWIFTPAY_ENVIRONMENT=PRODUCTION

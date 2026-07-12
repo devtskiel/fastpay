@@ -330,9 +330,12 @@ data class DynamicQrRequest(
 
 @Serializable
 data class DynamicQrResponse(
+    val id: String? = null,
     val paymentId: String? = null,
     val qrCodeBody: String? = null,
+    val qrCode: String? = null,
     val redirectUrl: String? = null,
+    val status: String? = null,
 )
 
 @Serializable

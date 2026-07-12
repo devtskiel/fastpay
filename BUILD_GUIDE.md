@@ -216,16 +216,22 @@ docker run --rm -v $(pwd):/app fastpay-builder \
 
 ### API Configuration
 
-Set in `app/build.gradle.kts` or `gradle.properties`:
+Set in `app/build.gradle.kts`, `gradle.properties`, or `local.properties`:
 
 ```properties
 # For debug builds
 ANDROID_APP_SERVER_URL=https://api-dev.fastpay.com
 ANDROID_APP_SERVER_KEY=your_dev_key
+# Or the alternate supported names:
+# APP_SERVER_URL=https://api-dev.fastpay.com
+# APP_SERVER_KEY=your_dev_key
 
 # For release builds
 ANDROID_APP_SERVER_URL=https://api.fastpay.com
 ANDROID_APP_SERVER_KEY=your_production_key
+# Or:
+# APP_SERVER_URL=https://api.fastpay.com
+# APP_SERVER_KEY=your_production_key
 ```
 
 ### SwiftPay Integration

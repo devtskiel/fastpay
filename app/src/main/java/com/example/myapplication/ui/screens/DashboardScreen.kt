@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.myapplication.BuildConfig
+import com.example.myapplication.util.ServerUrlUtils
 import com.example.myapplication.ui.theme.SwiftPayBackground
 import com.example.myapplication.ui.theme.SwiftPayBorder
 import com.example.myapplication.ui.theme.SwiftPayPrimary
@@ -55,8 +56,10 @@ fun DashboardScreen(
     viewModel: MiniAppViewModel = com.example.myapplication.LocalMiniAppViewModel.current
 ) {
     val dashboardUrl = remember {
-        val configured = BuildConfig.APP_SERVER_URL.takeIf { !it.isNullOrBlank() } ?: "http://10.0.2.2:3000"
-        configured.removeSuffix("/").removeSuffix("/api").trimEnd('/') + "/dashboard"
+        val baseUrl = ServerUrlUtils.normalizeBaseUrl(BuildConfig.APP_SERVER_URL)
+        val fallbackBaseUrl = "http://10.0.2.2:3000"
+        val resolvedBaseUrl = baseUrl.ifBlank { fallbackBaseUrl }
+        "$resolvedBaseUrl/dashboard"
     }
 
     Scaffold(

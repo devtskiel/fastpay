@@ -6,29 +6,25 @@ val localProps = Properties().also { props ->
     if (f.exists()) f.inputStream().use { props.load(it) }
 }
 
-fun secretProperty(name: String, defaultValue: String = "MISSING_KEY"): String {
-    return providers.gradleProperty(name).orNull
-        ?: providers.environmentVariable(name).orNull
-        ?: localProps.getProperty(name)
-        ?: defaultValue
+fun resolveProperty(name: String, vararg aliases: String, defaultValue: String = ""): String {
+    return listOf(name, *aliases).firstNotNullOfOrNull {
+        providers.gradleProperty(it).orNull
+            ?: providers.environmentVariable(it).orNull
+            ?: localProps.getProperty(it)
+    } ?: defaultValue
 }
 
-fun optionalProperty(name: String): String {
-    return providers.gradleProperty(name).orNull
-        ?: providers.environmentVariable(name).orNull
-        ?: localProps.getProperty(name)
-        ?: ""
+fun secretProperty(name: String, vararg aliases: String, defaultValue: String = "MISSING_KEY"): String {
+    return resolveProperty(name, *aliases, defaultValue = defaultValue)
+}
+
+fun optionalProperty(name: String, vararg aliases: String): String {
+    return resolveProperty(name, *aliases, defaultValue = "")
 }
 
 // Read a couple of properties at configuration time so we can enforce them for release builds
-val APP_SERVER_URL_PROP: String = providers.gradleProperty("APP_SERVER_URL").orNull
-    ?: providers.environmentVariable("APP_SERVER_URL").orNull
-    ?: localProps.getProperty("APP_SERVER_URL")
-    ?: ""
-val APP_SERVER_KEY_PROP: String = providers.gradleProperty("APP_SERVER_KEY").orNull
-    ?: providers.environmentVariable("APP_SERVER_KEY").orNull
-    ?: localProps.getProperty("APP_SERVER_KEY")
-    ?: ""
+val APP_SERVER_URL_PROP: String = resolveProperty("APP_SERVER_URL", "ANDROID_APP_SERVER_URL")
+val APP_SERVER_KEY_PROP: String = resolveProperty("APP_SERVER_KEY", "ANDROID_APP_SERVER_KEY")
 
 plugins {
     alias(libs.plugins.android.application)
@@ -61,7 +57,7 @@ android {
         val vaultSuccess = optionalProperty("VAULT_SUCCESS_REDIRECT_URL").takeUnless { it.isBlank() } ?: "https://api.netbank.ph/success"
         val vaultFailure = optionalProperty("VAULT_FAILURE_REDIRECT_URL").takeUnless { it.isBlank() } ?: "https://api.netbank.ph/failure"
         val vaultCancel = optionalProperty("VAULT_CANCEL_REDIRECT_URL").takeUnless { it.isBlank() } ?: "https://api.netbank.ph/cancel"
-        val appServerKey = optionalProperty("APP_SERVER_KEY")
+        val appServerKey = optionalProperty("APP_SERVER_KEY", "ANDROID_APP_SERVER_KEY")
         val magpiePubKey = optionalProperty("MAGPIE_PUBLIC_KEY")
         val magpieSecKey = optionalProperty("MAGPIE_SECRET_KEY")
 
@@ -76,7 +72,7 @@ android {
         buildConfigField("String", "VAULT_SUCCESS_REDIRECT_URL", "\"$vaultSuccess\"")
         buildConfigField("String", "VAULT_FAILURE_REDIRECT_URL", "\"$vaultFailure\"")
         buildConfigField("String", "VAULT_CANCEL_REDIRECT_URL", "\"$vaultCancel\"")
-        buildConfigField("String", "APP_SERVER_URL", "\"${optionalProperty("APP_SERVER_URL")}\"")
+        buildConfigField("String", "APP_SERVER_URL", "\"${optionalProperty("APP_SERVER_URL", "ANDROID_APP_SERVER_URL")}\"")
         buildConfigField("String", "APP_SERVER_KEY", "\"${appServerKey}\"")
         buildConfigField("String", "MAGPIE_PUBLIC_KEY", "\"$magpiePubKey\"")
         buildConfigField("String", "MAGPIE_SECRET_KEY", "\"$magpieSecKey\"")
@@ -101,10 +97,10 @@ android {
             val isBuildingRelease = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
             if (isBuildingRelease) {
                 if (APP_SERVER_URL_PROP.isBlank()) {
-                    throw GradleException("APP_SERVER_URL must be set in local.properties, environment or gradle properties for release builds")
+                    throw GradleException("APP_SERVER_URL or ANDROID_APP_SERVER_URL must be set in local.properties, environment or gradle properties for release builds")
                 }
                 if (APP_SERVER_KEY_PROP.isBlank()) {
-                    throw GradleException("APP_SERVER_KEY must be set in local.properties, environment or gradle properties for release builds")
+                    throw GradleException("APP_SERVER_KEY or ANDROID_APP_SERVER_KEY must be set in local.properties, environment or gradle properties for release builds")
                 }
             }
         }

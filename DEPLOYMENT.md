@@ -14,8 +14,8 @@ You can verify the gateway status by visiting:
 The Android application has been fully refactored and configured to talk to the live Render backend.
 
 ### Environment Configuration:
-- `APP_SERVER_URL`: Set to the Render URL in `local.properties`.
-- `APP_SERVER_KEY`: Matching the secure key on the server.
+- `APP_SERVER_URL` or `ANDROID_APP_SERVER_URL`: Set to the Render URL in `local.properties` for Android builds.
+- `APP_SERVER_KEY` or `ANDROID_APP_SERVER_KEY`: Matching the secure key on the server.
 - `SWIFTPAY_KEYS`: Configured for production-ready abstraction.
 
 ### Build and Install:

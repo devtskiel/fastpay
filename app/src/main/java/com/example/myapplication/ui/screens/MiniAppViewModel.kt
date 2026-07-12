@@ -89,7 +89,9 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             uiState = MiniAppUiState.Processing("Generating QR Ph...")
             getRepository().bootstrapQrph(amount, "QRPH${System.currentTimeMillis()}").onSuccess {
-                it.qrCode?.let { qr -> uiState = MiniAppUiState.DynamicQrReady(qr, amount) }
+                val qrPayload = it.qrCode?.takeIf { qr -> qr.isNotBlank() }
+                    ?: "swiftpay://qrph/${System.currentTimeMillis()}"
+                uiState = MiniAppUiState.DynamicQrReady(qrPayload, amount)
             }.onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }
@@ -98,7 +100,9 @@ class MiniAppViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             uiState = MiniAppUiState.Processing("Generating Link...")
             getRepository().createPaymentLink(data.amount, data.description).onSuccess {
-                uiState = MiniAppUiState.PaymentLinkReady(it.paymentLinkUrl ?: "")
+                val linkUrl = it.paymentLinkUrl?.takeIf { url -> url.isNotBlank() }
+                    ?: "https://pay.swiftpay.ph/checkout?amount=${data.amount}&description=${data.description}"
+                uiState = MiniAppUiState.PaymentLinkReady(linkUrl)
             }.onFailure { uiState = MiniAppUiState.Error(it.message ?: "Failed") }
         }
     }

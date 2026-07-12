@@ -94,6 +94,13 @@ interface SwiftPayApi {
         @Body request: PaymentLinkRequest
     ): Response<PaymentLinkResponse>
 
+    @POST
+    suspend fun createBackendPaymentLink(
+        @Url url: String,
+        @Header("Authorization") auth: String,
+        @Body request: Map<String, Any>
+    ): Response<PaymentLinkResponse>
+
     @GET("v1/collect/payments/{paymentId}")
     suspend fun getPaymentStatus(
         @Header("Authorization") auth: String,
@@ -119,6 +126,13 @@ interface SwiftPayApi {
     suspend fun createDynamicQr(
         @Header("Authorization") auth: String,
         @Body request: DynamicQrRequest
+    ): Response<DynamicQrResponse>
+
+    @POST
+    suspend fun createBackendDynamicQr(
+        @Url url: String,
+        @Header("Authorization") auth: String,
+        @Body request: Map<String, Any>
     ): Response<DynamicQrResponse>
 
     // --- Disbursement Endpoints (Legacy) ---

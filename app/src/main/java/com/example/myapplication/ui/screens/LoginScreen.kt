@@ -211,15 +211,18 @@ fun LoginScreen(
                             authUseCase.resetPassword(email)
                                 .onSuccess {
                                     errorMessage = "If this email is registered, reset instructions were sent."
+                                    isLoading = false
                                 }
                                 .onFailure {
                                     errorMessage = it.message ?: "Failed to request password reset"
+                                    isLoading = false
                                 }
-                            isLoading = false
                         } else if (!isOtpSent) {
                             authUseCase.login(email, password)
                                 .onSuccess {
                                     isOtpSent = true
+                                    otpCode = ""
+                                    errorMessage = null
                                     isLoading = false
                                 }
                                 .onFailure {
@@ -230,6 +233,7 @@ fun LoginScreen(
                             authUseCase.verifyAccess(email, otpCode)
                                 .onSuccess {
                                     onLoginSuccess(email)
+                                    isLoading = false
                                 }
                                 .onFailure {
                                     errorMessage = it.message ?: "Verification failed"

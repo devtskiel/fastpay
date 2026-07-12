@@ -10,6 +10,7 @@ const path = require('path')
 const { pgPool, initDatabase, cleanKey } = require('./lib/db')
 const { requireAuth, requireApiKey, JWT_SECRET } = require('./lib/auth')
 const { computeHmacSha256, verifyHmacSignature, normalizeTransactionStatus } = require('./lib/merchant')
+const { buildMagpieChargePayload, normalizeMagpieChargeResponse } = require('./lib/magpie')
 
 const app = express()
 app.set('trust proxy', 1) // Required for Render/Railway HTTPS detection
@@ -75,6 +76,10 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         console.log(`🔐 Login attempt for: ${email}`);
         const normalizedEmail = (email || '').toLowerCase().trim()
+        if (!normalizedEmail || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
         const r = await pgPool.query('SELECT * FROM users WHERE email = $1', [normalizedEmail])
         const user = r.rows[0]
 
@@ -102,6 +107,10 @@ app.post('/api/auth/register', async (req, res) => {
     const { email, password, fullName, businessName, businessAddress, businessType, idType, idNumber, selfieCaptured, documentsUploaded, acceptedTerms } = req.body
     try {
         const normalizedEmail = (email || '').toLowerCase().trim()
+        if (!normalizedEmail || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
         const existing = await pgPool.query('SELECT id FROM merchant_registrations WHERE email = $1', [normalizedEmail])
         if (existing.rows.length > 0) return res.status(409).json({ error: 'Email already registered' })
 
@@ -145,8 +154,14 @@ app.get('/api/auth/compliance', (_req, res) => res.json({
 
 const sendEmail = async (to, subject, html) => {
     const resendKey = process.env.RESEND_API_KEY;
+    const allowDevFallback = process.env.NODE_ENV !== 'production';
+
     if (!resendKey) {
         console.warn('⚠️ RESEND_API_KEY missing. Email not sent.');
+        if (allowDevFallback) {
+            console.log(`ℹ️ DEV OTP bypass enabled for ${to}. OTP email delivery is not configured.`);
+            return true;
+        }
         return false;
     }
     try {
@@ -253,7 +268,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
 // Admin Routes
 app.get('/api/admin/metrics', requireAuth, async (req, res) => {
-    if (req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Super Admin only' })
+    if (req.user?.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Super Admin only' })
     try {
         const [registrations, deposits, members, events, disbursements] = await Promise.all([
             pgPool.query("SELECT COUNT(*)::int AS count FROM merchant_registrations WHERE status = 'PENDING'"),
@@ -273,7 +288,7 @@ app.get('/api/admin/metrics', requireAuth, async (req, res) => {
 })
 
 app.get('/api/admin/registrations', requireAuth, async (req, res) => {
-    if (req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Super Admin only' })
+    if (req.user?.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Super Admin only' })
     try {
         const { rows } = await pgPool.query('SELECT * FROM merchant_registrations ORDER BY created_at DESC LIMIT 20')
         res.json(rows.map(row => ({
@@ -284,7 +299,7 @@ app.get('/api/admin/registrations', requireAuth, async (req, res) => {
 })
 
 app.post('/api/admin/registrations/:id/status', requireAuth, async (req, res) => {
-    if (req.user.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Super Admin only' })
+    if (req.user?.role !== 'SUPER_ADMIN') return res.status(403).json({ error: 'Super Admin only' })
     try {
         const { status } = req.body
         await pgPool.query('UPDATE merchant_registrations SET status = $1 WHERE id = $2', [status, req.params.id])
@@ -295,6 +310,9 @@ app.post('/api/admin/registrations/:id/status', requireAuth, async (req, res) =>
 // Member Management
 app.post('/api/admin/members', requireAuth, async (req, res) => {
     const { id, name, email, role, permissions = {} } = req.body
+    if (!req.user?.id) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
     try {
         if (id) {
             await pgPool.query(
@@ -368,17 +386,26 @@ app.post('/api/payments/checkout', requireAuth, async (req, res) => {
 app.post('/api/payments/magpie/checkout', requireAuth, async (req, res) => {
     try {
         const u = await getClient(req.user.id)
-        const { amount, description, token } = req.body
+        const { amount, description, token, paymentMethod = 'qrph', referenceNo, metadata = {} } = req.body
         const MAGPIE_SECRET = u.mgSec || process.env.MAGPIE_SECRET_KEY
-        const resp = await axios.post('https://api.magpie.im/v1/charges', {
-            amount: Math.round(parseFloat(amount) * 100),
-            currency: 'php',
-            description: description || 'Magpie Order',
-            source: token,
-            capture: true
-        }, { auth: { username: MAGPIE_SECRET, password: '' } })
-        res.json(resp.data)
-    } catch (e) { res.status(500).json({ error: 'Magpie payment failed: ' + (e.response?.data?.message || e.message) }) }
+        const payload = buildMagpieChargePayload({
+            amount,
+            description,
+            referenceNo: referenceNo || `MAGPIE_${Date.now()}`,
+            paymentMethod,
+            sourceToken: token,
+            metadata
+        })
+
+        const resp = await axios.post('https://api.magpie.im/v1/charges', payload, {
+            auth: { username: MAGPIE_SECRET, password: '' },
+            headers: { 'Content-Type': 'application/json' }
+        })
+        res.json(normalizeMagpieChargeResponse(resp.data, { paymentMethod }))
+    } catch (e) {
+        const message = e.response?.data?.message || e.response?.data?.error || e.message
+        res.status(500).json({ error: 'Magpie payment failed: ' + message })
+    }
 })
 
 // --- Disbursement & Payout Routes ---
@@ -497,6 +524,9 @@ app.get('/api/swiftpay/disbursements', requireAuth, async (req, res) => {
 })
 
 app.get('/api/swiftpay/settings', requireAuth, async (req, res) => {
+    if (!req.user?.id) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
     const r = await pgPool.query(`SELECT business_name, business_address, contact_number, shop_url, logo_url,
         source_account_number, sp_public_key, sp_secret_key, magpie_public_key, magpie_secret_key,
         is_production, redirect_url, webhook_url FROM users WHERE id = $1`, [req.user.id])
