@@ -46,6 +46,11 @@ async function startServer() {
         console.log(`✅ Admin account pointed to ${isProdKeys ? 'PRODUCTION' : 'SANDBOX'} route`);
     } catch (e) { console.error('Admin seeding failed:', e.message) }
 
+    if (process.env.NODE_ENV === 'production' && !process.env.RESEND_API_KEY) {
+        console.error('❌ RESEND_API_KEY is required in production for OTP email delivery. Set it in Render environment variables and redeploy.');
+        process.exit(1);
+    }
+
     app.listen(process.env.PORT || 3000, '0.0.0.0', () => {
         console.log(`🚀 Gateway Live - SwiftPay Enterprise ${API_VERSION}`)
         console.log('✅ 18 Expected Fixed Features Applied')

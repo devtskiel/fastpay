@@ -31,6 +31,7 @@ Notes:
 - The server uses `APP_SERVER_KEY` or `API_KEY` environment variables. If neither is set it falls back to the default key `my-secret-key` for local testing.
 - The Android app will automatically send the value from `BuildConfig.APP_SERVER_KEY` as the `x-api-key` header when configured in `app/build.gradle.kts`.
 - `RESEND_API_KEY` is optional in non-production environments; the server will skip sending OTP emails when it is not configured, but will still allow login flow for development.
+- In production (`NODE_ENV=production`), `RESEND_API_KEY` must be configured for OTP delivery to work.
 
 ## Production Deployment
 

@@ -10,6 +10,12 @@ The Node.js gateway is now live and "online".
 You can verify the gateway status by visiting:
 `https://swiftpay-merchant-gateway.onrender.com/health`
 
+### Required Render Environment Variables
+Set these in the Render dashboard for the `swiftpay-merchant-gateway` service before redeploying:
+- `RESEND_API_KEY`: your live Resend API key
+- `OTP_SENDER_EMAIL`: `onboarding@resend.dev`
+- `NODE_ENV=production`
+
 ## 2. Android App Deployment - ✅ CONFIGURED
 The Android application has been fully refactored and configured to talk to the live Render backend.
 
