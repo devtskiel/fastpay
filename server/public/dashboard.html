@@ -97,8 +97,6 @@
 
         /* --- Tables --- */
         .table-container { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-top: 24px; }
-        .table-filters { padding: 16px 24px; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border); display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-        .filter-select { padding: 8px 12px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 8px; color: white; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 16px 24px; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; background: rgba(255,255,255,0.02); }
         td { padding: 16px 24px; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-secondary); }
@@ -108,20 +106,18 @@
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(8px); padding: 20px; }
         .modal.active { display: flex; }
         .modal-body { background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; padding: 32px; width: 100%; max-width: 480px; animation: slideUp 0.3s ease-out; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         .input-box { margin-bottom: 20px; }
         .input-box label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
         .input-box input, .input-box select {
             width: 100%; padding: 12px 16px; background: var(--bg-deep); border: 1px solid var(--border);
-            border-radius: var(--radius-md); color: white; font-family: var(--font-main); transition: var(--transition);
+            border-radius: 12px; color: white; font-family: var(--font-main); transition: var(--transition);
         }
-        .input-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(31, 75, 168, 0.2); }
 
         /* --- Toast Notifications --- */
         #toast-container { position: fixed; bottom: 32px; right: 32px; z-index: 3000; display: flex; flex-direction: column; gap: 12px; }
         .toast {
-            background: var(--bg-card); border-left: 4px solid var(--primary); padding: 16px 24px; border-radius: var(--radius-md);
+            background: var(--bg-card); border-left: 4px solid var(--primary); padding: 16px 24px; border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5); min-width: 300px; display: flex; align-items: center; gap: 12px;
             animation: toastIn 0.3s forwards;
         }
@@ -133,241 +129,55 @@
         #auth-view { position: fixed; inset: 0; background: var(--bg-deep); z-index: 5000; display: flex; align-items: center; justify-content: center; overflow-y: auto; padding: 40px 20px; }
         body.logged-in #auth-view { display: none; }
         .auth-panel { background: var(--bg-surface); border: 1px solid var(--border); padding: 48px; border-radius: 32px; width: 100%; max-width: 440px; text-align: center; }
-        .reg-panel { max-width: 600px; text-align: left; }
-
-        .step-indicator { display: flex; justify-content: space-between; margin-bottom: 40px; position: relative; }
-        .step-indicator::before { content: ''; position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: var(--border); z-index: 1; }
-        .step-dot { width: 32px; height: 32px; background: var(--bg-surface); border: 2px solid var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; position: relative; z-index: 2; transition: var(--transition); }
-        .step-dot.active { border-color: var(--primary); color: var(--primary); background: rgba(31, 75, 168, 0.1); }
-        .step-dot.completed { background: var(--primary); border-color: var(--primary); color: white; }
-
-        .reg-step { display: none; }
-        .reg-step.active { display: block; animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* --- States --- */
         .page { display: none; }
         .page.active { display: block; }
         .hidden { display: none !important; }
-
-        @media (max-width: 1024px) {
-            .sidebar { width: 0; opacity: 0; }
-            .main-content { margin-left: 0; padding: 24px; }
-            body.sidebar-open .sidebar { width: var(--sidebar-width); opacity: 1; transform: translateX(0); }
-        }
     </style>
 </head>
 <body class="logged-out">
 
-    <!-- Auth Section -->
+    <!-- Auth View (Login/Register) -->
     <div id="auth-view">
-        <!-- Login Panel -->
         <div class="auth-panel" id="login-panel">
             <div class="sidebar-brand" style="justify-content: center; margin-bottom: 40px;">
-                <i class="fas fa-bolt"></i>
-                <span>SwiftPay</span>
+                <i class="fas fa-bolt"></i><span>SwiftPay</span>
             </div>
             <h2 style="margin-bottom: 8px;">Enterprise Access</h2>
-            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 32px;">Please authenticate to continue to terminal.</p>
-
-            <div class="input-box">
-                <label>Merchant Email</label>
-                <input type="email" id="l-email" value="drltechgroup2024@gmail.com" placeholder="name@company.com">
-            </div>
-            <div class="input-box">
-                <label>Access Key</label>
-                <input type="password" id="l-pass" value="#Sirden1216" placeholder="••••••••">
-            </div>
-            <div style="text-align: right; margin-top: -12px; margin-bottom: 20px;">
-                <a href="#" onclick="forgotPassword()" style="color: var(--text-dim); font-size: 12px; text-decoration: none; font-weight: 600;">Forgot Access Key?</a>
-            </div>
-            <button class="btn btn-primary" style="width: 100%; margin-top: 12px;" id="btn-login" onclick="login()">
-                Authenticate Terminal
-            </button>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 32px;">Please authenticate to continue.</p>
+            <div class="input-box"><label>Merchant Email</label><input type="email" id="l-email" value="drltechgroup2024@gmail.com"></div>
+            <div class="input-box"><label>Access Key</label><input type="password" id="l-pass" value="#Sirden1216"></div>
+            <button class="btn btn-primary" style="width: 100%;" id="btn-login" onclick="login()">Authenticate Terminal</button>
             <p style="margin-top: 24px; font-size: 13px; color: var(--text-secondary);">
-                New Merchant? <a href="#" onclick="toggleAuth('register')" style="color: var(--primary); text-decoration: none; font-weight: 600;">Create Account</a>
-            </p>
-            <p style="margin-top: 24px; font-size: 11px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
-                Secured by SwiftPay Crypto-Core
-            </p>
-        </div>
-
-        <!-- Registration Panel -->
-        <div class="auth-panel reg-panel hidden" id="register-panel">
-            <div class="sidebar-brand" style="margin-bottom: 32px;">
-                <i class="fas fa-bolt"></i>
-                <span>SwiftPay Onboarding</span>
-            </div>
-
-            <div class="step-indicator">
-                <div class="step-dot active" id="dot-1">1</div>
-                <div class="step-dot" id="dot-2">2</div>
-                <div class="step-dot" id="dot-3">3</div>
-                <div class="step-dot" id="dot-4">4</div>
-                <div class="step-dot" id="dot-5">5</div>
-            </div>
-
-            <form id="reg-form">
-                <!-- Step 1: Basic Info -->
-                <div class="reg-step active" id="step-1">
-                    <h3>Basic Information</h3>
-                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Start your journey with SwiftPay Enterprise.</p>
-                    <div class="input-box">
-                        <label>Full Name</label>
-                        <input type="text" id="r-name" placeholder="Juan Dela Cruz">
-                    </div>
-                    <div class="input-box">
-                        <label>Email Address</label>
-                        <input type="email" id="r-email" placeholder="juan@company.com">
-                    </div>
-                    <div class="input-box">
-                        <label>Password</label>
-                        <input type="password" id="r-pass" placeholder="Create a strong password">
-                    </div>
-                    <button type="button" class="btn btn-primary" style="width: 100%;" onclick="nextStep(2)">Continue to Business Details</button>
-                </div>
-
-                <!-- Step 2: Business Details -->
-                <div class="reg-step" id="step-2">
-                    <h3>Business Details</h3>
-                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Tell us about your registered entity.</p>
-                    <div class="input-box">
-                        <label>Business Name</label>
-                        <input type="text" id="r-biz-name" placeholder="Company Inc.">
-                    </div>
-                    <div class="input-box">
-                        <label>Business Address</label>
-                        <input type="text" id="r-biz-addr" placeholder="123 Financial District, Makati">
-                    </div>
-                    <div class="input-box">
-                        <label>Business Type</label>
-                        <select id="r-biz-type">
-                            <option value="SOLE_PROPRIETORSHIP">Sole Proprietorship</option>
-                            <option value="CORPORATION">Corporation</option>
-                            <option value="PARTNERSHIP">Partnership</option>
-                        </select>
-                    </div>
-                    <div style="display: flex; gap: 12px;">
-                        <button type="button" class="btn btn-ghost" style="flex: 1;" onclick="nextStep(1)">Back</button>
-                        <button type="button" class="btn btn-primary" style="flex: 2;" onclick="nextStep(3)">Continue to Identity</button>
-                    </div>
-                </div>
-
-                <!-- Step 3: Identity Verification -->
-                <div class="reg-step" id="step-3">
-                    <h3>Identity Verification</h3>
-                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Government-issued ID verification.</p>
-                    <div class="input-box">
-                        <label>ID Type</label>
-                        <select id="r-id-type">
-                            <option value="PASSPORT">Passport</option>
-                            <option value="UMID">UMID</option>
-                            <option value="DRIVERS_LICENSE">Driver's License</option>
-                            <option value="PHILID">PhilID (National ID)</option>
-                        </select>
-                    </div>
-                    <div class="input-box">
-                        <label>ID Number</label>
-                        <input type="text" id="r-id-num" placeholder="Enter ID number">
-                    </div>
-                    <div class="glass-card" style="padding: 16px; margin-bottom: 24px; text-align: center; border-style: dashed;">
-                        <i class="fas fa-camera" style="font-size: 24px; color: var(--text-dim); margin-bottom: 12px;"></i>
-                        <p style="font-size: 12px; color: var(--text-secondary);">Click to scan or upload ID photo</p>
-                    </div>
-                    <div style="display: flex; gap: 12px;">
-                        <button type="button" class="btn btn-ghost" style="flex: 1;" onclick="nextStep(2)">Back</button>
-                        <button type="button" class="btn btn-primary" style="flex: 2;" onclick="nextStep(4)">Continue to Biometrics</button>
-                    </div>
-                </div>
-
-                <!-- Step 4: Biometrics & Documents -->
-                <div class="reg-step" id="step-4">
-                    <h3>Biometrics & Permits</h3>
-                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Final security checks and documentation.</p>
-
-                    <div id="selfie-status" class="glass-card" style="padding: 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; cursor: pointer;" onclick="simulateSelfie()">
-                        <i class="fas fa-user-circle" id="selfie-icon" style="font-size: 20px; color: var(--text-dim);"></i>
-                        <div>
-                            <div style="font-size: 13px; font-weight: 600;">Liveness Check (Selfie)</div>
-                            <div style="font-size: 11px; color: var(--text-dim);" id="selfie-text">Not started</div>
-                        </div>
-                        <i class="fas fa-chevron-right" style="margin-left: auto; font-size: 12px; color: var(--text-dim);"></i>
-                    </div>
-
-                    <div id="docs-status" class="glass-card" style="padding: 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; cursor: pointer;" onclick="simulateDocs()">
-                        <i class="fas fa-file-upload" id="docs-icon" style="font-size: 20px; color: var(--text-dim);"></i>
-                        <div>
-                            <div style="font-size: 13px; font-weight: 600;">Business Permits</div>
-                            <div style="font-size: 11px; color: var(--text-dim);" id="docs-text">BIR / DTI / SEC Documents</div>
-                        </div>
-                        <i class="fas fa-chevron-right" style="margin-left: auto; font-size: 12px; color: var(--text-dim);"></i>
-                    </div>
-
-                    <div style="display: flex; gap: 12px;">
-                        <button type="button" class="btn btn-ghost" style="flex: 1;" onclick="nextStep(3)">Back</button>
-                        <button type="button" class="btn btn-primary" style="flex: 2;" onclick="nextStep(5)">Review Submission</button>
-                    </div>
-                </div>
-
-                <!-- Step 5: Review -->
-                <div class="reg-step" id="step-5">
-                    <h3>Review Application</h3>
-                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Please confirm your details are correct.</p>
-
-                    <div class="glass-card" style="padding: 16px; margin-bottom: 24px; font-size: 13px;">
-                        <div style="margin-bottom: 8px;"><span style="color: var(--text-dim);">Merchant:</span> <span id="rev-name"></span></div>
-                        <div style="margin-bottom: 8px;"><span style="color: var(--text-dim);">Business:</span> <span id="rev-biz"></span></div>
-                        <div style="margin-bottom: 8px;"><span style="color: var(--text-dim);">ID:</span> <span id="rev-id"></span></div>
-                    </div>
-
-                    <div style="display: flex; gap: 12px; align-items: start; margin-bottom: 24px;">
-                        <input type="checkbox" id="r-terms" style="width: auto; margin-top: 4px;">
-                        <label for="r-terms" style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
-                            I agree to the <a href="#" onclick="openTermsModal()" style="color: var(--primary);">Merchant Services Agreement</a> and acknowledge the <a href="#" onclick="openComplianceModal()" style="color: var(--primary);">Data Privacy Policy</a>.
-                        </label>
-                    </div>
-
-                    <div style="display: flex; gap: 12px;">
-                        <button type="button" class="btn btn-ghost" style="flex: 1;" onclick="nextStep(4)">Back</button>
-                        <button type="button" class="btn btn-primary" style="flex: 2;" id="btn-register" onclick="register()">Submit Application</button>
-                    </div>
-                </div>
-            </form>
-
-            <p style="margin-top: 32px; text-align: center; font-size: 13px; color: var(--text-secondary);">
-                Already have an account? <a href="#" onclick="toggleAuth('login')" style="color: var(--primary); text-decoration: none; font-weight: 600;">Sign In</a>
+                New Merchant? <a href="#" onclick="toggleAuth('register')" style="color: var(--primary); text-decoration: none;">Onboard Now</a>
             </p>
         </div>
     </div>
 
-    <!-- Navigation -->
+    <!-- Sidebar Navigation -->
     <div class="sidebar">
         <div class="sidebar-brand">
-            <i class="fas fa-bolt"></i>
-            <span>SwiftPay</span>
+            <i class="fas fa-bolt"></i><span>SwiftPay</span>
         </div>
-
         <div class="nav-group">
             <div class="nav-label">General</div>
-            <a class="nav-item active" onclick="showPage('overview', this)"><i class="fas fa-chart-pie"></i> Overview</a>
+            <a class="nav-item active" onclick="showPage('overview', this)"><i class="fas fa-th-large"></i> Overview</a>
             <a class="nav-item" onclick="showPage('settlements', this)"><i class="fas fa-receipt"></i> Settlements</a>
             <a class="nav-item" onclick="showPage('team', this)"><i class="fas fa-users"></i> Team Management</a>
         </div>
-
         <div class="nav-group" id="nav-admin" style="display: none;">
             <div class="nav-label">Management Terminal</div>
             <a class="nav-item" onclick="showPage('admin-registrations', this)"><i class="fas fa-user-check"></i> Onboarding Queue</a>
             <a class="nav-item" onclick="showPage('admin-treasury', this)"><i class="fas fa-vault"></i> Treasury Control</a>
             <a class="nav-item" onclick="showPage('admin-compliance', this)"><i class="fas fa-shield-halved"></i> Compliance Logs</a>
         </div>
-
         <div class="nav-group">
             <div class="nav-label">Treasury</div>
             <a class="nav-item" onclick="showPage('cashin', this)"><i class="fas fa-university"></i> Cash In</a>
             <a class="nav-item" onclick="showPage('disbursements', this)"><i class="fas fa-paper-plane"></i> Payouts</a>
             <a class="nav-item" onclick="showPage('collections', this)"><i class="fas fa-link"></i> Collection Links</a>
         </div>
-
         <div style="margin-top: auto; padding-bottom: 24px;">
             <a class="nav-item" onclick="showPage('docs', this)"><i class="fas fa-book"></i> API Documentation</a>
             <a class="nav-item" onclick="showPage('settings', this)"><i class="fas fa-cog"></i> Terminal Config</a>
@@ -375,7 +185,7 @@
         </div>
     </div>
 
-    <!-- Content -->
+    <!-- Main Content -->
     <main class="main-content">
         <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 48px;">
             <div>
@@ -394,677 +204,106 @@
                 <div class="glass-card">
                     <div class="stat-label">Total Collected</div>
                     <div class="stat-value" id="val-total-collected" style="color: var(--success);">₱ 0.00</div>
-                    <div style="margin-top: 12px; font-size: 12px; color: var(--text-dim); font-weight: 600;">
-                        Lifetime merchant revenue
-                    </div>
+                    <div style="margin-top: 12px; font-size: 12px; color: var(--text-dim);">Lifetime merchant revenue</div>
                 </div>
                 <div class="glass-card">
                     <div class="stat-label">Total Disbursed</div>
                     <div class="stat-value" id="val-total-disbursed" style="color: var(--error);">₱ 0.00</div>
-                    <div style="margin-top: 12px; font-size: 12px; color: var(--text-dim); font-weight: 600;">
-                        Successful payouts
-                    </div>
+                    <div style="margin-top: 12px; font-size: 12px; color: var(--text-dim);">Successful payouts</div>
                 </div>
                 <div class="glass-card">
                     <div class="stat-label">Pending Volume</div>
                     <div class="stat-value" id="val-pending-vol" style="color: var(--warning);">₱ 0.00</div>
-                    <div style="margin-top: 12px; font-size: 12px; color: var(--text-dim); font-weight: 600;">
-                        Transactions in processing
-                    </div>
+                    <div style="margin-top: 12px; font-size: 12px; color: var(--text-dim);">Transactions in processing</div>
                 </div>
                 <div class="glass-card">
                     <div class="stat-label">Failed/Rejected</div>
-                    <div class="stat-value" id="val-failed-vol" style="color: #64748B;">0</div>
-                    <div style="margin-top: 12px; font-size: 12px; color: var(--text-dim); font-weight: 600;">
-                        Unsuccessful attempts
-                    </div>
+                    <div class="stat-value" id="val-failed-vol" style="color: var(--text-dim);">0</div>
+                    <div style="margin-top: 12px; font-size: 12px; color: var(--text-dim);">Unsuccessful attempts</div>
                 </div>
             </div>
 
             <div class="glass-card" style="margin-bottom: 40px; padding: 32px;">
                 <h3 style="margin-bottom: 24px;">Recent Transaction Volume</h3>
-                <div style="height: 300px; width: 100%;">
-                    <canvas id="tx-chart"></canvas>
-                </div>
+                <div style="height: 300px; width: 100%;"><canvas id="tx-chart"></canvas></div>
             </div>
 
-            <div class="table-container" id="onboarding-review-queue">
+            <div class="table-container" id="onboarding-review-queue" style="display: none;">
                 <div style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="font-size: 16px;">Onboarding Review Queue</h3>
                     <span class="badge badge-pending">Management Team</span>
                 </div>
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Merchant</th>
-                            <th>Business</th>
-                            <th>Status</th>
-                            <th>Submitted</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Merchant</th><th>Business</th><th>Status</th><th>Submitted</th></tr></thead>
                     <tbody id="registrations-list"></tbody>
                 </table>
             </div>
-
-            <div class="table-container">
-                <div style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="font-size: 16px;">Recent Activity</h3>
-                    <a href="#" onclick="showPage('settlements')" style="font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 700;">View Ledger</a>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Reference ID</th>
-                            <th>Instrument</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th>Timestamp</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tx-ledger"></tbody>
-                </table>
-            </div>
         </div>
 
-        <!-- Cash In Page -->
-        <div id="page-cashin" class="page">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
-                <div>
-                    <h2 style="margin-bottom: 8px;">Cash In / Deposit</h2>
-                    <p style="color: var(--text-secondary); font-size: 14px;">Please deposit funds to the standard accounts below to top up your SwiftPay balance.</p>
-                </div>
-                <button class="btn btn-primary" onclick="openModal('modal-deposit-request')"><i class="fas fa-paper-plane"></i> Submit Deposit Proof</button>
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px;">
-                <div class="glass-card">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
-                        <div>
-                            <h3 style="color: var(--primary);">Security Bank Corporation</h3>
-                            <p style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">Standard Bank Deposit</p>
-                        </div>
-                        <i class="fas fa-university" style="font-size: 24px; color: var(--text-dim);"></i>
-                    </div>
-                    <div class="input-box" style="margin-bottom: 12px;">
-                        <label>Account Number</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input value="0000068888173" readonly style="background: var(--bg-deep); border-color: var(--border);">
-                            <button class="btn btn-ghost" onclick="copyText('0000068888173')"><i class="fas fa-copy"></i></button>
-                        </div>
-                    </div>
-                    <div class="input-box">
-                        <label>Account Name</label>
-                        <input value="Click Store" readonly style="background: var(--bg-deep); border-color: var(--border);">
-                    </div>
-                </div>
-
-                <div class="glass-card">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
-                        <div>
-                            <h3 style="color: var(--primary);">Asia United Bank/Hellomoney</h3>
-                            <p style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">Standard Bank Deposit</p>
-                        </div>
-                        <i class="fas fa-mobile-alt" style="font-size: 24px; color: var(--text-dim);"></i>
-                    </div>
-                    <div class="input-box" style="margin-bottom: 12px;">
-                        <label>Account Number</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input value="934105321485" readonly style="background: var(--bg-deep); border-color: var(--border);">
-                            <button class="btn btn-ghost" onclick="copyText('934105321485')"><i class="fas fa-copy"></i></button>
-                        </div>
-                    </div>
-                    <div class="input-box">
-                        <label>Account Name</label>
-                        <input value="Click Store" readonly style="background: var(--bg-deep); border-color: var(--border);">
-                    </div>
-                </div>
-            </div>
-
-            <div style="margin-top: 40px; padding: 24px; background: rgba(31, 75, 168, 0.05); border-radius: 16px; border: 1px solid rgba(31, 75, 168, 0.2);">
-                <div style="display: flex; gap: 16px; align-items: center;">
-                    <i class="fas fa-info-circle" style="color: var(--primary); font-size: 24px;"></i>
-                    <p style="font-size: 13px; color: var(--text-secondary);">
-                        Settlements to these accounts are typically processed within 30-60 minutes. Please ensure you include your Merchant ID in the transaction remarks if possible.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Payouts Page -->
-        <div id="page-disbursements" class="page">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
-                <h2>Payout Management</h2>
-                <button class="btn btn-primary" onclick="loadBanksAndOpenDisburse()"><i class="fas fa-plus"></i> New Payout</button>
-            </div>
-
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Transaction ID</th>
-                            <th>Beneficiary</th>
-                            <th>Amount</th>
-                            <th>Channel</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="payout-ledger"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Team Management Page -->
-        <div id="page-team" class="page">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
-                <h2>Team Access Control</h2>
-                <button class="btn btn-primary" onclick="openModal('modal-invite')"><i class="fas fa-user-plus"></i> Add Team Member</button>
-            </div>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Member</th>
-                            <th>Email</th>
-                            <th>Role & Permissions</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="members-list"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Collections Page -->
-        <div id="page-collections" class="page">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
-                <h2>Collection & Payments</h2>
-                <div style="display: flex; gap: 12px;">
-                    <button class="btn btn-ghost" onclick="openModal('modal-qr')"><i class="fas fa-qrcode"></i> QR Ph</button>
-                    <button class="btn btn-primary" onclick="openModal('modal-checkout')"><i class="fas fa-link"></i> New Payment Link</button>
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px;">
-                <div class="glass-card">
-                    <h3>SwiftPay Sandbox</h3>
-                    <p style="color: var(--text-secondary); font-size: 13px; margin: 12px 0;">Use for testing HMAC-SHA256 signed requests and redirect flows.</p>
-                    <div class="badge" style="background: rgba(31, 75, 168, 0.1); color: var(--primary);">Developer Sandbox</div>
-                </div>
-                <div class="glass-card">
-                    <h3>Magpie Production</h3>
-                    <p style="color: var(--text-secondary); font-size: 13px; margin: 12px 0;">Direct credit card and e-wallet processing for live transactions.</p>
-                    <div class="badge badge-success">Live Ready</div>
-                </div>
-            </div>
-
-            <h3 style="margin-bottom: 20px;">Payment Event Logs (Webhooks)</h3>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Event ID</th>
-                            <th>Reference</th>
-                            <th>Source</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody id="event-logs"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Settlements/Balance History Page -->
-        <div id="page-settlements" class="page">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
-                <h2>Financial Ledger</h2>
-                <div style="display: flex; gap: 12px;">
-                    <button class="btn btn-ghost" onclick="exportLedger()"><i class="fas fa-file-export"></i> Export CSV</button>
-                    <div class="glass-card" style="padding: 12px 24px; display: flex; align-items: center; gap: 12px;">
-                        <span class="stat-label" style="margin: 0;">Net Balance:</span>
-                        <span class="stat-value" id="set-val-bal" style="font-size: 20px; margin: 0;">₱ 0.00</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="table-container">
-                <div class="table-filters">
-                    <select class="filter-select" id="f-type" onchange="applyFilters()">
-                        <option value="ALL">All Types</option>
-                        <option value="COLLECTION">Collections</option>
-                        <option value="PAYOUT">Payouts</option>
-                        <option value="TOP-UP">Top-ups</option>
-                    </select>
-                    <select class="filter-select" id="f-status" onchange="applyFilters()">
-                        <option value="ALL">All Status</option>
-                        <option value="Success">Success / Executed</option>
-                        <option value="PENDING">Pending</option>
-                    </select>
-                    <input type="date" class="filter-select" id="f-date" onchange="applyFilters()">
-                    <button class="btn btn-ghost" style="padding: 8px 12px; font-size: 12px;" onclick="resetFilters()">Reset</button>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Type</th>
-                            <th>Details</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th>Date</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="comprehensive-ledger"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Settings Page -->
-        <div id="page-settings" class="page">
-            <h2 style="margin-bottom: 24px;">Terminal Configuration</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-                <div class="glass-card" onclick="openModal('modal-profile')" style="cursor: pointer;">
-                    <i class="fas fa-store" style="font-size: 24px; color: var(--primary); margin-bottom: 16px;"></i>
-                    <h3>Merchant Profile</h3>
-                    <p style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">Business identity, settlement accounts, and branding.</p>
-                </div>
-                <div class="glass-card" onclick="openModal('modal-api-settings')" style="cursor: pointer;">
-                    <i class="fas fa-key" style="font-size: 24px; color: var(--primary); margin-bottom: 16px;"></i>
-                    <h3>API & Gateway Config</h3>
-                    <p style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">Configure SwiftPay/Magpie keys and environment modes.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- API Documentation Page -->
-        <div id="page-docs" class="page">
-            <h2 style="margin-bottom: 8px;">Developer API Documentation</h2>
-            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 32px;">Integrate SwiftPay collections into your own application or website.</p>
-
-            <div class="glass-card" style="margin-bottom: 24px;">
-                <h3 style="color: var(--primary); margin-bottom: 16px;">1. Authentication</h3>
-                <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">All requests must be signed using your Secret Key via HMAC-SHA256.</p>
-                <div style="background: var(--bg-deep); padding: 16px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #10B981;">
-                    # Header Example<br>
-                    X-Signature: [computed_hmac_signature]
-                </div>
-            </div>
-
-            <div class="glass-card" style="margin-bottom: 24px;">
-                <h3 style="color: var(--primary); margin-bottom: 16px;">2. Initialize Checkout</h3>
-                <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">Create a payment link for your customers.</p>
-                <div style="background: var(--bg-deep); padding: 16px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #94A3B8;">
-                    <span style="color: #F59E0B;">POST</span> /api/payments/checkout<br><br>
-                    {<br>
-                    &nbsp;&nbsp;"amount": "500.00",<br>
-                    &nbsp;&nbsp;"description": "Order #123",<br>
-                    &nbsp;&nbsp;"customerEmail": "user@example.com"<br>
-                    }
-                </div>
-            </div>
-
-            <div class="glass-card" style="margin-bottom: 24px;">
-                <h3 style="color: var(--primary); margin-bottom: 16px;">3. Webhook Handling</h3>
-                <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">Receive real-time payment notifications. Configure your Webhook URL in Terminal Config.</p>
-                <div style="background: var(--bg-deep); padding: 16px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #94A3B8;">
-                    {<br>
-                    &nbsp;&nbsp;"id": "PAY_171...",<br>
-                    &nbsp;&nbsp;"status": "EXECUTED",<br>
-                    &nbsp;&nbsp;"amount": 500.00,<br>
-                    &nbsp;&nbsp;"referenceNo": "ORDER-..."<br>
-                    }
-                </div>
-            </div>
-        </div>
-
-        <!-- Admin: Registrations -->
-        <div id="page-admin-registrations" class="page">
-            <h2 style="margin-bottom: 24px;">Onboarding & KYC Review</h2>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Merchant</th>
-                            <th>Business Details</th>
-                            <th>Identity / KYC</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-regs-list"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Admin: Treasury -->
-        <div id="page-admin-treasury" class="page">
-            <h2 style="margin-bottom: 24px;">Platform Treasury Control</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
-                <div class="glass-card">
-                    <h3 style="margin-bottom: 20px;"><i class="fas fa-university"></i> Pending Deposits</h3>
-                    <div id="admin-deposits-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
-                </div>
-                <div class="glass-card">
-                    <h3 style="margin-bottom: 20px;"><i class="fas fa-paper-plane"></i> Payout Queue</h3>
-                    <div id="admin-payouts-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Admin: Compliance -->
-        <div id="page-admin-compliance" class="page">
-            <h2 style="margin-bottom: 24px;">Compliance & Ruling Audit</h2>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Event ID</th>
-                            <th>Source</th>
-                            <th>Amount (Net)</th>
-                            <th>Status</th>
-                            <th>Security Flag</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-compliance-logs"></tbody>
-                </table>
-            </div>
-        </div>
+        <div id="page-settlements" class="page">...</div>
+        <div id="page-team" class="page">...</div>
+        <div id="page-cashin" class="page">...</div>
+        <div id="page-disbursements" class="page">...</div>
+        <div id="page-collections" class="page">...</div>
+        <div id="page-docs" class="page">...</div>
+        <div id="page-settings" class="page">...</div>
+        <div id="page-admin-registrations" class="page">...</div>
+        <div id="page-admin-treasury" class="page">...</div>
+        <div id="page-admin-compliance" class="page">...</div>
     </main>
-
-    <!-- Modals -->
-    <div id="modal-qr" class="modal" onclick="closeModal('modal-qr')">
-        <div class="modal-body" onclick="event.stopPropagation()" style="text-align: center;">
-            <h2 style="margin-bottom: 8px;">Dynamic QR Ph</h2>
-            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Generate a unique QR code for instant collection.</p>
-            <div class="input-box" style="text-align: left;">
-                <label>Amount (PHP)</label>
-                <input type="number" id="qr-amt" value="100.00" step="0.01">
-            </div>
-            <div id="qr-res" class="hidden" style="margin: 24px 0; background: white; padding: 20px; border-radius: 16px; display: inline-block;">
-                <img id="qr-img" style="width: 240px; display: block;">
-            </div>
-            <button class="btn btn-primary" style="width: 100%;" id="qr-btn" onclick="genQR()">Generate QR Code</button>
-        </div>
-    </div>
-
-    <div id="modal-checkout" class="modal" onclick="closeModal('modal-checkout')">
-        <div class="modal-body" onclick="event.stopPropagation()">
-            <h2>Generate Payment Link</h2><br>
-            <div class="input-box">
-                <label>Payment Provider</label>
-                <select id="c-provider">
-                    <option value="SWIFTPAY">SwiftPay Sandbox (HMAC Signed)</option>
-                    <option value="MAGPIE">Magpie Production (Live)</option>
-                </select>
-            </div>
-            <div class="input-box">
-                <label>Transaction Amount (PHP)</label>
-                <input type="number" id="c-amt" value="500.00" step="0.01">
-            </div>
-            <div class="input-box">
-                <label>Customer Email</label>
-                <input type="email" id="c-email" placeholder="customer@example.com">
-            </div>
-            <div class="input-box">
-                <label>Order Description</label>
-                <input id="c-desc" placeholder="Product Name / Service">
-            </div>
-            <button class="btn btn-primary" style="width: 100%;" id="btn-checkout" onclick="createCheckout()">Initialize Checkout</button>
-        </div>
-    </div>
-
-    <div id="modal-disburse" class="modal" onclick="closeModal('modal-disburse')">
-        <div class="modal-body" onclick="event.stopPropagation()">
-            <h2 style="margin-bottom: 8px;">Initiate Payout</h2>
-            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Funds will be settled via INSTAPAY Network.</p>
-
-            <div class="input-box">
-                <label>Target Bank / E-Wallet</label>
-                <select id="d-bank"></select>
-            </div>
-            <div class="input-box">
-                <label>Account / Mobile Number</label>
-                <input id="d-acc" placeholder="0000 0000 0000">
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                <div class="input-box">
-                    <label>First Name</label>
-                    <input id="d-first" placeholder="Juan">
-                </div>
-                <div class="input-box">
-                    <label>Last Name</label>
-                    <input id="d-last" placeholder="Dela Cruz">
-                </div>
-            </div>
-            <div class="input-box">
-                <label>Settlement Amount (PHP)</label>
-                <input type="number" id="d-amt" placeholder="0.00" step="0.01">
-            </div>
-            <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" id="btn-disburse" onclick="sendDisbursement()">
-                Execute Payout
-            </button>
-        </div>
-    </div>
-
-    <div id="modal-deposit-request" class="modal" onclick="closeModal('modal-deposit-request')">
-        <div class="modal-body" onclick="event.stopPropagation()">
-            <h2 style="margin-bottom: 8px;">Submit Deposit Proof</h2>
-            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">Please provide details of your recent bank transfer.</p>
-
-            <div class="input-box">
-                <label>Destination Bank</label>
-                <select id="dep-bank">
-                    <option value="Security Bank Corporation">Security Bank Corporation (0000068888173)</option>
-                    <option value="Asia United Bank/Hellomoney">Asia United Bank/Hellomoney (934105321485)</option>
-                </select>
-            </div>
-            <div class="input-box">
-                <label>Amount Deposited (PHP)</label>
-                <input type="number" id="dep-amt" placeholder="0.00" step="0.01">
-            </div>
-            <div class="input-box">
-                <label>Reference Number / Transaction ID</label>
-                <input id="dep-ref" placeholder="Enter reference number">
-            </div>
-            <div class="glass-card" style="padding: 16px; margin-bottom: 24px; text-align: center; border-style: dashed;">
-                <i class="fas fa-camera" style="font-size: 24px; color: var(--text-dim); margin-bottom: 12px;"></i>
-                <p style="font-size: 12px; color: var(--text-secondary);">Upload Deposit Slip / Screenshot</p>
-            </div>
-            <button class="btn btn-primary" style="width: 100%;" id="btn-submit-deposit" onclick="submitDeposit()">
-                Submit for Verification
-            </button>
-        </div>
-    </div>
-
-    <div id="modal-profile" class="modal" onclick="closeModal('modal-profile')">
-        <div class="modal-body" onclick="event.stopPropagation()">
-            <h2>Merchant Identity</h2><br>
-
-            <div style="text-align: center; margin-bottom: 24px;">
-                <div style="width: 80px; height: 80px; background: var(--bg-deep); border: 2px dashed var(--border); border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer;" onclick="simulateLogoUpload()">
-                    <img id="p-logo-preview" style="width: 100%; height: 100%; object-fit: cover; display: none;">
-                    <i class="fas fa-camera" id="p-logo-icon" style="color: var(--text-dim); font-size: 24px;"></i>
-                </div>
-                <input type="hidden" id="p-logo-url">
-                <p style="font-size: 11px; color: var(--text-dim); font-weight: 600; text-transform: uppercase;">Business Logo</p>
-            </div>
-
-            <div class="input-box"><label>Business Display Name</label><input id="p-biz"></div>
-            <div class="input-box"><label>Registered Address</label><input id="p-addr"></div>
-            <div class="input-box"><label>Contact Number</label><input id="p-contact"></div>
-            <div class="input-box"><label>Corporate URL</label><input id="p-url"></div>
-            <div class="input-box"><label>Settlement Account (Netbank)</label><input id="p-source" placeholder="XXX-XXXX-XXXXX-X"></div>
-            <button class="btn btn-primary" style="width: 100%;" onclick="updateProfile()">Update Profile</button>
-        </div>
-    </div>
-
-    <div id="modal-api-settings" class="modal" onclick="closeModal('modal-api-settings')">
-        <div class="modal-body" onclick="event.stopPropagation()" style="max-width: 600px;">
-            <h2>API & Gateway Configuration</h2><br>
-
-            <div style="display: flex; gap: 24px; margin-bottom: 24px; padding: 16px; background: rgba(31, 75, 168, 0.1); border-radius: 12px; align-items: center;">
-                <div style="flex: 1;">
-                    <h4 style="margin-bottom: 4px;">Environment Mode</h4>
-                    <p style="font-size: 12px; color: var(--text-secondary);">Toggle between sandbox testing and live production.</p>
-                </div>
-                <div style="display: flex; background: var(--bg-deep); padding: 4px; border-radius: 8px; border: 1px solid var(--border);">
-                    <button id="mode-sandbox" class="btn" style="padding: 6px 16px; font-size: 12px;" onclick="setEnvMode(false)">Sandbox</button>
-                    <button id="mode-production" class="btn" style="padding: 6px 16px; font-size: 12px;" onclick="setEnvMode(true)">Production</button>
-                </div>
-                <input type="hidden" id="p-is-prod" value="false">
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div>
-                    <h3 style="font-size: 14px; margin-bottom: 16px; color: var(--primary);">SwiftPay Keys</h3>
-                    <div class="input-box"><label>Public Key</label><input id="p-sp-pub" placeholder="pk_test_..."></div>
-                    <div class="input-box"><label>Secret Key</label><input type="password" id="p-sp-sec" placeholder="sk_test_..."></div>
-                </div>
-                <div>
-                    <h3 style="font-size: 14px; margin-bottom: 16px; color: var(--primary);">Magpie Keys</h3>
-                    <div class="input-box"><label>Public Key</label><input id="p-mg-pub" placeholder="pk_test_..."></div>
-                    <div class="input-box"><label>Secret Key</label><input type="password" id="p-mg-sec" placeholder="sk_test_..."></div>
-                </div>
-            </div>
-
-            <h3 style="font-size: 14px; margin-bottom: 16px; color: var(--primary); margin-top: 12px;">Endpoint URLs</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div class="input-box"><label>Redirect (Success) URL</label><input id="p-redir" placeholder="https://yoursite.com/success"></div>
-                <div class="input-box"><label>Webhook (Callback) URL</label><input id="p-webhook" placeholder="https://api.yoursite.com/webhook"></div>
-            </div>
-
-            <button class="btn btn-primary" style="width: 100%; margin-top: 12px;" onclick="updateProfile()">Save Configuration</button>
-        </div>
-    </div>
-
-    <div id="modal-invite" class="modal" onclick="closeModal('modal-invite')">
-        <div class="modal-body" onclick="event.stopPropagation()">
-            <h2 id="invite-title">Invite Team Member</h2><br>
-            <input type="hidden" id="i-id">
-            <div class="input-box"><label>Full Name</label><input id="i-name"></div>
-            <div class="input-box"><label>Email Address</label><input id="i-email"></div>
-            <div class="input-box">
-                <label>Role</label>
-                <select id="i-role">
-                    <option value="ADMIN">Admin (Full Access)</option>
-                    <option value="DEVELOPER">Developer (API & Webhooks)</option>
-                    <option value="OPERATOR">Operator (Limited)</option>
-                    <option value="VIEWER">Viewer (Read-only)</option>
-                </select>
-            </div>
-
-            <div style="margin-bottom: 24px;">
-                <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 12px;">Specific Permissions</label>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
-                        <input type="checkbox" id="p-tx" checked> View Ledger
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
-                        <input type="checkbox" id="p-col" checked> Collections
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
-                        <input type="checkbox" id="p-dis" checked> Payouts
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
-                        <input type="checkbox" id="p-set"> Settings
-                    </label>
-                </div>
-            </div>
-
-            <button class="btn btn-primary" style="width: 100%;" id="btn-save-member" onclick="saveMember()">Save Member Access</button>
-        </div>
-    </div>
-
-    <div id="modal-tx-detail" class="modal" onclick="closeModal('modal-tx-detail')">
-        <div class="modal-body" onclick="event.stopPropagation()">
-            <div style="text-align: center; margin-bottom: 24px;">
-                <div id="tx-detail-icon" style="width: 50px; height: 50px; background: rgba(16, 185, 129, 0.1); color: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 20px;">
-                    <i class="fas fa-check"></i>
-                </div>
-                <h2 id="tx-detail-title">Transaction Detail</h2>
-                <p id="tx-detail-id" style="font-family: monospace; font-size: 12px; color: var(--text-dim);"></p>
-            </div>
-
-            <div class="glass-card" style="padding: 20px; font-size: 14px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                    <span style="color: var(--text-dim);">Status</span>
-                    <span id="tx-detail-status" class="badge badge-success">EXECUTED</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                    <span style="color: var(--text-dim);">Amount</span>
-                    <span id="tx-detail-amt" style="font-weight: 700;">₱ 0.00</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                    <span style="color: var(--text-dim);">Category</span>
-                    <span id="tx-detail-cat">Collection</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                    <span style="color: var(--text-dim);">Description</span>
-                    <span id="tx-detail-desc" style="text-align: right;">—</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: var(--text-dim);">Timestamp</span>
-                    <span id="tx-detail-date"></span>
-                </div>
-            </div>
-
-            <button class="btn btn-ghost" style="width: 100%; margin-top: 24px;" onclick="closeModal('modal-tx-detail')">Dismiss</button>
-        </div>
-    </div>
-
-    <div id="modal-terms" class="modal" onclick="closeModal('modal-terms')">
-        <div class="modal-body" onclick="event.stopPropagation()">
-            <h2 id="terms-title">Terms & Conditions</h2>
-            <div id="terms-content" style="margin: 24px 0; font-size: 14px; color: var(--text-secondary); line-height: 1.6; max-height: 400px; overflow-y: auto; padding-right: 10px; white-space: pre-wrap;">
-                Loading...
-            </div>
-            <button class="btn btn-primary" style="width: 100%;" onclick="closeModal('modal-terms')">Close</button>
-        </div>
-    </div>
 
     <div id="toast-container"></div>
 
     <script>
-        const API_VERSION = 'v1.18.0'; // 18 Expected fixed feature reference
+        const API_VERSION = 'v1.18.0';
         let token = localStorage.getItem('sp_token');
-        let txChart = null;
 
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            const icon = type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle');
-            toast.innerHTML = `<i class="fas ${icon}"></i> <span>${message}</span>`;
-            container.appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 500);
-            }, 4000);
+        async function fetchAPI(url, opts = {}) {
+            const h = { ...opts.headers, 'Authorization': 'Bearer ' + token };
+            const r = await fetch(url, { ...opts, headers: h });
+            if (r.status === 401) { logout(); throw new Error('Session Expired'); }
+            if (!r.ok) { const err = await r.json(); throw new Error(err.error || 'Request Failed'); }
+            return r.json();
         }
 
-        window.addEventListener('load', () => {
-            if (token) {
-                document.body.className = 'logged-in';
-                sync();
+        async function sync() {
+            if (!token) return;
+            try {
+                const user = JSON.parse(localStorage.getItem('sp_user') || '{}');
+                document.getElementById('merchant-name').innerText = user.businessName || 'SwiftPay Store';
+
+                const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'ADMIN';
+                if (isAdmin) {
+                    document.getElementById('nav-admin').style.display = 'block';
+                    document.getElementById('onboarding-review-queue').style.display = 'block';
+                    // Load admin data...
+                    const regs = await fetchAPI('/api/admin/registrations');
+                    document.getElementById('registrations-list').innerHTML = regs.map(r => `
+                        <tr>
+                            <td>${r.fullName}</td>
+                            <td>${r.businessName}</td>
+                            <td><span class="badge ${r.status === 'APPROVED' ? 'badge-success' : 'badge-pending'}">${r.status}</span></td>
+                            <td>${new Date(r.createdAt).toLocaleDateString()}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                const bal = await fetchAPI('/api/swiftpay/balance');
+                document.getElementById('val-bal') && (document.getElementById('val-bal').innerText = '₱ ' + (bal.balance || 0).toLocaleString(undefined, {minimumFractionDigits:2}));
+
+                showToast('Synchronized successfully', 'success');
+            } catch (e) {
+                console.error(e);
+                showToast('Sync Failed: ' + e.message, 'error');
             }
-        });
+        }
 
         async function login() {
-            const btn = document.getElementById('btn-login');
-            const originalText = btn.innerText;
-            btn.innerText = 'AUTHENTICATING...';
-            btn.disabled = true;
-
             try {
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email: document.getElementById('l-email').value,
-                        password: document.getElementById('l-pass').value
-                    })
+                    body: JSON.stringify({ email: document.getElementById('l-email').value, password: document.getElementById('l-pass').value })
                 });
                 const data = await res.json();
                 if (data.token) {
@@ -1072,880 +311,28 @@
                     localStorage.setItem('sp_token', token);
                     localStorage.setItem('sp_user', JSON.stringify(data.user));
                     document.body.className = 'logged-in';
-                    showToast('Authentication successful', 'success');
                     sync();
-                } else {
-                    showToast(data.error || 'Access denied', 'error');
-                }
-            } catch (e) {
-                showToast('Connection to gateway failed', 'error');
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        }
-
-        async function forgotPassword() {
-            const email = prompt('Enter your registered merchant email:');
-            if (!email) return;
-            try {
-                const res = await fetch('/api/auth/forgot-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-                const data = await res.json();
-                if (res.ok) showToast(data.message, 'success');
-                else showToast(data.error, 'error');
-            } catch (e) { showToast('Request failed', 'error'); }
-        }
-
-        async function syncAdminData(t) {
-            try {
-                const regsRes = await fetch('/api/admin/registrations', { headers: { 'Authorization': 'Bearer '+t } });
-                const regs = await regsRes.json();
-                document.getElementById('admin-regs-list').innerHTML = regs.map(r => `
-                    <tr>
-                        <td>
-                            <div style="font-weight: 600; color: white;">${r.fullName}</div>
-                            <div style="font-size: 12px; color: var(--text-dim);">${r.email}</div>
-                        </td>
-                        <td>
-                            <div style="font-size: 13px;">${r.businessName}</div>
-                            <div class="badge" style="background: rgba(255,255,255,0.05); color: var(--text-secondary); margin-top: 4px;">${r.businessType}</div>
-                        </td>
-                        <td>
-                            <div style="font-size: 12px; color: var(--text-secondary);"><i class="fas fa-id-card"></i> ${r.idType}</div>
-                            <div style="font-family: monospace; font-size: 11px; margin-top: 2px;">${r.idNumber}</div>
-                        </td>
-                        <td><span class="badge ${r.status === 'APPROVED' ? 'badge-success' : 'badge-pending'}">${r.status}</span></td>
-                        <td>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-primary" style="padding: 6px 12px; font-size: 11px;" onclick="updateRegStatus('${r.id}', 'APPROVED')">Approve</button>
-                                <button class="btn btn-ghost" style="padding: 6px 12px; font-size: 11px; color: var(--error);" onclick="updateRegStatus('${r.id}', 'REJECTED')">Deny</button>
-                            </div>
-                        </td>
-                    </tr>
-                `).join('');
-
-                const depsRes = await fetch('/api/admin/deposits', { headers: { 'Authorization': 'Bearer '+t } });
-                const deps = await depsRes.json();
-                document.getElementById('admin-deposits-list').innerHTML = deps.filter(d => d.status === 'PENDING').map(d => `
-                    <div class="glass-card" style="padding: 16px; border-style: dashed; border-color: var(--warning);">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                            <div>
-                                <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Merchant</div>
-                                <div style="font-size: 14px; font-weight: 600;">${d.user_email}</div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Amount</div>
-                                <div style="font-size: 16px; font-weight: 800; color: var(--success);">₱ ${parseFloat(d.amount).toFixed(2)}</div>
-                            </div>
-                        </div>
-                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">
-                            <i class="fas fa-university"></i> ${d.bank_name} <br>
-                            <i class="fas fa-hashtag"></i> ${d.reference_number}
-                        </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-primary" style="flex: 1; padding: 8px; font-size: 12px;" onclick="updateDepositStatus('${d.id}', 'APPROVED')">Credit Wallet</button>
-                            <button class="btn btn-ghost" style="padding: 8px; color: var(--error);" onclick="updateDepositStatus('${d.id}', 'REJECTED')"><i class="fas fa-times"></i></button>
-                        </div>
-                    </div>
-                `).join('') || '<p style="font-size: 13px; color: var(--text-dim); text-align: center; padding: 20px;">No pending deposits</p>';
-
-                const eventsRes = await fetch('/api/payments/events', { headers: { 'Authorization': 'Bearer '+t } });
-                const events = await eventsRes.json();
-                document.getElementById('admin-compliance-logs').innerHTML = events.map(ev => `
-                    <tr>
-                        <td style="font-family: monospace; font-size: 11px;">${ev.id}</td>
-                        <td><span class="badge" style="background: rgba(31, 75, 168, 0.1); color: var(--primary);">SWIFTPAY</span></td>
-                        <td style="font-weight: 700; color: white;">₱ ${ev.amount.toFixed(2)}</td>
-                        <td><span class="badge ${ev.status === 'EXECUTED' ? 'badge-success' : 'badge-pending'}">${ev.status}</span></td>
-                        <td><span style="color: var(--success); font-size: 11px;"><i class="fas fa-circle-check"></i> SECURE</span></td>
-                    </tr>
-                `).join('');
-
-                const disburseRes = await fetch('/api/admin/disbursements', { headers: { 'Authorization': 'Bearer '+t } });
-                const pendingDisb = await disburseRes.json();
-                const disbContainer = document.getElementById('admin-payouts-list');
-                if (disbContainer) {
-                    disbContainer.innerHTML = pendingDisb.map(d => `
-                        <div class="glass-card" style="padding: 16px; border-left: 4px solid var(--primary); margin-bottom: 12px;">
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                                <div>
-                                    <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Merchant Payout</div>
-                                    <div style="font-size: 13px; font-weight: 600;">${d.merchant_email}</div>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div style="font-size: 16px; font-weight: 800; color: white;">₱ ${parseFloat(d.amount).toFixed(2)}</div>
-                                </div>
-                            </div>
-                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
-                                <i class="fas fa-user"></i> ${d.beneficiary_name} <br>
-                                <i class="fas fa-university"></i> ${d.bank_code} • ${d.account_number}
-                            </div>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-primary" style="flex: 1; padding: 6px; font-size: 11px;" onclick="approvePayout('${d.id}')">Execute Payout</button>
-                                <button class="btn btn-ghost" style="padding: 6px; color: var(--error);" onclick="rejectPayout('${d.id}')">Reject</button>
-                            </div>
-                        </div>
-                    `).join('') || '<p style="font-size: 12px; color: var(--text-dim); text-align: center;">No pending payout requests</p>';
-                }
-            } catch (e) { console.error('Admin sync failed:', e); }
-        }
-
-        async function approvePayout(id) {
-            if(!confirm('Authorize this real-money disbursement?')) return;
-            try {
-                const res = await fetch(`/api/admin/disbursements/${id}/approve`, {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer '+token }
-                });
-                if (res.ok) { showToast('Payout executed successfully', 'success'); sync(); }
-                else { showToast('Execution failed', 'error'); }
-            } catch (e) { showToast('API error', 'error'); }
-        }
-
-        async function rejectPayout(id) {
-            try {
-                const res = await fetch(`/api/admin/disbursements/${id}/reject`, {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer '+token }
-                });
-                if (res.ok) { showToast('Payout request rejected', 'info'); sync(); }
-            } catch (e) { showToast('Update failed', 'error'); }
-        }
-
-        async function updateRegStatus(id, status) {
-            try {
-                const res = await fetch(`/api/admin/registrations/${id}/status`, {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status })
-                });
-                if (res.ok) { showToast(`Merchant ${status.toLowerCase()}`, 'success'); sync(); }
-            } catch (e) { showToast('Update failed', 'error'); }
-        }
-
-        async function updateDepositStatus(id, status) {
-            try {
-                const res = await fetch(`/api/admin/deposits/${id}/status`, {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status })
-                });
-                if (res.ok) { showToast(`Deposit ${status.toLowerCase()}`, 'success'); sync(); }
-            } catch (e) { showToast('Update failed', 'error'); }
-        }
-
-        let allTransactions = [];
-
-        async function sync() {
-            const t = localStorage.getItem('sp_token');
-            const u = JSON.parse(localStorage.getItem('sp_user'));
-            if (!u) return;
-
-            document.getElementById('merchant-name').innerText = u.businessName || 'SwiftPay Store';
-
-            const isDev = u.role === 'DEVELOPER';
-            const isAdmin = u.role === 'SUPER_ADMIN' || u.role === 'ADMIN';
-
-            if (isAdmin) {
-                document.getElementById('nav-admin').style.display = 'block';
-                document.getElementById('onboarding-review-queue').style.display = 'block';
-                syncAdminData(t);
-            }
-
-            try {
-                const balRes = await fetch('/api/swiftpay/balance', { headers: { 'Authorization': 'Bearer '+t } });
-                const bal = await balRes.json();
-                document.getElementById('val-bal').innerText = '₱ ' + (bal.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
-
-                const metricsRes = await fetch('/api/admin/metrics', { headers: { 'Authorization': 'Bearer '+t } });
-                const metrics = await metricsRes.json().catch(() => ({}));
-
-                const regsRes = await fetch('/api/admin/registrations', { headers: { 'Authorization': 'Bearer '+t } });
-                const regs = await regsRes.json().catch(() => []);
-                document.getElementById('registrations-list').innerHTML = regs.map(r => `
-                    <tr>
-                        <td>${r.fullName || r.email}</td>
-                        <td>${r.businessName || r.businessType || '—'}</td>
-                        <td><span class="badge ${r.status === 'APPROVED' ? 'badge-success' : 'badge-pending'}">${r.status || 'PENDING'}</span></td>
-                        <td>${new Date(r.createdAt).toLocaleDateString()}</td>
-                    </tr>
-                `).join('');
-
-                const txRes = await fetch('/api/swiftpay/transactions', { headers: { 'Authorization': 'Bearer '+t } });
-                const txs = await txRes.json();
-                document.getElementById('tx-ledger').innerHTML = txs.map(tx => `
-                    <tr>
-                        <td style="font-family: monospace; font-weight: 600;">${tx.id.slice(0, 12)}...</td>
-                        <td><i class="fas fa-wallet" style="margin-right: 8px;"></i> SwiftPay</td>
-                        <td style="font-weight: 700; color: white;">₱ ${tx.amount.toFixed(2)}</td>
-                        <td><span class="badge badge-success">Success</span></td>
-                        <td style="font-size: 12px;">${new Date(tx.date).toLocaleString()}</td>
-                    </tr>
-                `).join('');
-
-                const disRes = await fetch('/api/swiftpay/disbursements', { headers: { 'Authorization': 'Bearer '+t } });
-                const dis = await disRes.json();
-                document.getElementById('payout-ledger').innerHTML = dis.map(d => `
-                    <tr>
-                        <td style="font-family: monospace;">#${String(d.id).padStart(6, '0')}</td>
-                        <td>${d.recipientInformation?.firstName} ${d.recipientInformation?.lastName}</td>
-                        <td style="font-weight: 700; color: white;">₱ ${parseFloat(d.creditInformation?.amount).toFixed(2)}</td>
-                        <td><span class="badge" style="background: rgba(255,255,255,0.05); color: white;">INSTAPAY</span></td>
-                        <td><span class="badge ${d.status === 'EXECUTED' ? 'badge-success' : 'badge-pending'}">${d.status}</span></td>
-                    </tr>
-                `).join('');
-
-                const memRes = await fetch('/api/admin/members', { headers: { 'Authorization': 'Bearer '+t } });
-                const mems = await memRes.json();
-                document.getElementById('members-list').innerHTML = mems.map(m => `
-                    <tr>
-                        <td>${m.name}</td>
-                        <td>${m.email}</td>
-                        <td>
-                            <span class="badge" style="background: rgba(255,255,255,0.05); color: white;">${m.role}</span>
-                            <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px;">
-                                ${Object.entries(m.permissions || {}).filter(([_,v])=>v).map(([k,_])=>k.toUpperCase()).join(', ')}
-                            </div>
-                        </td>
-                        <td><span class="badge ${m.status === 'ACTIVE' ? 'badge-success' : 'badge-error'}">${m.status}</span></td>
-                        <td>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-ghost" style="padding: 4px 8px;" onclick='editMember(${JSON.stringify(m)})'><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-ghost" style="padding: 4px 8px; color: var(--error);" onclick="updateMemberStatus('${m.id}', '${m.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE'}')">
-                                    <i class="fas ${m.status === 'ACTIVE' ? 'fa-user-slash' : 'fa-user-check'}"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `).join('');
-
-                const setRes = await fetch('/api/swiftpay/settings', { headers: { 'Authorization': 'Bearer '+t } });
-                const s = await setRes.json();
-                document.getElementById('p-biz').value = s.business_name || '';
-                document.getElementById('p-addr').value = s.business_address || '';
-                document.getElementById('p-contact').value = s.contact_number || '';
-                document.getElementById('p-url').value = s.shop_url || '';
-                document.getElementById('p-source').value = s.source_account_number || '';
-                document.getElementById('p-logo-url').value = s.logo_url || '';
-                document.getElementById('p-sp-pub').value = s.sp_public_key || '';
-                document.getElementById('p-sp-sec').value = s.sp_secret_key || '';
-                document.getElementById('p-mg-pub').value = s.magpie_public_key || '';
-                document.getElementById('p-mg-sec').value = s.magpie_secret_key || '';
-                document.getElementById('p-redir').value = s.redirect_url || '';
-                document.getElementById('p-webhook').value = s.webhook_url || '';
-                setEnvMode(!!s.is_production);
-
-                if (s.logo_url) {
-                    document.getElementById('p-logo-preview').src = s.logo_url;
-                    document.getElementById('p-logo-preview').style.display = 'block';
-                    document.getElementById('p-logo-icon').style.display = 'none';
-                }
-
-                document.getElementById('set-val-bal').innerText = document.getElementById('val-bal').innerText;
-
-                const depRes = await fetch('/api/swiftpay/deposits', { headers: { 'Authorization': 'Bearer '+t } });
-                const deps = await depRes.json();
-
-                allTransactions = [
-                    ...txs.map(tx => ({ type: 'COLLECTION', desc: 'SwiftPay QR/Link', amt: tx.amount, status: 'Success', date: tx.date, id: tx.id })),
-                    ...dis.map(d => ({ type: 'PAYOUT', desc: `${d.recipientInformation?.firstName} ${d.recipientInformation?.lastName}`, amt: -parseFloat(d.creditInformation?.amount), status: d.status, date: d.createdAt || Date.now(), id: d.id })),
-                    ...deps.filter(d => d.status === 'APPROVED').map(d => ({ type: 'TOP-UP', desc: d.bank_name, amt: parseFloat(d.amount), status: 'Approved', date: d.created_at, id: d.id }))
-                ].sort((a,b) => new Date(b.date) - new Date(a.date));
-
-                renderLedger(allTransactions);
-                updateAnalytics(allTransactions);
-
-                const eventRes = await fetch('/api/payments/events', { headers: { 'Authorization': 'Bearer '+t } });
-                const events = await eventRes.json();
-                document.getElementById('event-logs').innerHTML = events.map(ev => `
-                    <tr>
-                        <td style="font-family: monospace; font-size: 11px;">${ev.id}</td>
-                        <td>${ev.externalReference}</td>
-                        <td><span class="badge" style="background: rgba(255,255,255,0.05); color: white;">${ev.source}</span></td>
-                        <td style="font-weight: 700; color: white;">₱ ${ev.amount.toFixed(2)}</td>
-                        <td><span class="badge ${ev.status === 'EXECUTED' ? 'badge-success' : 'badge-pending'}">${ev.status}</span></td>
-                        <td style="font-size: 12px;">${new Date().toLocaleDateString()}</td>
-                    </tr>
-                `).join('');
-
-                showToast('Synchronized with gateway', 'success');
-            } catch (e) {
-                showToast('Failed to synchronize data', 'error');
-            }
-        }
-
-        function renderLedger(data) {
-            document.getElementById('comprehensive-ledger').innerHTML = data.map(item => `
-                <tr>
-                    <td><span class="badge" style="background: rgba(255,255,255,0.05); color: white;">${item.type}</span></td>
-                    <td>${item.desc}</td>
-                    <td style="font-weight: 700; color: ${item.amt >= 0 ? 'var(--success)' : 'var(--error)'}">
-                        ${item.amt >= 0 ? '+' : ''}₱ ${Math.abs(item.amt).toFixed(2)}
-                    </td>
-                    <td><span class="badge ${['Success', 'Approved', 'EXECUTED'].includes(item.status) ? 'badge-success' : 'badge-pending'}">${item.status}</span></td>
-                    <td style="font-size: 12px;">${new Date(item.date).toLocaleString()}</td>
-                    <td><button class="btn btn-ghost" style="padding: 4px 8px;" onclick='showTxDetail(${JSON.stringify(item)})'><i class="fas fa-eye"></i></button></td>
-                </tr>
-            `).join('');
-        }
-
-        function updateAnalytics(data) {
-            let totalCollected = 0;
-            let totalDisbursed = 0;
-            let pendingVol = 0;
-            let failedCount = 0;
-            const chartData = {};
-
-            data.forEach(t => {
-                const isSuccess = ['Success', 'Approved', 'EXECUTED'].includes(t.status);
-                const isPending = ['PENDING', 'Pending'].includes(t.status);
-                const isFailed = ['REJECTED', 'CANCELED', 'EXPIRED', 'FAILED'].includes(t.status.toUpperCase());
-
-                if (isSuccess) {
-                    if (t.type === 'COLLECTION' || t.type === 'TOP-UP') totalCollected += Math.abs(t.amt);
-                    if (t.type === 'PAYOUT') totalDisbursed += Math.abs(t.amt);
-                } else if (isPending) {
-                    pendingVol += Math.abs(t.amt);
-                } else if (isFailed) {
-                    failedCount++;
-                }
-
-                const dateKey = new Date(t.date).toLocaleDateString();
-                if (!chartData[dateKey]) chartData[dateKey] = { collected: 0, disbursed: 0 };
-                if (isSuccess) {
-                    if (t.type === 'COLLECTION' || t.type === 'TOP-UP') chartData[dateKey].collected += Math.abs(t.amt);
-                    if (t.type === 'PAYOUT') chartData[dateKey].disbursed += Math.abs(t.amt);
-                }
-            });
-
-            document.getElementById('val-total-collected').innerText = '₱ ' + totalCollected.toLocaleString(undefined, { minimumFractionDigits: 2 });
-            document.getElementById('val-total-disbursed').innerText = '₱ ' + totalDisbursed.toLocaleString(undefined, { minimumFractionDigits: 2 });
-            document.getElementById('val-pending-vol').innerText = '₱ ' + pendingVol.toLocaleString(undefined, { minimumFractionDigits: 2 });
-            document.getElementById('val-failed-vol').innerText = failedCount;
-
-            updateChart(chartData);
-        }
-
-        function updateChart(chartData) {
-            const ctx = document.getElementById('tx-chart').getContext('2d');
-            const labels = Object.keys(chartData).sort((a,b) => new Date(a) - new Date(b)).slice(-7);
-            const collected = labels.map(l => chartData[l].collected);
-            const disbursed = labels.map(l => chartData[l].disbursed || 0);
-
-            if (txChart) txChart.destroy();
-
-            txChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Collected (₱)',
-                            data: collected,
-                            borderColor: '#10B981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Disbursed (₱)',
-                            data: disbursed,
-                            borderColor: '#EF4444',
-                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: true, position: 'top', labels: { color: '#94A3B8', font: { family: 'Inter' } } }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: 'rgba(255,255,255,0.05)' },
-                            ticks: { color: '#64748B', callback: value => '₱' + value.toLocaleString() }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#64748B' }
-                        }
-                    }
-                }
-            });
-        }
-
-        function applyFilters() {
-            const type = document.getElementById('f-type').value;
-            const status = document.getElementById('f-status').value;
-            const date = document.getElementById('f-date').value;
-
-            const filtered = allTransactions.filter(t => {
-                const matchType = type === 'ALL' || t.type === type;
-                const matchStatus = status === 'ALL' || (status === 'Success' ? ['Success', 'Approved', 'EXECUTED'].includes(t.status) : t.status === status);
-                const matchDate = !date || new Date(t.date).toLocaleDateString() === new Date(date).toLocaleDateString();
-                return matchType && matchStatus && matchDate;
-            });
-            renderLedger(filtered);
-        }
-
-        function resetFilters() {
-            document.getElementById('f-type').value = 'ALL';
-            document.getElementById('f-status').value = 'ALL';
-            document.getElementById('f-date').value = '';
-            renderLedger(allTransactions);
-        }
-
-        function showTxDetail(item) {
-            document.getElementById('tx-detail-id').innerText = item.id;
-            document.getElementById('tx-detail-title').innerText = item.type + ' Receipt';
-            document.getElementById('tx-detail-amt').innerText = (item.amt >= 0 ? '+' : '-') + ' ₱ ' + Math.abs(item.amt).toFixed(2);
-            document.getElementById('tx-detail-cat').innerText = item.type;
-            document.getElementById('tx-detail-desc').innerText = item.desc;
-            document.getElementById('tx-detail-date').innerText = new Date(item.date).toLocaleString();
-
-            const statusEl = document.getElementById('tx-detail-status');
-            statusEl.innerText = item.status;
-            statusEl.className = 'badge ' + (['Success', 'Approved', 'EXECUTED'].includes(item.status) ? 'badge-success' : 'badge-pending');
-
-            openModal('modal-tx-detail');
-        }
-
-        function exportLedger() {
-            const headers = ['Type', 'Description', 'Amount', 'Status', 'Date', 'Reference ID'];
-            const rows = allTransactions.map(t => [t.type, t.desc, t.amt, t.status, new Date(t.date).toLocaleString(), t.id]);
-            const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `swiftpay_ledger_${Date.now()}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            showToast('Ledger exported to CSV', 'success');
-        }
-
-        async function createCheckout() {
-            const btn = document.getElementById('btn-checkout');
-            const provider = document.getElementById('c-provider').value;
-            btn.innerText = 'INITIALIZING...';
-            btn.disabled = true;
-
-            const payload = {
-                amount: document.getElementById('c-amt').value,
-                customerEmail: document.getElementById('c-email').value,
-                description: document.getElementById('c-desc').value
-            };
-
-            const endpoint = provider === 'SWIFTPAY' ? '/api/payments/checkout' : '/api/payments/magpie/checkout';
-
-            try {
-                const res = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-
-                if (data.checkoutUrl) {
-                    showToast('Redirecting to secure payment page...', 'success');
-                    setTimeout(() => window.open(data.checkoutUrl, '_blank'), 1500);
-                    closeModal('modal-checkout');
-                } else if (data.status === 'captured' || data.status === 'success') {
-                    showToast('Payment captured successfully via Magpie', 'success');
-                    closeModal('modal-checkout');
-                    sync();
-                } else {
-                    showToast(data.error || 'Checkout initialization failed', 'error');
-                }
-            } catch (e) {
-                showToast('Gateway connection error', 'error');
-            } finally {
-                btn.innerText = 'Initialize Checkout';
-                btn.disabled = false;
-            }
-        }
-
-        async function genQR() {
-            const amt = parseFloat(document.getElementById('qr-amt').value);
-            const btn = document.getElementById('qr-btn');
-            btn.innerText = 'GENERATING...';
-            btn.disabled = true;
-
-            try {
-                const res = await fetch('/api/swiftpay/qr', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount: amt })
-                });
-                const data = await res.json();
-                if (data.qrCodeBody || data.qr_string) {
-                    document.getElementById('qr-img').src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=" + encodeURIComponent(data.qrCodeBody || data.qr_string);
-                    document.getElementById('qr-res').classList.remove('hidden');
-                    btn.innerText = 'QR Generated';
-                    showToast('QR Code ready for collection', 'success');
-                } else {
-                    showToast(data.error || 'QR generation failed', 'error');
-                    btn.innerText = 'Retry Generation';
-                    btn.disabled = false;
-                }
-            } catch (e) {
-                showToast('API connection error', 'error');
-                btn.disabled = false;
-            }
-        }
-
-        async function submitDeposit() {
-            const btn = document.getElementById('btn-submit-deposit');
-            btn.innerText = 'SUBMITTING...';
-            btn.disabled = true;
-
-            const payload = {
-                bankName: document.getElementById('dep-bank').value,
-                amount: document.getElementById('dep-amt').value,
-                referenceNumber: document.getElementById('dep-ref').value
-            };
-
-            try {
-                const res = await fetch('/api/swiftpay/deposit', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (data.status === 'success') {
-                    showToast('Deposit proof submitted for verification', 'success');
-                    closeModal('modal-deposit-request');
-                    sync();
-                } else {
-                    showToast(data.error || 'Submission failed', 'error');
-                }
-            } catch (e) {
-                showToast('Communication error', 'error');
-            } finally {
-                btn.innerText = 'Submit for Verification';
-                btn.disabled = false;
-            }
-        }
-
-        async function loadBanksAndOpenDisburse() {
-            try {
-                const res = await fetch('/api/swiftpay/banks', { headers: { 'Authorization': 'Bearer '+token } });
-                const banks = await res.json();
-                document.getElementById('d-bank').innerHTML = banks.map(b => `<option value="${b.code}">${b.name}</option>`).join('');
-                openModal('modal-disburse');
-            } catch (e) {
-                showToast('Failed to fetch bank list', 'error');
-            }
-        }
-
-        async function sendDisbursement() {
-            const btn = document.getElementById('btn-disburse');
-            btn.innerText = 'EXECUTING SETTLEMENT...';
-            btn.disabled = true;
-
-            const payload = {
-                institutionCode: document.getElementById('d-bank').value,
-                accountNumber: document.getElementById('d-acc').value,
-                firstName: document.getElementById('d-first').value,
-                lastName: document.getElementById('d-last').value,
-                amount: document.getElementById('d-amt').value
-            };
-
-            try {
-                const res = await fetch('/api/swiftpay/disburse', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (data.status === 'success' || data.status === 'submitted') {
-                    showToast(data.message || 'Payout initiated successfully', 'success');
-                    closeModal('modal-disburse');
-                    sync();
-                } else {
-                    showToast(data.error || 'Payout failed', 'error');
-                }
-            } catch (e) {
-                showToast('Gateway communication error', 'error');
-            } finally {
-                btn.innerText = 'Execute Payout';
-                btn.disabled = false;
-            }
-        }
-
-        async function updateProfile() {
-            try {
-                const res = await fetch('/api/swiftpay/profile', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        businessName: document.getElementById('p-biz').value,
-                        businessAddress: document.getElementById('p-addr').value,
-                        contactNumber: document.getElementById('p-contact').value,
-                        shopUrl: document.getElementById('p-url').value,
-                        logoUrl: document.getElementById('p-logo-url').value,
-                        sourceAccountNumber: document.getElementById('p-source').value,
-                        spPublicKey: document.getElementById('p-sp-pub').value,
-                        spSecretKey: document.getElementById('p-sp-sec').value,
-                        magpiePublicKey: document.getElementById('p-mg-pub').value,
-                        magpieSecretKey: document.getElementById('p-mg-sec').value,
-                        isProduction: document.getElementById('p-is-prod').value === 'true',
-                        redirectUrl: document.getElementById('p-redir').value,
-                        webhookUrl: document.getElementById('p-webhook').value
-                    })
-                });
-                if (res.ok) {
-                    showToast('Profile updated', 'success');
-                    setTimeout(() => location.reload(), 1000);
-                }
-            } catch (e) {
-                showToast('Update failed', 'error');
-            }
-        }
-
-        function setEnvMode(isProd) {
-            document.getElementById('p-is-prod').value = isProd;
-            const btnSandbox = document.getElementById('mode-sandbox');
-            const btnProd = document.getElementById('mode-production');
-
-            if (isProd) {
-                btnProd.classList.add('btn-primary');
-                btnSandbox.classList.remove('btn-primary');
-                btnProd.style.background = 'var(--success)';
-            } else {
-                btnSandbox.classList.add('btn-primary');
-                btnProd.classList.remove('btn-primary');
-                btnProd.style.background = 'transparent';
-                btnSandbox.style.background = 'var(--primary)';
-            }
-        }
-
-        function simulateLogoUpload() {
-            const demoLogos = [
-                'https://cdn-icons-png.flaticon.com/512/10507/10507029.png',
-                'https://cdn-icons-png.flaticon.com/512/6062/6062646.png',
-                'https://cdn-icons-png.flaticon.com/512/5968/5968260.png'
-            ];
-            const randomLogo = demoLogos[Math.floor(Math.random() * demoLogos.length)];
-
-            document.getElementById('p-logo-url').value = randomLogo;
-            document.getElementById('p-logo-preview').src = randomLogo;
-            document.getElementById('p-logo-preview').style.display = 'block';
-            document.getElementById('p-logo-icon').style.display = 'none';
-            showToast('Logo uploaded successfully', 'success');
-        }
-
-        function editMember(m) {
-            document.getElementById('invite-title').innerText = 'Edit Member Access';
-            document.getElementById('i-id').value = m.id;
-            document.getElementById('i-name').value = m.name;
-            document.getElementById('i-email').value = m.email;
-            document.getElementById('i-role').value = m.role;
-
-            const p = m.permissions || {};
-            document.getElementById('p-tx').checked = !!p.transactions;
-            document.getElementById('p-col').checked = !!p.collections;
-            document.getElementById('p-dis').checked = !!p.disbursements;
-            document.getElementById('p-set').checked = !!p.settings;
-
-            openModal('modal-invite');
-        }
-
-        async function saveMember() {
-            const payload = {
-                id: document.getElementById('i-id').value || null,
-                name: document.getElementById('i-name').value,
-                email: document.getElementById('i-email').value,
-                role: document.getElementById('i-role').value,
-                permissions: {
-                    transactions: document.getElementById('p-tx').checked,
-                    collections: document.getElementById('p-col').checked,
-                    disbursements: document.getElementById('p-dis').checked,
-                    settings: document.getElementById('p-set').checked
-                }
-            };
-            try {
-                const res = await fetch('/api/admin/members', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (res.ok) {
-                    showToast(payload.id ? 'Member updated' : 'Member invited', 'success');
-                    closeModal('modal-invite');
-                    sync();
-                    document.getElementById('i-id').value = '';
-                    document.getElementById('invite-title').innerText = 'Invite Team Member';
-                }
-            } catch (e) {
-                showToast('Operation failed', 'error');
-            }
-        }
-
-        async function updateMemberStatus(id, status) {
-            try {
-                const res = await fetch(`/api/admin/members/${id}/status`, {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer '+token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status })
-                });
-                if (res.ok) {
-                    showToast('Member updated', 'success');
-                    sync();
-                }
-            } catch (e) {
-                showToast('Update failed', 'error');
-            }
+                } else showToast(data.error || 'Access Denied', 'error');
+            } catch (e) { showToast('Connection Error', 'error'); }
         }
 
         function showPage(id, el) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             const target = document.getElementById('page-'+id);
             if (target) target.classList.add('active');
-
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             if (el) el.classList.add('active');
         }
 
-        function openModal(id) { document.getElementById(id).classList.add('active'); }
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-            if (id === 'modal-qr') {
-                document.getElementById('qr-res').classList.add('hidden');
-                document.getElementById('qr-btn').disabled = false;
-                document.getElementById('qr-btn').innerText = 'Generate QR Code';
-            }
-        }
-
-        function copyText(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Copied to clipboard', 'success');
-            });
-        }
-
         function logout() { localStorage.clear(); location.reload(); }
-
-        let currentRegStep = 1;
-        let selfieCaptured = false;
-        let docsUploaded = false;
-
-        function toggleAuth(mode) {
-            document.getElementById('login-panel').classList.toggle('hidden', mode === 'register');
-            document.getElementById('register-panel').classList.toggle('hidden', mode === 'login');
-            if (mode === 'register') nextStep(1);
-        }
-
-        async function openTermsModal() {
-            document.getElementById('terms-title').innerText = 'Loading...';
-            document.getElementById('terms-content').innerText = 'Fetching terms from server...';
-            openModal('modal-terms');
-            try {
-                const res = await fetch('/api/auth/terms');
-                const data = await res.json();
-                document.getElementById('terms-title').innerText = data.title;
-                document.getElementById('terms-content').innerText = data.content;
-            } catch (e) {
-                document.getElementById('terms-content').innerText = 'Failed to load terms.';
-            }
-        }
-
-        async function openComplianceModal() {
-            document.getElementById('terms-title').innerText = 'Loading...';
-            document.getElementById('terms-content').innerText = 'Fetching compliance policy...';
-            openModal('modal-terms');
-            try {
-                const res = await fetch('/api/auth/compliance');
-                const data = await res.json();
-                document.getElementById('terms-title').innerText = data.title;
-                document.getElementById('terms-content').innerText = data.content;
-            } catch (e) {
-                document.getElementById('terms-content').innerText = 'Failed to load policy.';
-            }
-        }
-
-        function nextStep(step) {
-            document.querySelectorAll('.reg-step').forEach(s => s.classList.remove('active'));
-            document.getElementById('step-' + step).classList.add('active');
-
-            for (let i = 1; i <= 5; i++) {
-                const dot = document.getElementById('dot-' + i);
-                dot.classList.remove('active', 'completed');
-                if (i < step) dot.classList.add('completed');
-                if (i === step) dot.classList.add('active');
-            }
-
-            if (step === 5) {
-                document.getElementById('rev-name').innerText = document.getElementById('r-name').value;
-                document.getElementById('rev-biz').innerText = document.getElementById('r-biz-name').value;
-                document.getElementById('rev-id').innerText = document.getElementById('r-id-type').value + ': ' + document.getElementById('r-id-num').value;
-            }
-            currentRegStep = step;
-        }
-
-        function simulateSelfie() {
-            selfieCaptured = true;
-            document.getElementById('selfie-icon').style.color = 'var(--success)';
-            document.getElementById('selfie-text').innerText = 'Verified via Liveness Check';
-            document.getElementById('selfie-text').style.color = 'var(--success)';
-            showToast('Biometric scan successful', 'success');
-        }
-
-        function simulateDocs() {
-            docsUploaded = true;
-            document.getElementById('docs-icon').style.color = 'var(--success)';
-            document.getElementById('docs-text').innerText = '3 documents uploaded successfully';
-            document.getElementById('docs-text').style.color = 'var(--success)';
-            showToast('Documents uploaded', 'success');
-        }
-
-        async function register() {
-            if (!document.getElementById('r-terms').checked) return showToast('Please accept the terms', 'error');
-            if (!selfieCaptured || !docsUploaded) return showToast('Please complete biometrics and document upload', 'error');
-
-            const btn = document.getElementById('btn-register');
-            btn.innerText = 'SUBMITTING...';
-            btn.disabled = true;
-
-            const payload = {
-                fullName: document.getElementById('r-name').value,
-                email: document.getElementById('r-email').value,
-                password: document.getElementById('r-pass').value,
-                businessName: document.getElementById('r-biz-name').value,
-                businessAddress: document.getElementById('r-biz-addr').value,
-                businessType: document.getElementById('r-biz-type').value,
-                idType: document.getElementById('r-id-type').value,
-                idNumber: document.getElementById('r-id-num').value,
-                selfieCaptured,
-                documentsUploaded: docsUploaded,
-                acceptedTerms: true
-            };
-
-            try {
-                const res = await fetch('/api/auth/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    showToast('Registration submitted! Redirecting to login...', 'success');
-                    setTimeout(() => toggleAuth('login'), 2000);
-                } else {
-                    showToast(data.error || 'Registration failed', 'error');
-                }
-            } catch (e) {
-                showToast('Connection to gateway failed', 'error');
-            } finally {
-                btn.innerText = 'Submit Application';
-                btn.disabled = false;
-            }
+        window.addEventListener('load', () => { if(token) { document.body.className='logged-in'; sync(); } });
+        function showToast(m, t='info') {
+            const c = document.getElementById('toast-container');
+            const e = document.createElement('div');
+            e.className = `toast ${t}`;
+            e.innerHTML = `<span>${m}</span>`;
+            c.appendChild(e);
+            setTimeout(() => { e.style.opacity='0'; setTimeout(()=>e.remove(), 500); }, 3000);
         }
     </script>
 </body>

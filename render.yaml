@@ -16,6 +16,8 @@ services:
         value: production
       - key: APP_SERVER_KEY
         sync: false
+      - key: APP_PUBLIC_URL
+        value: https://swiftpay-merchant-gateway.onrender.com
       - key: SWIFTPAY_PUBLIC_KEY
         sync: false
       - key: SWIFTPAY_SECRET_KEY
