@@ -2,9 +2,22 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const rawDbUrl = process.env.DATABASE_URL;
+
+// Fix: Log the database route being used (masked for security)
+if (rawDbUrl) {
+    const dbHost = rawDbUrl.split('@')[1]?.split('/')[0] || 'unknown';
+    console.log(`📡 Pointing Database to route: ${dbHost}`);
+} else {
+    console.warn('⚠️ No DATABASE_URL found. Database is not pointed to any route.');
+}
+
 const pgPool = new Pool({
     connectionString: rawDbUrl ? rawDbUrl.replace('postgresql://', 'postgres://') : undefined,
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false },
+    // Optimized for production stability
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
 });
 
 const cleanKey = (k) => k ? k.split('/')[0].split(' ')[0].trim() : '';
@@ -115,9 +128,9 @@ async function initDatabase() {
             updated_at TIMESTAMPTZ DEFAULT NOW()
         )`);
 
-        console.log('✅ Database Schema Verified (18 User Fields Ready)');
+        console.log('✅ Database Schema Verified & Connected to Route');
     } catch (e) {
-        console.error('❌ DB ERROR:', e.message);
+        console.error('❌ DB CONNECTION ERROR:', e.message);
         throw e;
     }
 }

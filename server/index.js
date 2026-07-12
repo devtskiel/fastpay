@@ -27,18 +27,21 @@ async function startServer() {
         const hash = await bcrypt.hash('#Sirden1216', 10)
         const { rows } = await pgPool.query('SELECT id FROM users WHERE email = $1', [adminEmail])
 
+        const isProdKeys = process.env.MAGPIE_PUBLIC_KEY?.startsWith('pk_live') || process.env.SWIFTPAY_PUBLIC_KEY?.startsWith('pk_live')
+
         if (rows.length === 0) {
             await pgPool.query(
                 `INSERT INTO users(id, email, password_hash, business_name, sp_public_key, sp_secret_key, magpie_public_key, magpie_secret_key, role, is_production)
                  VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-                ['ADMIN_01', adminEmail, hash, 'SwiftPay Store', cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY), cleanKey(process.env.MAGPIE_PUBLIC_KEY), cleanKey(process.env.MAGPIE_SECRET_KEY), 'SUPER_ADMIN', false]
+                ['ADMIN_01', adminEmail, hash, 'SwiftPay Store', cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY), cleanKey(process.env.MAGPIE_PUBLIC_KEY), cleanKey(process.env.MAGPIE_SECRET_KEY), 'SUPER_ADMIN', isProdKeys]
             )
         } else {
             await pgPool.query(
-                'UPDATE users SET sp_public_key = COALESCE($1, sp_public_key), sp_secret_key = COALESCE($2, sp_secret_key), magpie_public_key = COALESCE($3, magpie_public_key), magpie_secret_key = COALESCE($4, magpie_secret_key), role = $5 WHERE email = $6',
-                [cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY), cleanKey(process.env.MAGPIE_PUBLIC_KEY), cleanKey(process.env.MAGPIE_SECRET_KEY), 'SUPER_ADMIN', adminEmail]
+                'UPDATE users SET sp_public_key = COALESCE($1, sp_public_key), sp_secret_key = COALESCE($2, sp_secret_key), magpie_public_key = COALESCE($3, magpie_public_key), magpie_secret_key = COALESCE($4, magpie_secret_key), role = $5, is_production = $6 WHERE email = $7',
+                [cleanKey(process.env.SWIFTPAY_PUBLIC_KEY), cleanKey(process.env.SWIFTPAY_SECRET_KEY), cleanKey(process.env.MAGPIE_PUBLIC_KEY), cleanKey(process.env.MAGPIE_SECRET_KEY), 'SUPER_ADMIN', isProdKeys, adminEmail]
             )
         }
+        console.log(`✅ Admin account pointed to ${isProdKeys ? 'PRODUCTION' : 'SANDBOX'} route`);
     } catch (e) { console.error('Admin seeding failed:', e.message) }
 
     app.listen(process.env.PORT || 3000, '0.0.0.0', () => {
@@ -197,6 +200,11 @@ app.post('/api/payments/checkout', requireAuth, async (req, res) => {
         const { amount, description, customerEmail } = req.body
         const reference = 'ORD-' + Date.now()
 
+        // Dynamic DNS Routing for Callbacks
+        const serverUrl = process.env.APP_PUBLIC_URL || `${req.protocol}://${req.get('host')}`
+        const callbackUrl = process.env.SWIFTPAY_CALLBACK_URL || `${serverUrl}/api/payments/callback`
+        const webhookUrl = process.env.SWIFTPAY_WEBHOOK_URL || `${serverUrl}/api/payments/callback`
+
         if (u.isProd) {
             return res.status(400).json({ error: 'Please use /api/payments/magpie/checkout for production collections' })
         }
@@ -208,12 +216,15 @@ app.post('/api/payments/checkout', requireAuth, async (req, res) => {
             reference,
             description: description || 'SwiftPay Order',
             email: customerEmail,
-            callbackUrl: process.env.SWIFTPAY_CALLBACK_URL || 'https://example.com/callback',
-            webhookUrl: process.env.SWIFTPAY_WEBHOOK_URL || 'https://example.com/webhook'
+            callbackUrl,
+            webhookUrl
         }
 
         const signature = computeHmacSha256(JSON.stringify(payload), u.sec)
         const sandboxApiUrl = 'https://api.pay.sandbox.live.swiftpay.ph/api/orders'
+
+        console.log(`🔗 Pointing SwiftPay Callback to route: ${callbackUrl}`)
+
         try {
             const resp = await axios.post(sandboxApiUrl, { ...payload, signature }, {
                 headers: { 'x-access-key': u.pub }
@@ -262,14 +273,20 @@ app.post('/api/swiftpay/disburse', requireAuth, async (req, res) => {
         }
 
         // [SANDBOX] Swiftpay Disbursement Integration
-        const baseUrl = process.env.SWIFTPAY_BASE_URL || 'https://api.pay.sandbox.live.swiftpay.ph'
+        const baseUrl = u.isProd ? 'https://api.pay.live.swiftpay.ph' : 'https://api.pay.sandbox.live.swiftpay.ph'
         const auth = Buffer.from(`${u.pub}:${u.sec}`).toString('base64')
+
+        const serverUrl = process.env.APP_PUBLIC_URL || `${req.protocol}://${req.get('host')}`
+        const callbackUrl = process.env.DISBURSEMENT_CALLBACK_URL || `${serverUrl}/api/swiftpay/disbursement-callback`
+
         const payload = {
             merchantReferenceNo: referenceNo, channel: 'INSTAPAY', institutionCode,
             creditInformation: { amount: parseFloat(amount).toFixed(2), remarks: 'Payout' },
             recipientInformation: { accountNumber, firstName, lastName },
-            callbackUrl: process.env.DISBURSEMENT_CALLBACK_URL || 'https://example.com/payout-callback'
+            callbackUrl
         }
+
+        console.log(`🔗 Pointing Disbursement Callback to route: ${callbackUrl}`)
 
         try {
             await axios.post(`${baseUrl}/api/disbursements/send`, payload, { headers: { 'Authorization': `Basic ${auth}` } })

@@ -141,7 +141,32 @@ fun SwiftPayApp() {
             ) { key ->
                 when (key) {
                     Route.Login -> NavEntry(key) { LoginScreen(onLoginSuccess = { e -> scope.launch { settings.setLoggedIn(e, true) } }, onNavigateToRegistration = { navController.navigate(Route.Registration) }, onNavigateToCompliance = { navController.navigate(Route.Compliance) }) }
-                    Route.Registration -> NavEntry(key) { RegistrationScreen(onSuccess = { _,_,_,_,_,_,_,_,_,_,_ -> navController.navigate(Route.Home) }, onBack = { navController.pop() }, onNavigateToTerms = { navController.navigate(Route.Terms) }) }
+                    Route.Registration -> NavEntry(key) {
+                        RegistrationScreen(
+                            onSuccess = { email, password, fullName, businessName, businessAddress, businessType, idType, idNumber, selfieCaptured, documentsUploaded, acceptedTerms ->
+                                scope.launch {
+                                    val result = DIContainer.provideAuthenticateUseCase().registerAdmin(
+                                        email = email,
+                                        password = password,
+                                        fullName = fullName,
+                                        businessName = businessName,
+                                        businessAddress = businessAddress,
+                                        businessType = businessType,
+                                        idType = idType,
+                                        idNumber = idNumber,
+                                        selfieCaptured = selfieCaptured,
+                                        documentsUploaded = documentsUploaded,
+                                        acceptedTerms = acceptedTerms
+                                    )
+                                    if (result.isSuccess) {
+                                        navController.navigate(Route.Home)
+                                    }
+                                }
+                            },
+                            onBack = { navController.pop() },
+                            onNavigateToTerms = { navController.navigate(Route.Terms) }
+                        )
+                    }
                     Route.Terms -> NavEntry(key) { TermsAndConditionsScreen(onBack = { navController.pop() }) }
                     Route.Compliance -> NavEntry(key) { ComplianceScreen(onBack = { navController.pop() }) }
                     else -> NavEntry(key) {}
