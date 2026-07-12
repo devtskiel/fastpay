@@ -3,19 +3,22 @@ require('dotenv').config();
 
 const rawDbUrl = process.env.DATABASE_URL;
 
-// Fix: Log the database route being used (masked for security)
-if (rawDbUrl) {
-    const dbHost = rawDbUrl.split('@')[1]?.split('/')[0] || 'unknown';
-    console.log(`📡 Pointing Database to route: ${dbHost}`);
+// Correctly sanitize connection string for PostgreSQL
+const connectionString = rawDbUrl ?
+    (rawDbUrl.startsWith('postgres://') ? rawDbUrl : rawDbUrl.replace('postgresql://', 'postgres://'))
+    : undefined;
+
+if (connectionString) {
+    const dbHost = connectionString.split('@')[1]?.split('/')[0] || 'unknown';
+    console.log(`📡 Database route identified: ${dbHost}`);
 } else {
-    console.warn('⚠️ No DATABASE_URL found. Database is not pointed to any route.');
+    console.error('❌ FATAL: DATABASE_URL is missing. Live connection impossible.');
 }
 
 const pgPool = new Pool({
-    connectionString: rawDbUrl ? rawDbUrl.replace('postgresql://', 'postgres://') : undefined,
-    ssl: { rejectUnauthorized: false },
-    // Optimized for production stability
-    max: 20,
+    connectionString,
+    ssl: { rejectUnauthorized: false }, // Mandatory for Render/Railway managed DBs
+    max: 15, // Adjusted for Free Tier limits
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
 });
@@ -24,6 +27,8 @@ const cleanKey = (k) => k ? k.split('/')[0].split(' ')[0].trim() : '';
 
 async function initDatabase() {
     try {
+        if (!connectionString) throw new Error('DATABASE_URL not configured');
+
         await pgPool.query(`CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             email TEXT UNIQUE NOT NULL,
@@ -128,9 +133,9 @@ async function initDatabase() {
             updated_at TIMESTAMPTZ DEFAULT NOW()
         )`);
 
-        console.log('✅ Database Schema Verified & Connected to Route');
+        console.log('✅ Database Schema Verified & Connected to Live Route');
     } catch (e) {
-        console.error('❌ DB CONNECTION ERROR:', e.message);
+        console.error('❌ LIVE DB CONNECTION ERROR:', e.message);
         throw e;
     }
 }

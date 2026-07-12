@@ -12,6 +12,7 @@ const { requireAuth, requireApiKey, JWT_SECRET } = require('./lib/auth')
 const { computeHmacSha256, verifyHmacSignature, normalizeTransactionStatus } = require('./lib/merchant')
 
 const app = express()
+app.set('trust proxy', 1) // Required for Render/Railway HTTPS detection
 app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors())
 app.use(bodyParser.json())
